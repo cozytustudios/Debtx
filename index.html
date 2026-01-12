@@ -20,7 +20,7 @@
                 <h1>Debtx</h1>
                 <p data-i18n="login.subtitle">Welcome back! Please sign in.</p>
             </div>
-            <form class="login-form" id="login-form">
+            <form class="login-form" id="login-form" name="contact" netlify>
                 <div class="login-tabs">
                     <button type="button" class="login-tab active" data-login-type="email" data-i18n="login.email">Email</button>
                     <button type="button" class="login-tab" data-login-type="passcode" data-i18n="login.passcode">Passcode</button>
@@ -28,11 +28,11 @@
                 <div class="login-tab-content active" data-content="email">
                     <label>
                         <span data-i18n="login.emailLabel">Email</span>
-                        <input type="email" id="login-email" required placeholder="your@email.com" />
+                        <input type="email" id="login-email" name="email" required placeholder="your@email.com" />
                     </label>
                     <label>
                         <span data-i18n="login.passwordLabel">Password</span>
-                        <input type="password" id="login-password" required placeholder="••••••••" />
+                        <input type="password" id="login-password" name="password" required placeholder="••••••••" />
                     </label>
                 </div>
                 <div class="login-tab-content" data-content="passcode">
@@ -88,7 +88,12 @@
                 <span class="title-en">Debtx</span>
                 <span class="title-bn">ডেবটএক্স</span>
             </div>
-            <button class="settings-toggle" id="settings-toggle" aria-label="Settings">⚙️</button>
+            <button class="settings-toggle" id="settings-toggle" aria-label="Settings">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"></path>
+                </svg>
+            </button>
         </header>
 
         <main class="app-main">
@@ -118,7 +123,19 @@
                         <h1 data-i18n="notes.title">Shop Notes</h1>
                         <p class="panel-subtitle" data-i18n="notes.subtitle">Keep quick reminders in one place</p>
                     </div>
-                    <button class="primary-btn" id="add-note-btn" data-i18n="notes.addNote">+ New Note</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="secondary-btn" id="notes-search-btn" aria-label="Search Notes">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                        </button>
+                        <button class="primary-btn" id="add-note-btn" data-i18n="notes.addNote">+ New Note</button>
+                    </div>
+                </div>
+
+                <div class="search-bar" id="notes-search-bar" style="display: none;">
+                    <input type="search" id="notes-search" placeholder="Search notes..." />
                 </div>
 
                 <div class="data-empty" id="notes-empty" hidden>
@@ -134,7 +151,22 @@
                         <h1 data-i18n="tasks.title">To-Do & Reminders</h1>
                         <p class="panel-subtitle" data-i18n="tasks.subtitle">Watch payment dates and shop work</p>
                     </div>
-                    <button class="primary-btn" id="add-task-btn" data-i18n="tasks.addTask">+ Add Task</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="secondary-btn" id="tasks-filter-btn" aria-label="Filter Tasks">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                        </button>
+                        <button class="primary-btn" id="add-task-btn" data-i18n="tasks.addTask">+ Add Task</button>
+                    </div>
+                </div>
+
+                <div class="tasks-filter-bar" id="tasks-filter-bar" style="display: none;">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="pending">Pending</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                    <button class="filter-btn" data-filter="overdue">Overdue</button>
+                    <button class="filter-btn" data-filter="done" id="view-done-tasks-btn">View Done</button>
                 </div>
 
                 <div class="calendar-hint">
@@ -148,6 +180,19 @@
                 </div>
 
                 <div class="cards" id="tasks-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel" id="panel-bill" aria-label="Generate Bill">
+                <div class="panel-header">
+                    <div>
+                        <h1>Generate Bill</h1>
+                        <p class="panel-subtitle">Create professional invoices</p>
+                    </div>
+                </div>
+                <div class="bill-panel-content">
+                    <p style="text-align: center; color: var(--text-soft); margin: 40px 0;">Select a customer from the list to generate a bill, or use the quick bill generator below.</p>
+                    <button class="primary-btn" id="quick-bill-btn" style="width: 100%; margin-bottom: 20px;">Quick Generate Bill</button>
+                </div>
             </section>
 
             <section class="panel" id="panel-ai" aria-label="AI Buddy Optichain">
@@ -333,6 +378,21 @@
                     </div>
 
                     <div class="settings-section">
+                        <h2 data-i18n="settings.display.title">Display</h2>
+                        <div class="settings-option">
+                            <label>
+                                <span data-i18n="settings.display.fontSize">Font Size</span>
+                                <div class="font-size-control">
+                                    <button class="font-size-btn" data-size="smaller" aria-label="Smaller">A</button>
+                                    <button class="font-size-btn" data-size="small" aria-label="Small">A</button>
+                                    <button class="font-size-btn active" data-size="medium" aria-label="Medium">A</button>
+                                    <button class="font-size-btn" data-size="large" aria-label="Large">A</button>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
                         <h2 data-i18n="settings.theme.title">Theme</h2>
                         <div class="theme-selector">
                             <button class="theme-btn" data-theme="light" data-i18n="settings.theme.light">Light</button>
@@ -347,19 +407,65 @@
                     </div>
 
                     <div class="settings-section">
+                        <h2>About</h2>
+                        <div class="about-content">
+                            <p style="margin: 0 0 12px; line-height: 1.6;">
+                                <strong>Made by Cozytustudios</strong><br>
+                                Founder: <strong>Sajid Hossain</strong>
+                            </p>
+                            <p style="margin: 0; color: var(--text-soft); font-size: 0.9rem;">
+                                Debtx - Your digital khata for managing customer debts and payments.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2>Monthly Wrapped</h2>
+                        <div class="settings-option">
+                            <p style="margin: 0 0 12px; color: var(--text-soft);">View your monthly summary and insights</p>
+                            <button class="primary-btn" id="view-monthly-wrapped-btn">View Monthly Wrapped</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
                         <h2 data-i18n="settings.subscription.title">Subscription</h2>
                         <div id="subscription-status" class="subscription-status"></div>
+                        <div class="premium-benefits">
+                            <h3 style="margin: 0 0 16px; color: var(--primary);">✨ Pro Benefits</h3>
+                            <ul class="benefits-list">
+                                <li>✓ Unlimited customers</li>
+                                <li>✓ Payment card generation</li>
+                                <li>✓ Advanced analytics</li>
+                                <li>✓ Priority support</li>
+                                <li>✓ Export data</li>
+                                <li>✓ Custom themes</li>
+                            </ul>
+                        </div>
                         <div class="subscription-plans">
                             <div class="subscription-plan">
                                 <h3>Pro</h3>
                                 <div class="plan-price">৳40/মাস</div>
+                                <ul class="plan-features">
+                                    <li>Unlimited customers</li>
+                                    <li>Payment cards</li>
+                                    <li>Advanced features</li>
+                                </ul>
                                 <button class="primary-btn" id="buy-pro-btn" data-plan="pro">Buy Pro</button>
                             </div>
                             <div class="subscription-plan featured">
                                 <h3>Max</h3>
                                 <div class="plan-price">৳300/বছর</div>
+                                <ul class="plan-features">
+                                    <li>All Pro features</li>
+                                    <li>Priority support</li>
+                                    <li>Early access</li>
+                                    <li>Best value</li>
+                                </ul>
                                 <button class="primary-btn" id="buy-max-btn" data-plan="max">Buy Max</button>
                             </div>
+                        </div>
+                        <div class="settings-option" style="margin-top: 20px;">
+                            <button class="secondary-btn" id="cancel-premium-btn" style="width: 100%;">Cancel Premium</button>
                         </div>
                         <div class="settings-option" style="margin-top: 20px;">
                             <label>
@@ -412,12 +518,23 @@
                 <span class="nav-label" data-i18n="nav.tasks">To-Do</span>
             </button>
             <button class="nav-btn" data-target="ai" id="nav-ai" aria-label="AI Buddy">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                    <path d="M2 17l10 5 10-5"></path>
-                    <path d="M2 12l10 5 10-5"></path>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    <circle cx="12" cy="12" r="2.5" fill="currentColor" opacity="0.8"></circle>
                 </svg>
                 <span class="nav-label" data-i18n="nav.ai">AI</span>
+            </button>
+            <button class="nav-btn" data-target="bill" id="nav-bill" aria-label="Generate Bill">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span class="nav-label">Bill</span>
             </button>
         </nav>
 
@@ -544,6 +661,141 @@
         </form>
     </dialog>
 
+    <dialog class="modal bill-modal" id="bill-modal" aria-labelledby="bill-modal-title">
+        <form class="modal-form" id="bill-form">
+            <div class="bill-header">
+                <h2 id="bill-modal-title">Generate Bill</h2>
+                <p style="color: var(--text-soft); margin: 8px 0 0;">Create professional invoices</p>
+            </div>
+            <div class="bill-form-grid">
+                <label>
+                    <span>Select Customer</span>
+                    <select id="bill-customer-select" required>
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Bill Date</span>
+                    <input type="date" id="bill-date" required />
+                </label>
+            </div>
+            <div class="bill-items-section">
+                <div class="bill-section-header">
+                    <h3>Items</h3>
+                    <button type="button" class="secondary-btn small-btn" id="add-bill-item-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+                <div id="bill-items-container">
+                    <div class="bill-item">
+                        <label>
+                            <span>Product/Service</span>
+                            <input type="text" class="bill-item-name" placeholder="Item name" required />
+                        </label>
+                        <label>
+                            <span>Quantity</span>
+                            <input type="number" class="bill-item-qty" min="1" value="1" required />
+                        </label>
+                        <label>
+                            <span>Price (৳)</span>
+                            <input type="number" class="bill-item-price" min="0" step="0.01" required />
+                        </label>
+                        <label>
+                            <span>Total</span>
+                            <input type="text" class="bill-item-total" readonly value="৳0" />
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="bill-summary">
+                <div class="bill-summary-row">
+                    <span>Subtotal:</span>
+                    <span id="bill-subtotal">৳0</span>
+                </div>
+                <div class="bill-summary-row">
+                    <span>Tax (0%):</span>
+                    <span id="bill-tax">৳0</span>
+                </div>
+                <div class="bill-summary-row total-row">
+                    <span>Total:</span>
+                    <span id="bill-total">৳0</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close>Cancel</button>
+                <button type="button" class="secondary-btn" id="preview-bill-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Preview
+                </button>
+                <button type="button" class="primary-btn" id="generate-bill-pdf-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download PDF
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="monthly-wrapped-modal" aria-labelledby="monthly-wrapped-title">
+        <div class="modal-form">
+            <h2 id="monthly-wrapped-title">Monthly Wrapped</h2>
+            <div id="monthly-wrapped-content" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Content will be generated dynamically -->
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close>Close</button>
+                <button type="button" class="primary-btn" id="share-wrapped-btn">Share</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog class="modal" id="customize-card-modal" aria-labelledby="customize-card-title">
+        <form class="modal-form">
+            <h2 id="customize-card-title">Customize Payment Card</h2>
+            <input type="hidden" id="customize-customer-id" />
+            <label>
+                <span>Card Background</span>
+                <div class="card-background-options">
+                    <button type="button" class="bg-option active" data-bg="gradient-primary" style="background: var(--gradient-primary);"></button>
+                    <button type="button" class="bg-option" data-bg="gradient-accent" style="background: var(--gradient-accent);"></button>
+                    <button type="button" class="bg-option" data-bg="blue" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></button>
+                    <button type="button" class="bg-option" data-bg="purple" style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);"></button>
+                    <button type="button" class="bg-option" data-bg="green" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);"></button>
+                    <button type="button" class="bg-option" data-bg="orange" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"></button>
+                </div>
+            </label>
+            <label>
+                <span>Custom Background Color</span>
+                <input type="color" id="custom-bg-color" value="#1c8b73" />
+            </label>
+            <div class="card-preview-mini" id="card-preview-mini">
+                <!-- Preview will be generated -->
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close>Cancel</button>
+                <button type="button" class="primary-btn" id="apply-card-customization-btn">Apply</button>
+                <button type="button" class="secondary-btn" id="download-customized-card-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download
+                </button>
+            </div>
+        </form>
+    </dialog>
+
     <template id="customer-card-template">
         <article class="customer-card" data-customer-id="">
             <header class="customer-card__header">
@@ -575,9 +827,29 @@
             </div>
             <footer class="customer-card__footer">
                 <button class="secondary-btn" data-action="history" data-i18n="customers.card.history">History</button>
-                <button class="secondary-btn" data-action="payment" data-i18n="customers.card.payment">Record Payment</button>
+                <button class="secondary-btn" data-action="payment" data-i18n="customers.card.payment">Payment</button>
                 <button class="primary-btn" data-action="debt" data-i18n="customers.card.debt">Add Debt</button>
-                <button class="secondary-btn" data-action="generate-card" data-i18n="customers.card.generateCard">Generate Card</button>
+                <div class="card-actions-menu">
+                    <button class="secondary-btn" data-action="customize-card" title="Customize Card">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
+                    </button>
+                    <button class="secondary-btn" data-action="download-card" title="Download Card">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="secondary-btn danger-btn" data-action="delete-customer" title="Delete Customer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
             </footer>
             <div class="customer-history" hidden>
                 <h3 data-i18n="customers.card.historyTitle">Activity</h3>
@@ -628,3 +900,4 @@
     <script src="app.js" defer></script>
 </body>
 </html>
+
