@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debtx | Digital Khata for Bangladeshi Shopkeepers</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="iconx.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-container glass-card">
+            <div class="login-header">
+                <img src="iconx.png" alt="Debtx" class="login-logo" />
+                <h1>Debtx</h1>
+                <p data-i18n="login.subtitle">Welcome back! Please sign in.</p>
+            </div>
+            <form class="login-form" id="login-form">
+                <div class="login-tabs">
+                    <button type="button" class="login-tab active" data-login-type="email" data-i18n="login.email">Email</button>
+                    <button type="button" class="login-tab" data-login-type="passcode" data-i18n="login.passcode">Passcode</button>
+                </div>
+                <div class="login-tab-content active" data-content="email">
+                    <label>
+                        <span data-i18n="login.emailLabel">Email</span>
+                        <input type="email" id="login-email" required placeholder="your@email.com" />
+                    </label>
+                    <label>
+                        <span data-i18n="login.passwordLabel">Password</span>
+                        <input type="password" id="login-password" required placeholder="••••••••" />
+                    </label>
+                </div>
+                <div class="login-tab-content" data-content="passcode">
+                    <label>
+                        <span data-i18n="login.passcodeLabel">Passcode</span>
+                        <input type="password" id="login-passcode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" />
+                    </label>
+                    <p class="login-hint" data-i18n="login.passcodeHint">Enter 4-6 digit passcode</p>
+                </div>
+                <button type="submit" class="primary-btn login-submit" data-i18n="login.submit">Sign In</button>
+                <button type="button" class="secondary-btn" id="setup-passcode-btn" data-i18n="login.setupPasscode">Setup Passcode</button>
+                <button type="button" class="secondary-btn" id="skip-login-btn" style="margin-top: 10px;">Skip Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- First Time Guide (Hidden - Disabled) -->
+    <div class="guide-overlay" id="guide-overlay" hidden style="display: none !important;">
+        <div class="guide-container glass-card">
+            <div class="guide-slide active" data-slide="0">
+                <h2 data-i18n="guide.welcome.title">Welcome to Debtx!</h2>
+                <p data-i18n="guide.welcome.text">Your digital khata for managing customer debts and payments.</p>
+                <img src="iconx.png" alt="Debtx" class="guide-icon" />
+            </div>
+            <div class="guide-slide" data-slide="1">
+                <h2 data-i18n="guide.customers.title">Manage Customers</h2>
+                <p data-i18n="guide.customers.text">Add customers, track their debts, and record payments easily.</p>
+            </div>
+            <div class="guide-slide" data-slide="2">
+                <h2 data-i18n="guide.notes.title">Take Notes</h2>
+                <p data-i18n="guide.notes.text">Keep quick reminders and important information in one place.</p>
+            </div>
+            <div class="guide-slide" data-slide="3">
+                <h2 data-i18n="guide.tasks.title">Track Tasks</h2>
+                <p data-i18n="guide.tasks.text">Set reminders for payments and important shop activities.</p>
+            </div>
+            <div class="guide-slide" data-slide="4">
+                <h2 data-i18n="guide.ai.title">AI Assistant</h2>
+                <p data-i18n="guide.ai.text">Use Optichain AI to get insights, generate cards, and more!</p>
+            </div>
+            <div class="guide-nav">
+                <button class="secondary-btn" id="guide-prev" data-i18n="guide.prev">Previous</button>
+                <div class="guide-dots"></div>
+                <button class="primary-btn" id="guide-next" data-i18n="guide.next">Next</button>
+                <button class="primary-btn" id="guide-skip" data-i18n="guide.skip" style="display: none;">Skip</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app" id="app" hidden>
+        <header class="app-header">
+            <div class="app-title">
+                <span class="title-en">Debtx</span>
+                <span class="title-bn">ডেবটএক্স</span>
+            </div>
+            <button class="settings-toggle" id="settings-toggle" aria-label="Settings">⚙️</button>
+        </header>
+
+        <main class="app-main">
+            <section class="panel active" id="panel-customers" aria-label="Customer debts">
+                <div class="panel-header">
+                    <div>
+                        <h1 data-i18n="customers.title">Customers & Debts</h1>
+                        <p class="panel-subtitle" data-i18n="customers.subtitle">Track dues, payments, and reminders</p>
+                    </div>
+                    <button class="primary-btn" id="add-customer-btn" data-i18n="customers.addCustomer">+ Add Customer</button>
+                </div>
+
+                <div class="search-bar">
+                    <input type="search" id="customer-search" placeholder="Search by name or phone" data-i18n-placeholder="customers.searchPlaceholder" />
+                </div>
+
+                <div class="data-empty" id="customers-empty" hidden>
+                    <p data-i18n="customers.empty">No customers yet. Add the first customer to begin.</p>
+                </div>
+
+                <div class="cards" id="customer-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel" id="panel-notes" aria-label="Shop notes">
+                <div class="panel-header">
+                    <div>
+                        <h1 data-i18n="notes.title">Shop Notes</h1>
+                        <p class="panel-subtitle" data-i18n="notes.subtitle">Keep quick reminders in one place</p>
+                    </div>
+                    <button class="primary-btn" id="add-note-btn" data-i18n="notes.addNote">+ New Note</button>
+                </div>
+
+                <div class="data-empty" id="notes-empty" hidden>
+                    <p data-i18n="notes.empty">No notes saved yet. Start writing your ideas.</p>
+                </div>
+
+                <div class="cards" id="notes-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel" id="panel-tasks" aria-label="To-do list and reminders">
+                <div class="panel-header">
+                    <div>
+                        <h1 data-i18n="tasks.title">To-Do & Reminders</h1>
+                        <p class="panel-subtitle" data-i18n="tasks.subtitle">Watch payment dates and shop work</p>
+                    </div>
+                    <button class="primary-btn" id="add-task-btn" data-i18n="tasks.addTask">+ Add Task</button>
+                </div>
+
+                <div class="calendar-hint">
+                    <p data-i18n="tasks.calendarHint">Tap a date to see upcoming payments and tasks.</p>
+                </div>
+
+                <div class="calendar" id="mini-calendar" aria-label="Calendar view"></div>
+
+                <div class="data-empty" id="tasks-empty" hidden>
+                    <p data-i18n="tasks.empty">No tasks scheduled. Add reminders to stay on track.</p>
+                </div>
+
+                <div class="cards" id="tasks-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel" id="panel-ai" aria-label="AI Buddy Optichain">
+                <div class="panel-header">
+                    <div>
+                        <h1>Optichain AI</h1>
+                        <p class="panel-subtitle" data-i18n="ai.subtitle">Your intelligent assistant for business insights</p>
+                    </div>
+                </div>
+
+                <div class="ai-tools-tabs">
+                    <button class="ai-tab active" data-tab="chat">Chat</button>
+                    <button class="ai-tab" data-tab="calculator">Calculator</button>
+                    <button class="ai-tab" data-tab="cards">Payment Cards</button>
+                </div>
+
+                <div class="ai-tab-content active" data-content="chat">
+                    <div class="ai-chat-container">
+                        <div class="ai-messages" id="ai-messages"></div>
+                        <div class="ai-input-container">
+                            <input type="text" id="ai-input" placeholder="Ask Optichain anything..." data-i18n-placeholder="ai.placeholder" />
+                            <button class="ai-send-btn" id="ai-send-btn" aria-label="Send">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="ai-quick-actions">
+                            <button class="ai-quick-btn" data-action="find-customer" data-i18n="ai.quick.findCustomer">Find Customer</button>
+                            <button class="ai-quick-btn" data-action="trust-ratio" data-i18n="ai.quick.trustRatio">Trust Ratio</button>
+                            <button class="ai-quick-btn" data-action="plan-day" data-i18n="ai.quick.planDay">Plan Day</button>
+                            <button class="ai-quick-btn" data-action="add-task" data-i18n="ai.quick.addTask">Add Task</button>
+                            <button class="ai-quick-btn" data-action="generate-card" data-i18n="ai.quick.generateCard">Generate Card</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-tab-content" data-content="calculator">
+                    <div class="calculator-container">
+                        <div class="calculator-display" id="calculator-display">0</div>
+                        <div class="calculator-buttons">
+                            <button class="calc-btn calc-clear" data-action="clear">C</button>
+                            <button class="calc-btn calc-clear" data-action="clear-entry">CE</button>
+                            <button class="calc-btn calc-operator" data-action="backspace">⌫</button>
+                            <button class="calc-btn calc-operator" data-value="/">÷</button>
+                            <button class="calc-btn calc-number" data-value="7">7</button>
+                            <button class="calc-btn calc-number" data-value="8">8</button>
+                            <button class="calc-btn calc-number" data-value="9">9</button>
+                            <button class="calc-btn calc-operator" data-value="*">×</button>
+                            <button class="calc-btn calc-number" data-value="4">4</button>
+                            <button class="calc-btn calc-number" data-value="5">5</button>
+                            <button class="calc-btn calc-number" data-value="6">6</button>
+                            <button class="calc-btn calc-operator" data-value="-">−</button>
+                            <button class="calc-btn calc-number" data-value="1">1</button>
+                            <button class="calc-btn calc-number" data-value="2">2</button>
+                            <button class="calc-btn calc-number" data-value="3">3</button>
+                            <button class="calc-btn calc-operator" data-value="+">+</button>
+                            <button class="calc-btn calc-number calc-zero" data-value="0">0</button>
+                            <button class="calc-btn calc-number" data-value=".">.</button>
+                            <button class="calc-btn calc-equals" data-action="equals">=</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-tab-content" data-content="cards">
+                    <div class="card-generator-container">
+                        <div class="card-preview" id="payment-card-preview">
+                            <div class="payment-card">
+                                <div class="payment-card-header">
+                                    <img id="card-shop-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3C/svg%3E" alt="Shop" class="card-shop-image" style="display: none;" />
+                                    <div>
+                                        <h3 id="card-shop-name">Your Shop</h3>
+                                        <p class="card-subtitle" data-i18n="card.paymentRequest">Payment Request</p>
+                                    </div>
+                                </div>
+                                <div class="payment-card-body">
+                                    <div class="card-amount">
+                                        <span class="card-label" data-i18n="card.amountDue">Amount Due</span>
+                                        <span class="card-value" id="card-amount">৳0</span>
+                                    </div>
+                                    <div class="card-message" id="card-message">Thank you for your business!</div>
+                                    <div class="card-payment-methods" id="card-payment-methods">
+                                        <div class="payment-method">
+                                            <span>📱</span>
+                                            <span>+880 1234 567890</span>
+                                        </div>
+                                        <div class="payment-method">
+                                            <span>🏦</span>
+                                            <span>Bank Account</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-generator-form">
+                            <label>
+                                <span data-i18n="card.selectCustomer">Select Customer</span>
+                                <select id="card-customer-select">
+                                    <option value="">-- Select Customer --</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span data-i18n="card.message">Message (optional)</span>
+                                <textarea id="card-message-input" rows="3" placeholder="Custom message for customer..."></textarea>
+                            </label>
+                            <label>
+                                <span data-i18n="card.paymentMethods">Payment Methods</span>
+                                <div class="payment-methods-input">
+                                    <input type="text" id="card-phone-input" placeholder="Phone/Account Number" />
+                                    <input type="text" id="card-bank-input" placeholder="Bank/Other Info" />
+                                </div>
+                            </label>
+                            <div class="card-actions">
+                                <button class="secondary-btn" id="card-generate-btn" data-i18n="card.generate">Generate Card</button>
+                                <button class="primary-btn" id="card-download-btn" data-i18n="card.download">Download Image</button>
+                                <button class="secondary-btn" id="card-share-btn" data-i18n="card.share">Share</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" id="panel-settings" aria-label="Settings">
+                <div class="panel-header">
+                    <div>
+                        <h1 data-i18n="settings.title">Settings</h1>
+                        <p class="panel-subtitle" data-i18n="settings.subtitle">Manage your preferences</p>
+                    </div>
+                </div>
+
+                <div class="settings-content">
+                    <div class="settings-section">
+                        <h2 data-i18n="settings.shop.title">Shop Information</h2>
+                        <div class="settings-option">
+                            <label>
+                                <span data-i18n="settings.shop.name">Shop Name</span>
+                                <input type="text" id="settings-shop-name" class="settings-input" placeholder="Enter shop name" />
+                            </label>
+                        </div>
+                        <div class="settings-option">
+                            <label>
+                                <span data-i18n="settings.shop.image">Shop Image/Logo</span>
+                                <input type="file" id="settings-shop-image" accept="image/*" class="settings-file-input" />
+                                <div class="shop-image-preview" id="shop-image-preview"></div>
+                            </label>
+                        </div>
+                        <div class="settings-option">
+                            <label>
+                                <span data-i18n="settings.shop.phone">Phone Number</span>
+                                <input type="tel" id="settings-shop-phone" class="settings-input" placeholder="+880 1234 567890" />
+                            </label>
+                        </div>
+                        <div class="settings-option">
+                            <label>
+                                <span data-i18n="settings.shop.bank">Bank Account (optional)</span>
+                                <input type="text" id="settings-shop-bank" class="settings-input" placeholder="Bank account or other payment info" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2 data-i18n="settings.language.title">Language</h2>
+                        <div class="settings-option">
+                            <label>
+                                <span data-i18n="settings.language.label">Select Language</span>
+                                <select id="settings-language" class="settings-select">
+                                    <option value="en">English</option>
+                                    <option value="bn">বাংলা</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2 data-i18n="settings.notifications.title">Notifications</h2>
+                        <div class="settings-option">
+                            <label class="settings-toggle-label">
+                                <input type="checkbox" id="settings-notifications" />
+                                <span data-i18n="settings.notifications.enable">Enable reminders</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2 data-i18n="settings.theme.title">Theme</h2>
+                        <div class="theme-selector">
+                            <button class="theme-btn" data-theme="light" data-i18n="settings.theme.light">Light</button>
+                            <button class="theme-btn" data-theme="dark" data-i18n="settings.theme.dark">Dark</button>
+                            <button class="theme-btn" data-theme="zen" data-i18n="settings.theme.zen">Zen</button>
+                            <button class="theme-btn" data-theme="cozy" data-i18n="settings.theme.cozy">Cozy</button>
+                            <button class="theme-btn" data-theme="ocean" data-i18n="settings.theme.ocean">Ocean</button>
+                            <button class="theme-btn" data-theme="forest" data-i18n="settings.theme.forest">Forest</button>
+                            <button class="theme-btn" data-theme="sunset" data-i18n="settings.theme.sunset">Sunset</button>
+                            <button class="theme-btn" data-theme="lavender" data-i18n="settings.theme.lavender">Lavender</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2 data-i18n="settings.subscription.title">Subscription</h2>
+                        <div id="subscription-status" class="subscription-status"></div>
+                        <div class="subscription-plans">
+                            <div class="subscription-plan">
+                                <h3>Pro</h3>
+                                <div class="plan-price">৳40/মাস</div>
+                                <button class="primary-btn" id="buy-pro-btn" data-plan="pro">Buy Pro</button>
+                            </div>
+                            <div class="subscription-plan featured">
+                                <h3>Max</h3>
+                                <div class="plan-price">৳300/বছর</div>
+                                <button class="primary-btn" id="buy-max-btn" data-plan="max">Buy Max</button>
+                            </div>
+                        </div>
+                        <div class="settings-option" style="margin-top: 20px;">
+                            <label>
+                                <span>Enter Coupon Code</span>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="subscription-coupon" class="settings-input" placeholder="Coupon code" />
+                                    <button class="secondary-btn" id="apply-coupon-btn">Apply</button>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="settings-option" style="margin-top: 20px;">
+                            <label>
+                                <span>Premium JSON (Import/Export)</span>
+                                <div style="display: flex; gap: 10px; flex-direction: column;">
+                                    <button class="secondary-btn" id="export-premium-btn">Export Premium JSON</button>
+                                    <input type="file" id="import-premium-file" accept=".json" style="display: none;" />
+                                    <button class="secondary-btn" id="import-premium-btn">Import Premium JSON</button>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <nav class="app-nav" aria-label="Main sections">
+            <button class="nav-btn active" data-target="customers" id="nav-customers" aria-label="Customers">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="nav-label" data-i18n="nav.customers">Customers</span>
+            </button>
+            <button class="nav-btn" data-target="notes" id="nav-notes" aria-label="Notes">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span class="nav-label" data-i18n="nav.notes">Notes</span>
+            </button>
+            <button class="nav-btn" data-target="tasks" id="nav-tasks" aria-label="To-Do">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <span class="nav-label" data-i18n="nav.tasks">To-Do</span>
+            </button>
+            <button class="nav-btn" data-target="ai" id="nav-ai" aria-label="AI Buddy">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+                <span class="nav-label" data-i18n="nav.ai">AI</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <dialog class="modal" id="customer-modal" aria-labelledby="customer-modal-title">
+        <form class="modal-form" id="customer-form">
+            <h2 id="customer-modal-title" data-i18n="modals.customer.title">Add Customer</h2>
+            <label>
+                <span data-i18n="modals.customer.name">Customer Name</span>
+                <input type="text" name="name" required maxlength="60" />
+            </label>
+            <label>
+                <span data-i18n="modals.customer.phone">Phone Number (optional)</span>
+                <input type="tel" name="phone" maxlength="15" />
+            </label>
+            <label>
+                <span data-i18n="modals.customer.repayDays">Repayment window (days)</span>
+                <input type="number" name="repaymentDays" min="1" max="90" value="7" />
+            </label>
+            <label>
+                <span data-i18n="modals.customer.note">Note</span>
+                <textarea name="note" rows="2" maxlength="140"></textarea>
+            </label>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close data-i18n="actions.cancel">Cancel</button>
+                <button type="submit" class="primary-btn" data-i18n="actions.save">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="debt-modal" aria-labelledby="debt-modal-title">
+        <form class="modal-form" id="debt-form">
+            <h2 id="debt-modal-title" data-i18n="modals.debt.title">Record Debt</h2>
+            <input type="hidden" name="customerId" />
+            <label>
+                <span data-i18n="modals.debt.amount">Debt Amount (৳)</span>
+                <input type="number" name="amount" min="1" step="1" required />
+            </label>
+            <label>
+                <span data-i18n="modals.debt.description">Description</span>
+                <textarea name="description" rows="2" maxlength="140"></textarea>
+            </label>
+            <label>
+                <span data-i18n="modals.debt.date">Date</span>
+                <input type="date" name="date" required />
+            </label>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close data-i18n="actions.cancel">Cancel</button>
+                <button type="submit" class="primary-btn" data-i18n="actions.save">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="payment-modal" aria-labelledby="payment-modal-title">
+        <form class="modal-form" id="payment-form">
+            <h2 id="payment-modal-title" data-i18n="modals.payment.title">Record Payment</h2>
+            <input type="hidden" name="customerId" />
+            <label>
+                <span data-i18n="modals.payment.amount">Payment Amount (৳)</span>
+                <input type="number" name="amount" min="1" step="1" required />
+            </label>
+            <label>
+                <span data-i18n="modals.payment.date">Date</span>
+                <input type="date" name="date" required />
+            </label>
+            <label>
+                <span data-i18n="modals.payment.note">Note</span>
+                <textarea name="note" rows="2" maxlength="140"></textarea>
+            </label>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close data-i18n="actions.cancel">Cancel</button>
+                <button type="submit" class="primary-btn" data-i18n="actions.save">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="note-modal" aria-labelledby="note-modal-title">
+        <form class="modal-form" id="note-form">
+            <h2 id="note-modal-title" data-i18n="modals.note.title">New Note</h2>
+            <label>
+                <span data-i18n="modals.note.titleLabel">Title</span>
+                <input type="text" name="title" maxlength="80" required />
+            </label>
+            <label>
+                <span data-i18n="modals.note.body">Note</span>
+                <textarea name="body" rows="4" maxlength="400"></textarea>
+            </label>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close data-i18n="actions.cancel">Cancel</button>
+                <button type="submit" class="primary-btn" data-i18n="actions.save">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="task-modal" aria-labelledby="task-modal-title">
+        <form class="modal-form" id="task-form">
+            <h2 id="task-modal-title" data-i18n="modals.task.title">Add Task</h2>
+            <label>
+                <span data-i18n="modals.task.name">Task Name</span>
+                <input type="text" name="name" maxlength="80" required />
+            </label>
+            <label>
+                <span data-i18n="modals.task.type">Type</span>
+                <select name="type">
+                    <option value="payment" data-i18n="modals.task.typePayment">Payment Follow-up</option>
+                    <option value="delivery" data-i18n="modals.task.typeDelivery">Delivery</option>
+                    <option value="purchase" data-i18n="modals.task.typePurchase">Stock Purchase</option>
+                    <option value="other" data-i18n="modals.task.typeOther">Other</option>
+                </select>
+            </label>
+            <label>
+                <span data-i18n="modals.task.date">Due Date</span>
+                <input type="date" name="dueDate" required />
+            </label>
+            <label>
+                <span data-i18n="modals.task.note">Note</span>
+                <textarea name="note" rows="2" maxlength="140"></textarea>
+            </label>
+            <div class="modal-actions">
+                <button type="button" class="secondary-btn" data-close data-i18n="actions.cancel">Cancel</button>
+                <button type="submit" class="primary-btn" data-i18n="actions.save">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <template id="customer-card-template">
+        <article class="customer-card" data-customer-id="">
+            <header class="customer-card__header">
+                <div>
+                    <h2 class="customer-name"></h2>
+                    <p class="customer-phone"></p>
+                </div>
+                <div class="customer-status">
+                    <span class="status-pill"></span>
+                    <span class="status-text"></span>
+                </div>
+            </header>
+            <div class="customer-card__body">
+                <div class="balance-row">
+                    <span data-i18n="customers.card.balance">Balance</span>
+                    <strong class="customer-balance">৳0</strong>
+                </div>
+                <div class="meta-grid">
+                    <div>
+                        <span data-i18n="customers.card.lastPayment">Last payment</span>
+                        <p class="customer-last-payment">—</p>
+                    </div>
+                    <div>
+                        <span data-i18n="customers.card.dueDate">Due date</span>
+                        <p class="customer-due-date">—</p>
+                    </div>
+                </div>
+                <p class="customer-note"></p>
+            </div>
+            <footer class="customer-card__footer">
+                <button class="secondary-btn" data-action="history" data-i18n="customers.card.history">History</button>
+                <button class="secondary-btn" data-action="payment" data-i18n="customers.card.payment">Record Payment</button>
+                <button class="primary-btn" data-action="debt" data-i18n="customers.card.debt">Add Debt</button>
+                <button class="secondary-btn" data-action="generate-card" data-i18n="customers.card.generateCard">Generate Card</button>
+            </footer>
+            <div class="customer-history" hidden>
+                <h3 data-i18n="customers.card.historyTitle">Activity</h3>
+                <ul class="history-list"></ul>
+            </div>
+        </article>
+    </template>
+
+    <template id="note-card-template">
+        <article class="note-card" data-note-id="">
+            <header>
+                <h2 class="note-title"></h2>
+                <time class="note-date"></time>
+            </header>
+            <p class="note-body"></p>
+            <footer>
+                <button class="secondary-btn" data-action="delete" data-i18n="actions.delete">Delete</button>
+            </footer>
+        </article>
+    </template>
+
+    <template id="task-card-template">
+        <article class="task-card" data-task-id="">
+            <header>
+                <div>
+                    <h2 class="task-name"></h2>
+                    <p class="task-type"></p>
+                </div>
+                <label class="task-status">
+                    <input type="checkbox" />
+                    <span data-i18n="tasks.card.done">Done</span>
+                </label>
+            </header>
+            <div class="task-body">
+                <div class="task-due">
+                    <span data-i18n="tasks.card.due">Due</span>
+                    <time class="task-date"></time>
+                </div>
+                <div class="task-pay-info" id="task-pay-info"></div>
+                <p class="task-note"></p>
+            </div>
+            <footer>
+                <button class="secondary-btn" data-action="delete" data-i18n="actions.delete">Delete</button>
+            </footer>
+        </article>
+    </template>
+
+    <script src="app.js" defer></script>
+</body>
+</html>
