@@ -17,7 +17,7 @@
             passwordHash: '',
             passcode: ''
         },
-        guideCompleted: true,
+        guideCompleted: false,
         subscription: {
             type: 'free',
             expiresAt: null,
@@ -383,8 +383,18 @@
         aiMessages: document.getElementById('ai-messages'),
         aiInput: document.getElementById('ai-input'),
         aiSendBtn: document.getElementById('ai-send-btn'),
-        aiQuickActions: document.querySelectorAll('.ai-quick-btn')
+        aiQuickActions: document.querySelectorAll('.ai-quick-btn'),
+        installAppBtn: document.getElementById('install-app-btn'),
+        learnAppBtn: document.getElementById('learn-app-btn'),
+        statCustomers: document.getElementById('stat-customers-count'),
+        statNotes: document.getElementById('stat-notes-count'),
+        statTasks: document.getElementById('stat-tasks-count'),
+        aiInsightHighest: document.getElementById('insight-highest-debt'),
+        aiInsightTasks: document.getElementById('insight-task-completion'),
+        aiInsightTip: document.getElementById('insight-ai-tip')
     };
+
+    let deferredInstallPrompt = null;
 
     const modals = {
         customer: document.getElementById('customer-modal'),
@@ -436,9 +446,13 @@
         attachSettingsHandlers();
         attachAIHandlers();
         registerServiceWorker();
+        setupInstallPrompt();
         applyLanguage(state.language, { initial: true });
         renderAll();
         startReminderLoop();
+        if (!state.guideCompleted) {
+            setTimeout(() => showGuide(), 400);
+        }
     }
 
     function checkAuth() {
@@ -743,7 +757,6 @@
             }
             parsed.shop = Object.assign(defaultState().shop, parsed.shop || {});
             parsed.auth = Object.assign(defaultState().auth, parsed.auth || {});
-            parsed.guideCompleted = true; // Always skip guide
             parsed.authenticated = parsed.authenticated !== undefined ? parsed.authenticated : false;
             parsed.subscription = Object.assign(defaultState().subscription, parsed.subscription || {});
             return Object.assign(defaultState(), parsed);
@@ -1492,6 +1505,11 @@
         notesSearch?.addEventListener('input', () => {
             renderNotes();
         });
+
+        selectors.learnAppBtn?.addEventListener('click', () => {
+            state.guideCompleted = false;
+            showGuide();
+        });
         
         // Tasks filter
         const tasksFilterBtn = document.getElementById('tasks-filter-btn');
@@ -1987,70 +2005,46 @@
     
     function downloadCustomerCard(customer, useCustomization = false) {
         const balance = getCustomerBalance(customer);
-        const customization = useCustomization && customer.cardCustomization ? customer.cardCustomization : null;
-        
-        let bgStyle = 'background: var(--gradient-primary);';
-        if (customization) {
-            if (customization.customColor) {
-                bgStyle = `background: ${customization.customColor};`;
-            } else {
-                switch(customization.backgroundType) {
-                    case 'gradient-accent':
-                        bgStyle = 'background: var(--gradient-accent);';
-                        break;
-                    case 'blue':
-                        bgStyle = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
-                        break;
-                    case 'purple':
-                        bgStyle = 'background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);';
-                        break;
-                    case 'green':
-                        bgStyle = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%);';
-                        break;
-                    case 'orange':
-                        bgStyle = 'background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);';
-                        break;
-                }
-            }
-        }
-        
-        // Create canvas for download
-        const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 500;
-        const ctx = canvas.getContext('2d');
-        
-        // Draw background
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        if (bgStyle.includes('gradient')) {
-            gradient.addColorStop(0, '#1c8b73');
-            gradient.addColorStop(1, '#106552');
-        } else {
-            const color = bgStyle.match(/#[0-9a-f]{6}/i)?.[0] || '#1c8b73';
-            gradient.addColorStop(0, color);
-            gradient.addColorStop(1, color);
-        }
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw text
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 48px Arial';
-        ctx.fillText(customer.name, 40, 100);
-        ctx.font = 'bold 72px Arial';
-        ctx.fillText(`৳${balance.toLocaleString()}`, 40, 200);
-        ctx.font = '24px Arial';
-        ctx.fillText('Payment Request', 40, 250);
-        
-        // Convert to image and download
-        canvas.toBlob((blob) => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `payment-card-${customer.name}-${Date.now()}.png`;
-            a.click();
-            URL.revokeObjectURL(url);
+        const customization = useCustomization ? customer.cardCustomization : null;
+        const colors = resolveCardColors(customization);
+        const message = state.language === 'bn'
+            ? 'অনুগ্রহ করে আপনার বাকি পরিশোধ করুন।'
+            : 'Please pay your outstanding balance.';
+        const phone = state.shop.phone;
+        const bank = state.shop.bank;
+
+        createPaymentCardBlob({
+            title: customer.name,
+            amount: formatCurrency(balance),
+            message,
+            phone,
+            bank,
+            colors
+        }).then(blob => {
+            downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`);
+        }).catch(() => {
+            alert(state.language === 'bn' ? 'ডাউনলোড ব্যর্থ হয়েছে।' : 'Download failed.');
         });
+    }
+
+    function resolveCardColors(customization) {
+        if (customization?.customColor) {
+            return [customization.customColor, customization.customColor];
+        }
+        switch (customization?.backgroundType) {
+            case 'gradient-accent':
+                return ['#f2a03d', '#e68900'];
+            case 'blue':
+                return ['#667eea', '#764ba2'];
+            case 'purple':
+                return ['#8b5cf6', '#ec4899'];
+            case 'green':
+                return ['#10b981', '#059669'];
+            case 'orange':
+                return ['#f59e0b', '#d97706'];
+            default:
+                return getDefaultCardColors();
+        }
     }
 
     function registerServiceWorker() {
@@ -2059,6 +2053,38 @@
             navigator.serviceWorker
                 .register('sw.js')
                 .catch(error => console.error('Service worker registration failed', error));
+        });
+    }
+
+    function setupInstallPrompt() {
+        const installBtn = selectors.installAppBtn;
+        if (!installBtn) return;
+        installBtn.setAttribute('disabled', 'true');
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+            installBtn.classList.add('ready');
+            installBtn.removeAttribute('disabled');
+        });
+        installBtn.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) {
+                alert(state.language === 'bn' 
+                    ? 'ব্রাউজারের মেনু থেকে ইনস্টল করুন।' 
+                    : 'Install via the browser menu.');
+                return;
+            }
+            deferredInstallPrompt.prompt();
+            const choice = await deferredInstallPrompt.userChoice;
+            if (choice.outcome === 'accepted') {
+                installBtn.textContent = state.language === 'bn' ? 'ইনস্টল সম্পন্ন' : 'Installed';
+            }
+            installBtn.classList.remove('ready');
+            installBtn.setAttribute('disabled', 'true');
+            deferredInstallPrompt = null;
+        });
+        window.addEventListener('appinstalled', () => {
+            installBtn.classList.remove('ready');
+            installBtn.setAttribute('disabled', 'true');
         });
     }
 
@@ -2408,6 +2434,40 @@
         renderCustomers();
         renderNotes();
         renderTasks();
+        updateHeroStats();
+        updateAIInsights();
+    }
+
+    function updateHeroStats() {
+        selectors.statCustomers?.textContent = state.customers.length.toString();
+        selectors.statNotes?.textContent = state.notes.length.toString();
+        const pending = state.tasks.filter(task => !task.done).length;
+        selectors.statTasks?.textContent = pending.toString();
+    }
+
+    function updateAIInsights() {
+        const highest = state.customers.reduce((max, customer) => Math.max(max, getCustomerBalance(customer)), 0);
+        selectors.aiInsightHighest?.textContent = formatCurrency(highest);
+        const total = state.tasks.length;
+        const completed = state.tasks.filter(task => task.done).length;
+        const completion = total ? Math.round((completed / total) * 100) : 0;
+        selectors.aiInsightTasks?.textContent = `${completion}%`;
+        let tip = '';
+        if (state.customers.length) {
+            const balance = formatCurrency(getCustomerBalance(state.customers[0]));
+            tip = state.language === 'bn'
+                ? `${state.customers[0].name}-এর কাছে ${balance} বাকি আছে।`
+                : `${state.customers[0].name} owes ${balance}.`;
+        } else if (state.notes.length) {
+            tip = state.language === 'bn'
+                ? 'একটি নোট পিন করুন আপনার পরবর্তী আইডিয়া ধরে রাখতে।'
+                : 'Pin a note to capture your next insight.';
+        } else {
+            tip = state.language === 'bn'
+                ? 'প্রথম ক্রেতাকে যোগ করে AI টিপস দেখুন।'
+                : 'Add your first customer to get personalized AI tips.';
+        }
+        selectors.aiInsightTip?.textContent = tip;
     }
 
     function renderCustomers() {
@@ -3317,55 +3377,158 @@
     }
 
     function downloadPaymentCard() {
-        const card = document.querySelector('.payment-card');
-        if (!card) return;
+        const customerId = selectors.cardCustomerSelect?.value;
+        if (!customerId) {
+            alert(state.language === 'bn' ? 'অনুগ্রহ করে একটি ক্রেতা নির্বাচন করুন।' : 'Please select a customer first.');
+            return;
+        }
+        const customer = state.customers.find(c => c.id === customerId);
+        if (!customer) return;
 
-        html2canvas(card, { backgroundColor: null }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'payment-card.png';
-            link.href = canvas.toDataURL();
-            link.click();
+        const amount = formatCurrency(getCustomerBalance(customer));
+        const message = selectors.cardMessageInput?.value || (state.language === 'bn'
+            ? 'অনুগ্রহ করে আপনার বাকি পরিশোধ করুন।'
+            : 'Please pay your outstanding balance.');
+        const phone = selectors.cardPhoneInput?.value || state.shop.phone;
+        const bank = selectors.cardBankInput?.value || state.shop.bank;
+        const colors = getDefaultCardColors();
+
+        createPaymentCardBlob({
+            title: customer.name,
+            amount,
+            message,
+            phone,
+            bank,
+            colors
+        }).then(blob => {
+            downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`);
         }).catch(() => {
             alert(state.language === 'bn' ? 'ডাউনলোড ব্যর্থ হয়েছে।' : 'Download failed.');
         });
     }
 
     function sharePaymentCard() {
-        const card = document.querySelector('.payment-card');
-        if (!card) return;
+        const customerId = selectors.cardCustomerSelect?.value;
+        if (!customerId) {
+            alert(state.language === 'bn' ? 'অধিকতর তথ্যের জন্য একজন ক্রেতা নির্বাচন করুন।' : 'Select a customer to share.');
+            return;
+        }
+        const customer = state.customers.find(c => c.id === customerId);
+        if (!customer) return;
 
-        html2canvas(card, { backgroundColor: null }).then(canvas => {
-            canvas.toBlob(blob => {
-                if (navigator.share && navigator.canShare({ files: [new File([blob], 'payment-card.png', { type: 'image/png' })] })) {
-                    navigator.share({
-                        files: [new File([blob], 'payment-card.png', { type: 'image/png' })],
-                        title: 'Payment Request'
-                    });
-                } else {
-                    downloadPaymentCard();
-                }
-            });
+        const amount = formatCurrency(getCustomerBalance(customer));
+        const message = selectors.cardMessageInput?.value || (state.language === 'bn'
+            ? 'অনুগ্রহ করে আপনার বাকি পরিশোধ করুন।'
+            : 'Please pay your outstanding balance.');
+        const phone = selectors.cardPhoneInput?.value || state.shop.phone;
+        const bank = selectors.cardBankInput?.value || state.shop.bank;
+        const colors = getDefaultCardColors();
+
+        createPaymentCardBlob({
+            title: customer.name,
+            amount,
+            message,
+            phone,
+            bank,
+            colors
+        }).then(blob => {
+            const file = new File([blob], `payment-card-${customer.name}.png`, { type: 'image/png' });
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: 'Payment Request'
+                }).catch(() => downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`));
+            } else {
+                downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`);
+            }
         }).catch(() => {
             alert(state.language === 'bn' ? 'শেয়ার ব্যর্থ হয়েছে।' : 'Share failed.');
         });
     }
 
-    // Simple html2canvas replacement for basic functionality
-    function html2canvas(element, options) {
-        return new Promise((resolve) => {
+    function downloadBlobAsImage(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function getDefaultCardColors() {
+        return ['#1c8b73', '#12644f'];
+    }
+
+    function createPaymentCardBlob({ title, amount, message, phone, bank, colors }) {
+        return new Promise((resolve, reject) => {
             const canvas = document.createElement('canvas');
+            const width = 900;
+            const height = 520;
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext('2d');
-            canvas.width = element.offsetWidth;
-            canvas.height = element.offsetHeight;
-            
-            const style = window.getComputedStyle(element);
-            ctx.fillStyle = style.backgroundColor || '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // For a simple version, we'll create a basic representation
-            // In production, you'd want to use a proper library
-            resolve(canvas);
+
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, colors[0]);
+            gradient.addColorStop(1, colors[1]);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.fillStyle = '#fff';
+            ctx.textBaseline = 'top';
+            ctx.font = '700 48px Inter, Arial';
+            ctx.fillText(title, 60, 80);
+
+            ctx.font = '700 76px Inter, Arial';
+            ctx.fillText(amount, 60, 170);
+
+        ctx.font = '500 28px Inter, Arial';
+        ctx.fillText(translate('card.paymentRequest') || (state.language === 'bn' ? 'পেমেন্ট অনুরোধ' : 'Payment Request'), 60, 260);
+
+            ctx.font = '400 22px Inter, Arial';
+            drawMultilineText(ctx, message, 60, 320, width - 120, 28);
+
+            let methodY = 420;
+            ctx.font = '500 24px Inter, Arial';
+            if (phone) {
+                ctx.fillText(`📱 ${phone}`, 60, methodY);
+                methodY += 32;
+            }
+            if (bank) {
+                ctx.fillText(`🏦 ${bank}`, 60, methodY);
+            }
+
+            canvas.toBlob(blob => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error('Could not create image'));
+                }
+            });
         });
+    }
+
+    function drawMultilineText(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+        words.forEach(word => {
+            const testLine = line + word + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && line) {
+                ctx.fillText(line.trim(), x, currentY);
+                line = word + ' ';
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        });
+        if (line) {
+            ctx.fillText(line.trim(), x, currentY);
+        }
     }
 
     function generateBusinessSummary(lang) {
@@ -3401,3 +3564,4 @@
     }
 
 })();
+
