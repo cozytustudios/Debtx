@@ -50,7 +50,7 @@
     </div>
 
     <!-- First Time Guide (Hidden - Disabled) -->
-    <div class="guide-overlay" id="guide-overlay" hidden style="display: none !important;">
+    <div class="guide-overlay" id="guide-overlay" hidden>
         <div class="guide-container glass-card">
             <div class="guide-slide active" data-slide="0">
                 <h2 data-i18n="guide.welcome.title">Welcome to Debtx!</h2>
@@ -95,6 +95,34 @@
                 </svg>
             </button>
         </header>
+        <div class="app-hero glass-card">
+            <div class="app-hero__text">
+                <p>Optichain · Digital Khata</p>
+                <h2>Keep track of dues, notes, and premium AI guidance.</h2>
+                <p>Get a walkthrough, install the PWA, and keep your shop moving.</p>
+                <div class="app-hero__actions">
+                    <button class="primary-btn" id="install-app-btn" disabled>Install App</button>
+                    <button class="secondary-btn" id="learn-app-btn">How it works</button>
+                </div>
+            </div>
+            <div class="app-hero__stats">
+                <div class="stat-card">
+                    <span>Customers</span>
+                    <strong id="stat-customers-count">0</strong>
+                    <small>Active profiles</small>
+                </div>
+                <div class="stat-card">
+                    <span>Notes</span>
+                    <strong id="stat-notes-count">0</strong>
+                    <small>Ideas captured</small>
+                </div>
+                <div class="stat-card">
+                    <span>Pending tasks</span>
+                    <strong id="stat-tasks-count">0</strong>
+                    <small>Due soon</small>
+                </div>
+            </div>
+        </div>
 
         <main class="app-main">
             <section class="panel active" id="panel-customers" aria-label="Customer debts">
@@ -202,6 +230,23 @@
                         <p class="panel-subtitle" data-i18n="ai.subtitle">Your intelligent assistant for business insights</p>
                     </div>
                 </div>
+
+            <div class="ai-insights" id="ai-insights">
+                <div class="insight-card">
+                    <p>Highest balance</p>
+                    <strong id="insight-highest-debt">৳0</strong>
+                    <small>Collect sooner</small>
+                </div>
+                <div class="insight-card">
+                    <p>Task completion</p>
+                    <strong id="insight-task-completion">0%</strong>
+                    <small>Across due dates</small>
+                </div>
+                <div class="insight-card">
+                    <p>AI tip</p>
+                    <small id="insight-ai-tip">Ask Optichain for help</small>
+                </div>
+            </div>
 
                 <div class="ai-tools-tabs">
                     <button class="ai-tab active" data-tab="chat">Chat</button>
@@ -439,6 +484,8 @@
                                 <li>✓ Priority support</li>
                                 <li>✓ Export data</li>
                                 <li>✓ Custom themes</li>
+                                    <li>✓ AI-guided reminders</li>
+                                    <li>✓ Notes & task sync</li>
                             </ul>
                         </div>
                         <div class="subscription-plans">
@@ -900,4 +947,3 @@
     <script src="app.js" defer></script>
 </body>
 </html>
-
