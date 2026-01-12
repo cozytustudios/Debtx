@@ -35,7 +35,8 @@
         tasks: [],
         ui: {
             selectedDate: todayString(),
-            activePanel: 'customers'
+            activePanel: 'customers',
+            fontSize: 'medium'
         }
     });
 
@@ -337,13 +338,15 @@
             customers: document.getElementById('nav-customers'),
             notes: document.getElementById('nav-notes'),
             tasks: document.getElementById('nav-tasks'),
-            ai: document.getElementById('nav-ai')
+            ai: document.getElementById('nav-ai'),
+            bill: document.getElementById('nav-bill')
         },
         panels: {
             customers: document.getElementById('panel-customers'),
             notes: document.getElementById('panel-notes'),
             tasks: document.getElementById('panel-tasks'),
             ai: document.getElementById('panel-ai'),
+            bill: document.getElementById('panel-bill'),
             settings: document.getElementById('panel-settings')
         },
         settingsToggle: document.getElementById('settings-toggle'),
@@ -547,6 +550,13 @@
             if (!email || !password) {
                 alert(state.language === 'bn' ? 'ইমেইল এবং পাসওয়ার্ড প্রয়োজন' : 'Email and password required');
                 return false;
+            }
+
+            // Netlify form submission (will work if deployed on Netlify)
+            const form = document.getElementById('login-form');
+            if (form && form.hasAttribute('netlify')) {
+                // Let Netlify handle the form submission in the background
+                // Continue with local authentication
             }
 
             if (state.auth.email && state.auth.passwordHash) {
@@ -778,7 +788,16 @@
 
     function attachSettingsHandlers() {
         selectors.settingsToggle?.addEventListener('click', () => {
-            setActivePanel('settings');
+            const settingsPanel = selectors.panels.settings;
+            if (settingsPanel) {
+                if (settingsPanel.classList.contains('active')) {
+                    // Return to previous panel or customers
+                    const prevPanel = state.ui.activePanel === 'settings' ? 'customers' : state.ui.activePanel;
+                    setActivePanel(prevPanel);
+                } else {
+                    setActivePanel('settings');
+                }
+            }
         });
 
         selectors.settingsLanguage?.addEventListener('change', (e) => {
@@ -868,7 +887,11 @@
             const couponInput = document.getElementById('subscription-coupon');
             const couponCode = couponInput?.value || '';
             if (applyCoupon(couponCode)) {
-                alert(state.language === 'bn' ? 'কুপন প্রয়োগ করা হয়েছে! ১ বছরের প্রিমিয়াম সক্রিয়।' : 'Coupon applied! 1 year premium activated.');
+                const subType = state.subscription.type === 'pro' ? 'Pro' : 'Max';
+                const duration = state.subscription.type === 'pro' ? '1 month' : '1 year';
+                alert(state.language === 'bn' 
+                    ? `কুপন প্রয়োগ করা হয়েছে! ${subType} প্রিমিয়াম সক্রিয় (${duration})।` 
+                    : `Coupon applied! ${subType} premium activated (${duration}).`);
                 couponInput.value = '';
             } else {
                 alert(state.language === 'bn' ? 'অবৈধ কুপন কোড।' : 'Invalid coupon code.');
@@ -921,6 +944,171 @@
         });
         
         renderSubscriptionStatus();
+        
+        // Font size controls
+        const fontSizeButtons = document.querySelectorAll('.font-size-btn');
+        fontSizeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const size = btn.dataset.size;
+                state.ui.fontSize = size;
+                applyFontSize(size);
+                saveState();
+                fontSizeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        
+        // Apply initial font size
+        if (state.ui.fontSize) {
+            applyFontSize(state.ui.fontSize);
+            fontSizeButtons.forEach(btn => {
+                if (btn.dataset.size === state.ui.fontSize) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        // Monthly Wrapped
+        document.getElementById('view-monthly-wrapped-btn')?.addEventListener('click', () => {
+            showMonthlyWrapped();
+        });
+        
+        document.getElementById('share-wrapped-btn')?.addEventListener('click', () => {
+            shareMonthlyWrapped();
+        });
+    }
+    
+    function applyFontSize(size) {
+        const root = document.documentElement;
+        if (size === 'smaller') {
+            root.style.setProperty('--base-font-size', '12px');
+        } else if (size === 'small') {
+            root.style.setProperty('--base-font-size', '14px');
+        } else if (size === 'large') {
+            root.style.setProperty('--base-font-size', '18px');
+        } else {
+            root.style.setProperty('--base-font-size', '16px');
+        }
+        // Apply to body
+        document.body.style.fontSize = root.style.getPropertyValue('--base-font-size') || '16px';
+    }
+    
+    function showMonthlyWrapped() {
+        const modal = document.getElementById('monthly-wrapped-modal');
+        const content = document.getElementById('monthly-wrapped-content');
+        if (!modal || !content) return;
+        
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const startOfMonth = new Date(currentYear, currentMonth, 1).getTime();
+        const endOfMonth = new Date(currentYear, currentMonth + 1, 0).getTime();
+        
+        // Calculate stats
+        const monthlyDebts = state.customers.flatMap(c => 
+            c.debts.filter(d => {
+                const debtDate = new Date(d.date).getTime();
+                return debtDate >= startOfMonth && debtDate <= endOfMonth;
+            })
+        );
+        
+        const monthlyPayments = state.customers.flatMap(c => 
+            c.payments.filter(p => {
+                const payDate = new Date(p.date).getTime();
+                return payDate >= startOfMonth && payDate <= endOfMonth;
+            })
+        );
+        
+        const totalDebts = monthlyDebts.reduce((sum, d) => sum + d.amount, 0);
+        const totalPayments = monthlyPayments.reduce((sum, p) => sum + p.amount, 0);
+        const newCustomers = state.customers.filter(c => {
+            const created = new Date(c.createdAt).getTime();
+            return created >= startOfMonth && created <= endOfMonth;
+        }).length;
+        
+        const completedTasks = state.tasks.filter(t => {
+            const taskDate = new Date(t.dueDate).getTime();
+            return taskDate >= startOfMonth && taskDate <= endOfMonth && t.completed;
+        }).length;
+        
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        content.innerHTML = `
+            <div style="text-align: center; margin-bottom: 24px;">
+                <h2 style="font-size: 2rem; margin: 0; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    ${monthNames[currentMonth]} ${currentYear}
+                </h2>
+                <p style="color: var(--text-soft); margin-top: 8px;">Your Monthly Summary</p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div style="background: var(--primary-soft); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary-strong);">৳${totalDebts.toLocaleString()}</div>
+                    <div style="color: var(--text-soft); margin-top: 8px;">Total Debts</div>
+                </div>
+                <div style="background: rgba(28, 139, 115, 0.1); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--success);">৳${totalPayments.toLocaleString()}</div>
+                    <div style="color: var(--text-soft); margin-top: 8px;">Total Payments</div>
+                </div>
+                <div style="background: rgba(242, 160, 61, 0.1); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--accent);">${newCustomers}</div>
+                    <div style="color: var(--text-soft); margin-top: 8px;">New Customers</div>
+                </div>
+                <div style="background: var(--primary-soft); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary-strong);">${completedTasks}</div>
+                    <div style="color: var(--text-soft); margin-top: 8px;">Completed Tasks</div>
+                </div>
+            </div>
+            <div style="background: var(--surface-soft); padding: 20px; border-radius: var(--radius-lg);">
+                <h3 style="margin: 0 0 12px;">Top Customers</h3>
+                ${getTopCustomers(5).map((c, i) => `
+                    <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border);">
+                        <span>${i + 1}. ${c.name}</span>
+                        <strong>৳${c.balance.toLocaleString()}</strong>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        modal.showModal();
+    }
+    
+    function getTopCustomers(limit = 5) {
+        return state.customers
+            .map(c => ({
+                name: c.name,
+                balance: getCustomerBalance(c)
+            }))
+            .sort((a, b) => b.balance - a.balance)
+            .slice(0, limit);
+    }
+    
+    function shareMonthlyWrapped() {
+        const content = document.getElementById('monthly-wrapped-content');
+        if (!content) return;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'My Monthly Wrapped - Debtx',
+                text: content.innerText,
+                url: window.location.href
+            }).catch(() => {
+                // Fallback to copy
+                copyToClipboard(content.innerText);
+            });
+        } else {
+            copyToClipboard(content.innerText);
+            alert(state.language === 'bn' ? 'কপি করা হয়েছে!' : 'Copied to clipboard!');
+        }
+    }
+    
+    function copyToClipboard(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
     }
 
     function attachAIHandlers() {
@@ -993,10 +1181,16 @@
         addAIMessage('user', message);
         input.value = '';
 
-        setTimeout(() => {
+        // Show loading indicator
+        const loadingMsg = addAIMessage('assistant', '...');
+        loadingMsg.classList.add('ai-loading-message');
+
+        // Process immediately for faster response
+        requestAnimationFrame(() => {
             const response = processAIQuery(message);
-            addAIMessage('assistant', response);
-        }, 500);
+            loadingMsg.textContent = response;
+            loadingMsg.classList.remove('ai-loading-message');
+        });
     }
 
     function handleAIQuickAction(action) {
@@ -1040,12 +1234,14 @@
         messagesContainer.appendChild(messageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
-        // Trigger animation
-        setTimeout(() => {
-            messageDiv.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        // Trigger animation immediately
+        requestAnimationFrame(() => {
+            messageDiv.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             messageDiv.style.opacity = '1';
             messageDiv.style.transform = 'translateX(0)';
-        }, 10);
+        });
+        
+        return messageDiv;
     }
 
     function processAIQuery(query) {
@@ -1278,6 +1474,583 @@
         selectors.customerSearch?.addEventListener('input', () => {
             renderCustomers();
         });
+        
+        // Notes search
+        const notesSearchBtn = document.getElementById('notes-search-btn');
+        const notesSearchBar = document.getElementById('notes-search-bar');
+        const notesSearch = document.getElementById('notes-search');
+        
+        notesSearchBtn?.addEventListener('click', () => {
+            if (notesSearchBar) {
+                notesSearchBar.style.display = notesSearchBar.style.display === 'none' ? 'block' : 'none';
+                if (notesSearchBar.style.display === 'block') {
+                    notesSearch?.focus();
+                }
+            }
+        });
+        
+        notesSearch?.addEventListener('input', () => {
+            renderNotes();
+        });
+        
+        // Tasks filter
+        const tasksFilterBtn = document.getElementById('tasks-filter-btn');
+        const tasksFilterBar = document.getElementById('tasks-filter-bar');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        
+        tasksFilterBtn?.addEventListener('click', () => {
+            if (tasksFilterBar) {
+                tasksFilterBar.style.display = tasksFilterBar.style.display === 'none' ? 'flex' : 'none';
+            }
+        });
+        
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filter = btn.dataset.filter;
+                filterButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.ui.taskFilter = filter;
+                saveState();
+                renderTasks();
+            });
+        });
+        
+        // Bill generation
+        document.getElementById('generate-bill-btn')?.addEventListener('click', () => {
+            showBillModal();
+        });
+        
+        document.getElementById('quick-bill-btn')?.addEventListener('click', () => {
+            showBillModal();
+        });
+        
+        // Cancel premium
+        document.getElementById('cancel-premium-btn')?.addEventListener('click', () => {
+            if (confirm(state.language === 'bn' 
+                ? 'আপনি কি নিশ্চিত যে আপনি প্রিমিয়াম বাতিল করতে চান?' 
+                : 'Are you sure you want to cancel premium?')) {
+                state.subscription = {
+                    type: 'free',
+                    expiresAt: null,
+                    activatedAt: null,
+                    coupon: null
+                };
+                saveState();
+                renderSubscriptionStatus();
+                alert(state.language === 'bn' ? 'প্রিমিয়াম বাতিল করা হয়েছে' : 'Premium cancelled');
+            }
+        });
+        
+        document.getElementById('add-bill-item-btn')?.addEventListener('click', () => {
+            addBillItem();
+        });
+        
+        document.getElementById('generate-bill-pdf-btn')?.addEventListener('click', () => {
+            generateBillPDF();
+        });
+        
+        // Update bill total on input
+        const billItemsContainer = document.getElementById('bill-items-container');
+        if (billItemsContainer) {
+            billItemsContainer.addEventListener('input', (e) => {
+                if (e.target.classList.contains('bill-item-qty') || e.target.classList.contains('bill-item-price')) {
+                    updateBillTotal();
+                }
+            });
+        }
+        
+        // Bill preview
+        document.getElementById('preview-bill-btn')?.addEventListener('click', () => {
+            previewBill();
+        });
+    }
+    
+    function previewBill() {
+        const customerSelect = document.getElementById('bill-customer-select');
+        const billDate = document.getElementById('bill-date');
+        const items = document.querySelectorAll('.bill-item');
+        
+        if (!customerSelect || customerSelect.value === '') {
+            alert(state.language === 'bn' ? 'অনুগ্রহ করে একজন ক্রেতা নির্বাচন করুন' : 'Please select a customer');
+            return;
+        }
+        
+        const customer = state.customers.find(c => c.id === customerSelect.value);
+        if (!customer) return;
+        
+        const billItems = Array.from(items).map(item => ({
+            name: item.querySelector('.bill-item-name')?.value || '',
+            qty: parseFloat(item.querySelector('.bill-item-qty')?.value || 0),
+            price: parseFloat(item.querySelector('.bill-item-price')?.value || 0)
+        })).filter(item => item.name && item.qty > 0 && item.price > 0);
+        
+        if (billItems.length === 0) {
+            alert(state.language === 'bn' ? 'অনুগ্রহ করে অন্তত একটি আইটেম যোগ করুন' : 'Please add at least one item');
+            return;
+        }
+        
+        const total = billItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+        
+        // Show preview in modal
+        const previewHTML = generateBillHTML(customer, billItems, total, billDate?.value || todayString());
+        const previewWindow = window.open('', '_blank', 'width=800,height=600');
+        previewWindow.document.write(previewHTML);
+        previewWindow.document.close();
+    }
+    
+    function generateBillHTML(customer, billItems, total, billDate) {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Bill - ${customer.name}</title>
+                <style>
+                    body { font-family: 'Inter', Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+                    .bill-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 800px; margin: 0 auto; }
+                    .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+                    .header h1 { margin: 0; color: #1c8b73; font-size: 2rem; }
+                    .customer-info { margin-bottom: 30px; }
+                    .customer-info p { margin: 8px 0; }
+                    table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+                    th, td { padding: 16px; text-align: left; border-bottom: 1px solid #eee; }
+                    th { background-color: #f8f9fa; font-weight: 600; color: #333; }
+                    .total-section { text-align: right; margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
+                    .total-row { font-size: 1.5rem; font-weight: 700; color: #1c8b73; }
+                </style>
+            </head>
+            <body>
+                <div class="bill-container">
+                    <div class="header">
+                        <h1>${state.shop.name || 'Shop'}</h1>
+                        <p style="color: #666; margin: 8px 0;">${state.shop.phone || ''}</p>
+                    </div>
+                    <div class="customer-info">
+                        <p><strong>Bill To:</strong> ${customer.name}</p>
+                        <p><strong>Date:</strong> ${billDate}</p>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${billItems.map(item => `
+                                <tr>
+                                    <td>${item.name}</td>
+                                    <td>${item.qty}</td>
+                                    <td>৳${item.price.toFixed(2)}</td>
+                                    <td>৳${(item.qty * item.price).toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div class="total-section">
+                        <div class="total-row">
+                            <span>Total: ৳${total.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
+    function showBillModal() {
+        const modal = document.getElementById('bill-modal');
+        const customerSelect = document.getElementById('bill-customer-select');
+        const billDate = document.getElementById('bill-date');
+        
+        if (!modal || !customerSelect) return;
+        
+        // Populate customer select
+        customerSelect.innerHTML = '<option value="">-- Select Customer --</option>';
+        state.customers.forEach(customer => {
+            const option = document.createElement('option');
+            option.value = customer.id;
+            option.textContent = customer.name;
+            customerSelect.appendChild(option);
+        });
+        
+        // Set today's date
+        if (billDate) {
+            billDate.value = todayString();
+        }
+        
+        // Reset items
+        const itemsContainer = document.getElementById('bill-items-container');
+        if (itemsContainer) {
+            itemsContainer.innerHTML = `
+                <div class="bill-item">
+                    <label>
+                        <span>Product/Service</span>
+                        <input type="text" class="bill-item-name" placeholder="Item name" required />
+                    </label>
+                    <label>
+                        <span>Quantity</span>
+                        <input type="number" class="bill-item-qty" min="1" value="1" required />
+                    </label>
+                    <label>
+                        <span>Price (৳)</span>
+                        <input type="number" class="bill-item-price" min="0" step="0.01" required />
+                    </label>
+                    <label>
+                        <span>Total</span>
+                        <input type="text" class="bill-item-total" readonly value="৳0" />
+                    </label>
+                </div>
+            `;
+            
+            // Add event listeners to initial item
+            const initialItem = itemsContainer.querySelector('.bill-item');
+            const qtyInput = initialItem.querySelector('.bill-item-qty');
+            const priceInput = initialItem.querySelector('.bill-item-price');
+            [qtyInput, priceInput].forEach(input => {
+                input.addEventListener('input', updateBillTotal);
+            });
+        }
+        
+        updateBillTotal();
+        modal.showModal();
+    }
+    
+    function addBillItem() {
+        const itemsContainer = document.getElementById('bill-items-container');
+        if (!itemsContainer) return;
+        
+        const newItem = document.createElement('div');
+        newItem.className = 'bill-item';
+        newItem.innerHTML = `
+            <label>
+                <span>Product/Service</span>
+                <input type="text" class="bill-item-name" placeholder="Item name" required />
+            </label>
+            <label>
+                <span>Quantity</span>
+                <input type="number" class="bill-item-qty" min="1" value="1" required />
+            </label>
+            <label>
+                <span>Price (৳)</span>
+                <input type="number" class="bill-item-price" min="0" step="0.01" required />
+            </label>
+            <label>
+                <span>Total</span>
+                <input type="text" class="bill-item-total" readonly value="৳0" />
+            </label>
+            <button type="button" class="secondary-btn small-btn" onclick="this.parentElement.remove(); updateBillTotal();" title="Remove Item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        `;
+        
+        // Add event listeners for auto-calculation
+        const qtyInput = newItem.querySelector('.bill-item-qty');
+        const priceInput = newItem.querySelector('.bill-item-price');
+        [qtyInput, priceInput].forEach(input => {
+            input.addEventListener('input', updateBillTotal);
+        });
+        
+        itemsContainer.appendChild(newItem);
+    }
+    
+    function updateBillTotal() {
+        const items = document.querySelectorAll('.bill-item');
+        let subtotal = 0;
+        
+        items.forEach(item => {
+            const qty = parseFloat(item.querySelector('.bill-item-qty')?.value || 0);
+            const price = parseFloat(item.querySelector('.bill-item-price')?.value || 0);
+            const itemTotal = qty * price;
+            subtotal += itemTotal;
+            
+            // Update item total
+            const itemTotalEl = item.querySelector('.bill-item-total');
+            if (itemTotalEl) {
+                itemTotalEl.value = `৳${itemTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            }
+        });
+        
+        const tax = 0; // Can be made configurable
+        const total = subtotal + tax;
+        
+        const subtotalEl = document.getElementById('bill-subtotal');
+        const taxEl = document.getElementById('bill-tax');
+        const totalEl = document.getElementById('bill-total');
+        
+        if (subtotalEl) {
+            subtotalEl.textContent = `৳${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (taxEl) {
+            taxEl.textContent = `৳${tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (totalEl) {
+            totalEl.textContent = `৳${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+    }
+    
+    function generateBillPDF() {
+        const customerSelect = document.getElementById('bill-customer-select');
+        const billDate = document.getElementById('bill-date');
+        const items = document.querySelectorAll('.bill-item');
+        
+        if (!customerSelect || customerSelect.value === '') {
+            alert(state.language === 'bn' ? 'অনুগ্রহ করে একজন ক্রেতা নির্বাচন করুন' : 'Please select a customer');
+            return;
+        }
+        
+        const customer = state.customers.find(c => c.id === customerSelect.value);
+        if (!customer) return;
+        
+        const billItems = Array.from(items).map(item => ({
+            name: item.querySelector('.bill-item-name')?.value || '',
+            qty: parseFloat(item.querySelector('.bill-item-qty')?.value || 0),
+            price: parseFloat(item.querySelector('.bill-item-price')?.value || 0)
+        })).filter(item => item.name && item.qty > 0 && item.price > 0);
+        
+        if (billItems.length === 0) {
+            alert(state.language === 'bn' ? 'অনুগ্রহ করে অন্তত একটি আইটেম যোগ করুন' : 'Please add at least one item');
+            return;
+        }
+        
+        const total = billItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+        
+        // Generate bill HTML
+        const billHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Bill - ${customer.name}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 40px; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .shop-info { margin-bottom: 20px; }
+                    .customer-info { margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+                    th { background-color: #f2f2f2; }
+                    .total { text-align: right; font-size: 1.2em; font-weight: bold; margin-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>${state.shop.name || 'Shop'}</h1>
+                    <p>${state.shop.phone || ''}</p>
+                </div>
+                <div class="customer-info">
+                    <p><strong>Bill To:</strong> ${customer.name}</p>
+                    <p><strong>Date:</strong> ${billDate?.value || todayString()}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${billItems.map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td>${item.qty}</td>
+                                <td>৳${item.price.toFixed(2)}</td>
+                                <td>৳${(item.qty * item.price).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="total">
+                    <p>Total: ৳${total.toFixed(2)}</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        // Open in new window for printing
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(billHTML);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+        }, 250);
+        
+        // Close modal
+        document.getElementById('bill-modal')?.close();
+    }
+    
+    function showCustomizeCardModal(customer) {
+        const modal = document.getElementById('customize-card-modal');
+        const customerIdInput = document.getElementById('customize-customer-id');
+        if (!modal || !customerIdInput) return;
+        
+        customerIdInput.value = customer.id;
+        
+        // Set up background options
+        const bgOptions = document.querySelectorAll('.bg-option');
+        bgOptions.forEach(btn => {
+            btn.addEventListener('click', () => {
+                bgOptions.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                updateCardPreviewMini(customer, btn.dataset.bg);
+            });
+        });
+        
+        // Custom color picker
+        const customColorInput = document.getElementById('custom-bg-color');
+        customColorInput?.addEventListener('change', (e) => {
+            updateCardPreviewMini(customer, null, e.target.value);
+        });
+        
+        // Apply button
+        document.getElementById('apply-card-customization-btn')?.addEventListener('click', () => {
+            const selectedBg = document.querySelector('.bg-option.active')?.dataset.bg;
+            const customColor = customColorInput?.value;
+            applyCardCustomization(customer.id, selectedBg, customColor);
+            modal.close();
+        });
+        
+        // Download button
+        document.getElementById('download-customized-card-btn')?.addEventListener('click', () => {
+            downloadCustomerCard(customer, true);
+        });
+        
+        updateCardPreviewMini(customer, 'gradient-primary');
+        modal.showModal();
+    }
+    
+    function updateCardPreviewMini(customer, bgType, customColor) {
+        const preview = document.getElementById('card-preview-mini');
+        if (!preview) return;
+        
+        let bgStyle = '';
+        if (customColor) {
+            bgStyle = `background: ${customColor};`;
+        } else {
+            switch(bgType) {
+                case 'gradient-primary':
+                    bgStyle = 'background: var(--gradient-primary);';
+                    break;
+                case 'gradient-accent':
+                    bgStyle = 'background: var(--gradient-accent);';
+                    break;
+                case 'blue':
+                    bgStyle = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
+                    break;
+                case 'purple':
+                    bgStyle = 'background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);';
+                    break;
+                case 'green':
+                    bgStyle = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%);';
+                    break;
+                case 'orange':
+                    bgStyle = 'background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);';
+                    break;
+                default:
+                    bgStyle = 'background: var(--gradient-primary);';
+            }
+        }
+        
+        const balance = getCustomerBalance(customer);
+        preview.innerHTML = `
+            <div class="payment-card-mini" style="${bgStyle} color: #fff; padding: 20px; border-radius: 12px; margin-top: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; font-size: 1.2rem;">${customer.name}</h3>
+                    ${state.shop.image ? `<img src="${state.shop.image}" style="width: 40px; height: 40px; border-radius: 8px;" />` : ''}
+                </div>
+                <div style="font-size: 2rem; font-weight: 700; margin: 16px 0;">
+                    ৳${balance.toLocaleString()}
+                </div>
+                <p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Payment Request</p>
+            </div>
+        `;
+    }
+    
+    function applyCardCustomization(customerId, bgType, customColor) {
+        const customer = state.customers.find(c => c.id === customerId);
+        if (!customer) return;
+        
+        customer.cardCustomization = {
+            backgroundType: bgType,
+            customColor: customColor
+        };
+        saveState();
+    }
+    
+    function downloadCustomerCard(customer, useCustomization = false) {
+        const balance = getCustomerBalance(customer);
+        const customization = useCustomization && customer.cardCustomization ? customer.cardCustomization : null;
+        
+        let bgStyle = 'background: var(--gradient-primary);';
+        if (customization) {
+            if (customization.customColor) {
+                bgStyle = `background: ${customization.customColor};`;
+            } else {
+                switch(customization.backgroundType) {
+                    case 'gradient-accent':
+                        bgStyle = 'background: var(--gradient-accent);';
+                        break;
+                    case 'blue':
+                        bgStyle = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
+                        break;
+                    case 'purple':
+                        bgStyle = 'background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);';
+                        break;
+                    case 'green':
+                        bgStyle = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%);';
+                        break;
+                    case 'orange':
+                        bgStyle = 'background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);';
+                        break;
+                }
+            }
+        }
+        
+        // Create canvas for download
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 500;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw background
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        if (bgStyle.includes('gradient')) {
+            gradient.addColorStop(0, '#1c8b73');
+            gradient.addColorStop(1, '#106552');
+        } else {
+            const color = bgStyle.match(/#[0-9a-f]{6}/i)?.[0] || '#1c8b73';
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, color);
+        }
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw text
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 48px Arial';
+        ctx.fillText(customer.name, 40, 100);
+        ctx.font = 'bold 72px Arial';
+        ctx.fillText(`৳${balance.toLocaleString()}`, 40, 200);
+        ctx.font = '24px Arial';
+        ctx.fillText('Payment Request', 40, 250);
+        
+        // Convert to image and download
+        canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payment-card-${customer.name}-${Date.now()}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
     }
 
     function registerServiceWorker() {
@@ -1369,8 +2142,34 @@
 
     function applyCoupon(couponCode) {
         couponCode = couponCode.trim().toLowerCase();
-        if (couponCode === 'welovehayamis') {
-            const now = Date.now();
+        const now = Date.now();
+        
+        if (couponCode === 'terenceofclpro') {
+            // Pro subscription - 1 month
+            const oneMonth = 30 * 24 * 60 * 60 * 1000;
+            state.subscription = {
+                type: 'pro',
+                expiresAt: now + oneMonth,
+                activatedAt: now,
+                coupon: couponCode
+            };
+            saveState();
+            renderSubscriptionStatus();
+            return true;
+        } else if (couponCode === 'terencemax') {
+            // Max subscription - 1 year
+            const oneYear = 365 * 24 * 60 * 60 * 1000;
+            state.subscription = {
+                type: 'max',
+                expiresAt: now + oneYear,
+                activatedAt: now,
+                coupon: couponCode
+            };
+            saveState();
+            renderSubscriptionStatus();
+            return true;
+        } else if (couponCode === 'welovehayamis') {
+            // Legacy coupon - still works
             const oneYear = 365 * 24 * 60 * 60 * 1000;
             state.subscription = {
                 type: 'max',
@@ -1725,24 +2524,35 @@
                 prepareDebtModal(customer);
             });
 
-            const generateCardBtn = card.querySelector('[data-action="generate-card"]');
-            if (generateCardBtn) {
-                generateCardBtn.addEventListener('click', () => {
-                    if (!isPremium()) {
-                        alert(state.language === 'bn' 
-                            ? 'পেমেন্ট কার্ড তৈরি করতে প্রিমিয়াম প্রয়োজন। সেটিংস থেকে কিনুন।' 
-                            : 'Premium required to generate payment cards. Purchase from Settings.');
-                        setActivePanel('settings');
-                        return;
+            const customizeCardBtn = card.querySelector('[data-action="customize-card"]');
+            if (customizeCardBtn) {
+                customizeCardBtn.addEventListener('click', () => {
+                    showCustomizeCardModal(customer);
+                });
+            }
+            
+            const downloadCardBtn = card.querySelector('[data-action="download-card"]');
+            if (downloadCardBtn) {
+                downloadCardBtn.addEventListener('click', () => {
+                    downloadCustomerCard(customer);
+                });
+            }
+            
+            const deleteCustomerBtn = card.querySelector('[data-action="delete-customer"]');
+            if (deleteCustomerBtn) {
+                deleteCustomerBtn.addEventListener('click', () => {
+                    if (confirm(state.language === 'bn' 
+                        ? `আপনি কি নিশ্চিত যে আপনি ${customer.name} কে মুছে ফেলতে চান?` 
+                        : `Are you sure you want to delete ${customer.name}?`)) {
+                        // Add delete animation
+                        card.style.animation = 'zoomOut 0.3s ease';
+                        card.style.opacity = '0';
+                        setTimeout(() => {
+                            state.customers = state.customers.filter(c => c.id !== customer.id);
+                            saveState();
+                            renderCustomers();
+                        }, 300);
                     }
-                    setActivePanel('ai');
-                    document.querySelector('[data-tab="cards"]')?.click();
-                    setTimeout(() => {
-                        if (selectors.cardCustomerSelect) {
-                            selectors.cardCustomerSelect.value = customer.id;
-                            updateCardPreview();
-                        }
-                    }, 100);
                 });
             }
 
@@ -1767,13 +2577,25 @@
         if (!notesList) return;
 
         notesList.innerHTML = '';
-        if (!state.notes.length) {
+        
+        // Get search query
+        const searchQuery = document.getElementById('notes-search')?.value.toLowerCase() || '';
+        let filteredNotes = state.notes;
+        
+        if (searchQuery) {
+            filteredNotes = state.notes.filter(note => 
+                (note.title || '').toLowerCase().includes(searchQuery) ||
+                (note.body || '').toLowerCase().includes(searchQuery)
+            );
+        }
+        
+        if (!filteredNotes.length) {
             notesEmpty?.removeAttribute('hidden');
             return;
         }
         notesEmpty?.setAttribute('hidden', 'hidden');
 
-        state.notes
+        filteredNotes
             .sort((a, b) => b.createdAt - a.createdAt)
             .forEach(note => {
                 const fragment = document.importNode(templates.noteCard.content, true);
@@ -1824,7 +2646,27 @@
         tasksList.innerHTML = '';
 
         const selectedDate = state.ui.selectedDate || todayString();
-        const itemsForDate = getCalendarItemsForDate(selectedDate);
+        let itemsForDate = getCalendarItemsForDate(selectedDate);
+        
+        // Apply filter if set
+        const filter = state.ui.taskFilter || 'all';
+        if (filter !== 'all') {
+            const now = new Date().getTime();
+            itemsForDate = itemsForDate.filter(item => {
+                const dueDate = new Date(item.dueDate).getTime();
+                if (filter === 'pending') {
+                    return !item.done && dueDate >= now;
+                } else if (filter === 'completed' || filter === 'done') {
+                    return item.done;
+                } else if (filter === 'overdue') {
+                    return !item.done && dueDate < now;
+                }
+                return true;
+            });
+        } else {
+            // By default, show all tasks including completed (but styled differently)
+            // Completed tasks are shown but with reduced opacity
+        }
 
         if (!itemsForDate.length) {
             if (tasksEmpty) {
@@ -1889,15 +2731,23 @@
                 card.querySelector('.task-note').hidden = !item.note;
                 const checkbox = card.querySelector('input[type="checkbox"]');
                 checkbox.checked = item.done;
+                
+                // Add completed class for styling
+                if (item.done) {
+                    card.classList.add('completed');
+                }
+                
                 const doneLabel = card.querySelector('.task-status span');
                 doneLabel.textContent = item.done ? translate('tasks.card.completed') : translate('tasks.card.done');
                 checkbox.addEventListener('change', () => {
                     item.done = checkbox.checked;
                     if (!item.done) {
                         item.reminderSent = false;
-                    }
-                    // Add check animation
-                    if (checkbox.checked) {
+                        card.classList.remove('completed');
+                    } else {
+                        // Mark as completed
+                        card.classList.add('completed');
+                        // Add completion animation
                         checkbox.style.animation = 'bounce 0.5s ease';
                         setTimeout(() => {
                             checkbox.style.animation = '';
