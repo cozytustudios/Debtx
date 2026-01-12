@@ -1,5 +1,93 @@
 'use strict';
 
+// Single authoritative skip login function (defined as early as possible)
+(function() {
+    if (typeof window === 'undefined') return;
+    
+    window.skipLoginNow = function() {
+        console.log('skipLoginNow triggered');
+
+        // Persist auth to localStorage immediately
+        try {
+            const stored = JSON.parse(localStorage.getItem('debtx-data-v1') || '{}');
+            stored.authenticated = true;
+            stored.auth = { email: '', passwordHash: '', passcode: '' };
+            localStorage.setItem('debtx-data-v1', JSON.stringify(stored));
+        } catch (err) {
+            console.error('skipLoginNow localStorage error', err);
+        }
+
+        // Update in-memory state if available
+        if (typeof state !== 'undefined') {
+            state.authenticated = true;
+            state.auth = { email: '', passwordHash: '', passcode: '' };
+        }
+
+        // Hide login UI
+        const loginScreen = document.getElementById('login-screen');
+        if (loginScreen) {
+            loginScreen.style.display = 'none';
+            loginScreen.hidden = true;
+            loginScreen.style.opacity = '0';
+            loginScreen.style.visibility = 'hidden';
+            loginScreen.style.pointerEvents = 'none';
+        }
+
+        // Show app shell
+        const app = document.getElementById('app');
+        if (app) {
+            app.hidden = false;
+            app.style.display = 'flex';
+            app.style.opacity = '1';
+            app.style.visibility = 'visible';
+        }
+
+        // Initialize the app if available, otherwise reload as fallback
+        if (typeof window.initializeApp === 'function') {
+            try {
+                window.initializeApp();
+            } catch (err) {
+                console.error('initializeApp failed after skipLoginNow', err);
+                setTimeout(() => window.location.reload(), 300);
+            }
+        } else {
+            setTimeout(() => window.location.reload(), 300);
+        }
+    };
+
+    // Ensure button gets a click handler as soon as possible
+    const bindSkipBtn = () => {
+        const btn = document.getElementById('skip-login-btn');
+        if (!btn) return;
+        const handler = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation?.();
+            }
+            window.skipLoginNow();
+            return false;
+        };
+        btn.onclick = handler;
+        btn.addEventListener('click', handler, true);
+        btn.style.pointerEvents = 'auto';
+        btn.style.cursor = 'pointer';
+        btn.style.zIndex = '10001';
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindSkipBtn);
+    } else {
+        bindSkipBtn();
+    }
+
+    // If a pending skip was queued from the inline script, run it now
+    if (window.__pendingSkipLogin) {
+        window.__pendingSkipLogin = false;
+        window.skipLoginNow();
+    }
+})();
+
 (function () {
     const STORAGE_KEY = 'debtx-data-v1';
     const LS_VERSION = 1;
@@ -24,6 +112,7 @@
             activatedAt: null,
             coupon: null
         },
+        requireLogin: false,
         shop: {
             name: '',
             image: '',
@@ -33,6 +122,7 @@
         customers: [],
         notes: [],
         tasks: [],
+        expenses: [],
         ui: {
             selectedDate: todayString(),
             activePanel: 'customers',
@@ -332,6 +422,8 @@
     };
 
     const state = loadState();
+    if (!state.expenses) state.expenses = [];
+    if (typeof state.requireLogin !== 'boolean') state.requireLogin = false;
 
     const selectors = {
         nav: {
@@ -357,6 +449,16 @@
         settingsShopPhone: document.getElementById('settings-shop-phone'),
         settingsShopBank: document.getElementById('settings-shop-bank'),
         shopImagePreview: document.getElementById('shop-image-preview'),
+        settingsLoginEmail: document.getElementById('settings-login-email'),
+        settingsLoginPassword: document.getElementById('settings-login-password'),
+        settingsLoginPasscode: document.getElementById('settings-login-passcode'),
+        settingsLoginSaveBtn: document.getElementById('settings-login-save-btn'),
+        settingsLoginClearBtn: document.getElementById('settings-login-clear-btn'),
+        settingsLoginRequireToggle: document.getElementById('settings-login-require-toggle'),
+        dataExportBtn: document.getElementById('data-export-btn'),
+        dataImportBtn: document.getElementById('data-import-btn'),
+        dataImportFile: document.getElementById('data-import-file'),
+        downloadBillPngBtn: document.getElementById('download-bill-png-btn'),
         themeButtons: document.querySelectorAll('.theme-btn'),
         aiTabs: document.querySelectorAll('.ai-tab'),
         aiTabContents: document.querySelectorAll('.ai-tab-content'),
@@ -391,7 +493,17 @@
         statTasks: document.getElementById('stat-tasks-count'),
         aiInsightHighest: document.getElementById('insight-highest-debt'),
         aiInsightTasks: document.getElementById('insight-task-completion'),
-        aiInsightTip: document.getElementById('insight-ai-tip')
+        aiInsightTip: document.getElementById('insight-ai-tip'),
+        expenseTotal: document.getElementById('expense-total'),
+        expenseMonthTotal: document.getElementById('expense-month-total'),
+        expenseList: document.getElementById('expense-list'),
+        expenseEmpty: document.getElementById('expenses-empty'),
+        expenseForm: document.getElementById('expense-form'),
+        expenseTitle: document.getElementById('expense-title'),
+        expenseAmount: document.getElementById('expense-amount'),
+        expenseCategory: document.getElementById('expense-category'),
+        expenseNote: document.getElementById('expense-note'),
+        expenseExportBtn: document.getElementById('expense-export-btn')
     };
 
     let deferredInstallPrompt = null;
@@ -418,90 +530,286 @@
         taskCard: document.getElementById('task-card-template')
     };
 
-    init();
+    // Ensure DOM is ready before initializing
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        // DOM already ready
+        init();
+    }
 
     function init() {
-        checkAuth();
-        if (!state.authenticated) {
-            showLoginScreen();
-            attachLoginHandlers();
-        } else {
+        try {
+            // Login removed from entry flow; always show app
+            state.authenticated = true;
+            // Ensure a valid starting panel
+            if (!state.ui || !state.ui.activePanel || !selectors.panels[state.ui.activePanel]) {
+                state.ui.activePanel = 'customers';
+            }
+            saveState();
             showApp();
             initializeApp();
+        } catch (error) {
+            console.error('Init error:', error);
+            // Retry after a short delay
+            setTimeout(init, 100);
         }
+    }
+
+    function refreshSelectors() {
+        // Re-query all selectors to ensure they're available
+        const navCustomers = document.getElementById('nav-customers');
+        const navNotes = document.getElementById('nav-notes');
+        const navTasks = document.getElementById('nav-tasks');
+        const navAi = document.getElementById('nav-ai');
+        const navBill = document.getElementById('nav-bill');
+        
+        if (navCustomers) selectors.nav.customers = navCustomers;
+        if (navNotes) selectors.nav.notes = navNotes;
+        if (navTasks) selectors.nav.tasks = navTasks;
+        if (navAi) selectors.nav.ai = navAi;
+        if (navBill) selectors.nav.bill = navBill;
+        
+        // Refresh other critical selectors
+        const addCustomerBtn = document.getElementById('add-customer-btn');
+        const addNoteBtn = document.getElementById('add-note-btn');
+        const addTaskBtn = document.getElementById('add-task-btn');
+        const settingsToggle = document.getElementById('settings-toggle');
+        
+        if (addCustomerBtn) selectors.addCustomerBtn = addCustomerBtn;
+        if (addNoteBtn) selectors.addNoteBtn = addNoteBtn;
+        if (addTaskBtn) selectors.addTaskBtn = addTaskBtn;
+        if (settingsToggle) selectors.settingsToggle = settingsToggle;
+    }
+
+    function ensureButtonsClickable() {
+        // Force all buttons to be clickable via inline styles as backup
+        const allButtons = document.querySelectorAll('button:not(:disabled):not([disabled])');
+        allButtons.forEach(btn => {
+            btn.style.pointerEvents = 'auto';
+            btn.style.cursor = 'pointer';
+            btn.style.userSelect = 'none';
+            btn.style.webkitUserSelect = 'none';
+            btn.style.touchAction = 'manipulation';
+            // Ensure button is not hidden
+            if (btn.style.display === 'none') {
+                btn.style.display = '';
+            }
+            if (btn.hidden) {
+                btn.hidden = false;
+            }
+        });
+        
+        // Also ensure clickable elements
+        const clickableElements = document.querySelectorAll('.primary-btn, .secondary-btn, .nav-btn, .calc-btn, .filter-btn, .theme-btn, .ai-tab, .suggestion-chip');
+        clickableElements.forEach(el => {
+            el.style.pointerEvents = 'auto';
+            el.style.cursor = 'pointer';
+        });
     }
 
     function initializeApp() {
-        // Ensure theme is set to light by default if not set
-        if (!state.theme || state.theme === '') {
-            state.theme = 'light';
+        try {
+            // Refresh selectors to ensure they're available
+            refreshSelectors();
+            
+            // Ensure theme is set to light by default if not set
+            if (!state.theme || state.theme === '') {
+                state.theme = 'light';
+                saveState();
+            }
+            checkSubscriptionStatus();
+            applyTheme(state.theme);
+            attachNavHandlers();
+            attachModalHandlers();
+            attachFormHandlers();
+            attachMiscHandlers();
+            attachSettingsHandlers();
+            attachExpenseHandlers();
+            attachDataBackupHandlers();
+            attachAIHandlers();
+            registerServiceWorker();
+            setupInstallPrompt();
+            applyLanguage(state.language, { initial: true });
+            renderAll();
+            startReminderLoop();
+            // Guide is disabled - always mark as completed
+            state.guideCompleted = true;
             saveState();
-        }
-        checkSubscriptionStatus();
-        applyTheme(state.theme);
-        attachNavHandlers();
-        attachModalHandlers();
-        attachFormHandlers();
-        attachMiscHandlers();
-        attachSettingsHandlers();
-        attachAIHandlers();
-        registerServiceWorker();
-        setupInstallPrompt();
-        applyLanguage(state.language, { initial: true });
-        renderAll();
-        startReminderLoop();
-        if (!state.guideCompleted) {
-            setTimeout(() => showGuide(), 400);
+            
+            // Ensure all buttons are clickable
+            ensureButtonsClickable();
+            
+            // Add global click handler for all buttons (event delegation as fallback)
+            document.addEventListener('click', function(e) {
+                const button = e.target.closest('button');
+                if (!button) return;
+                
+                // Handle nav buttons
+                if (button.classList.contains('nav-btn') && button.dataset.target) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActivePanel(button.dataset.target);
+                    return;
+                }
+                
+                // Handle add customer button
+                if (button.id === 'add-customer-btn') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (forms.customer) {
+                        forms.customer.reset();
+                        setModalMode(forms.customer, 'create');
+                        if (modals.customer) modals.customer.showModal();
+                    }
+                    return;
+                }
+                
+                // Handle add note button
+                if (button.id === 'add-note-btn') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (forms.note) {
+                        forms.note.reset();
+                        if (modals.note) modals.note.showModal();
+                    }
+                    return;
+                }
+                
+                // Handle add task button
+                if (button.id === 'add-task-btn') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (forms.task) {
+                        forms.task.reset();
+                        if (forms.task.elements.dueDate) {
+                            forms.task.elements.dueDate.value = todayString();
+                        }
+                        if (modals.task) modals.task.showModal();
+                    }
+                    return;
+                }
+                
+                // Handle settings toggle
+                if (button.id === 'settings-toggle') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const settingsPanel = selectors.panels.settings;
+                    if (settingsPanel) {
+                        if (settingsPanel.classList.contains('active')) {
+                            const prevPanel = state.ui.activePanel === 'settings' ? 'customers' : state.ui.activePanel;
+                            setActivePanel(prevPanel);
+                        } else {
+                            setActivePanel('settings');
+                        }
+                    }
+                    return;
+                }
+                
+                // Handle skip login
+                const target = e.target.closest('[data-skip-login="true"]');
+                if (target && target.id === 'skip-login-btn') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    state.authenticated = true;
+                    state.auth = { email: '', passwordHash: '', passcode: '' };
+                    saveState();
+                    hideLoginAndShowApp();
+                    return;
+                }
+                
+                // Handle buttons with data-target
+                if (button.dataset.target) {
+                    e.preventDefault();
+                    setActivePanel(button.dataset.target);
+                    return;
+                }
+            }, true);
+            
+            // Retry attaching handlers after a short delay to catch any missed elements
+            setTimeout(() => {
+                refreshSelectors();
+                attachNavHandlers();
+                attachModalHandlers();
+                attachMiscHandlers();
+                ensureButtonsClickable();
+            }, 100);
+            
+            // Also ensure buttons stay clickable after a longer delay (for dynamic content)
+            setTimeout(() => {
+                ensureButtonsClickable();
+            }, 500);
+        } catch (error) {
+            console.error('InitializeApp error:', error);
+            // Try to at least show the app even if some handlers fail
+            try {
+                refreshSelectors();
+                attachNavHandlers();
+                renderAll();
+            } catch (e) {
+                console.error('Critical error:', e);
+            }
         }
     }
+    
+    // Expose initializeApp globally for skipLoginNow
+    window.initializeApp = initializeApp;
 
     function checkAuth() {
-        if (!state.auth.email && !state.auth.passcode) {
-            state.authenticated = true; // First time, auto-login
-        } else {
-            state.authenticated = false;
-        }
+        // Login flow removed; always consider authenticated
+        state.authenticated = true;
     }
 
     function showLoginScreen() {
         const loginScreen = document.getElementById('login-screen');
         const app = document.getElementById('app');
         if (loginScreen) {
+            loginScreen.hidden = false;
             loginScreen.style.display = 'flex';
             loginScreen.style.opacity = '0';
-            loginScreen.style.animation = 'fadeIn 0.5s ease';
+            loginScreen.style.pointerEvents = 'auto';
+            loginScreen.style.zIndex = '10000';
             setTimeout(() => {
                 loginScreen.style.opacity = '1';
             }, 10);
         }
         if (app) {
-            app.style.animation = 'zoomOut 0.3s ease';
-            setTimeout(() => {
-                app.hidden = true;
-                app.style.animation = '';
-            }, 300);
+            app.hidden = true;
+            app.style.opacity = '0';
         }
     }
 
     function showApp() {
         const loginScreen = document.getElementById('login-screen');
         const app = document.getElementById('app');
+        
+        // Hide login screen immediately
         if (loginScreen) {
-            loginScreen.style.animation = 'zoomOut 0.3s ease';
             loginScreen.style.opacity = '0';
-            setTimeout(() => {
-                loginScreen.style.display = 'none';
-                loginScreen.style.animation = '';
-            }, 300);
+            loginScreen.style.pointerEvents = 'none';
+            loginScreen.style.display = 'none';
+            loginScreen.hidden = true;
+            loginScreen.style.zIndex = '-1';
         }
+        
+        // Show app and ensure it's clickable
         if (app) {
             app.hidden = false;
-            app.style.opacity = '0';
-            app.style.animation = 'zoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            setTimeout(() => {
-                app.style.opacity = '1';
-            }, 10);
+            app.style.display = 'flex';
+            app.style.opacity = '1';
+            app.style.visibility = 'visible';
+            app.style.pointerEvents = 'auto';
+            app.style.zIndex = '1';
+            app.style.transition = 'opacity 0.3s ease';
         }
+        
+        // Ensure all buttons are clickable
+        setTimeout(() => {
+            document.querySelectorAll('button').forEach(btn => {
+                btn.style.pointerEvents = 'auto';
+                btn.style.cursor = 'pointer';
+            });
+        }, 50);
     }
 
     function attachLoginHandlers() {
@@ -509,40 +817,90 @@
         const loginTabs = document.querySelectorAll('.login-tab');
         const loginTabContents = document.querySelectorAll('.login-tab-content');
         const setupPasscodeBtn = document.getElementById('setup-passcode-btn');
+        const skipLoginBtn = document.getElementById('skip-login-btn');
+        
+        console.log('Attaching login handlers...', {
+            loginForm: !!loginForm,
+            skipLoginBtn: !!skipLoginBtn,
+            setupPasscodeBtn: !!setupPasscodeBtn
+        });
 
+        // Tab switching
         loginTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
                 const loginType = tab.dataset.loginType;
                 loginTabs.forEach(t => t.classList.remove('active'));
                 loginTabContents.forEach(c => c.classList.remove('active'));
                 tab.classList.add('active');
-                document.querySelector(`[data-content="${loginType}"]`)?.classList.add('active');
+                const content = document.querySelector(`[data-content="${loginType}"]`);
+                if (content) content.classList.add('active');
             });
         });
 
-        loginForm?.addEventListener('submit', handleLogin);
+        // Form submission
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                handleLogin(e);
+                return false;
+            }, true);
+        }
+
+        // Enter key support
+        const emailInput = document.getElementById('login-email');
+        const passwordInput = document.getElementById('login-password');
+        const passcodeInput = document.getElementById('login-passcode');
         
-        // Also add click handler for submit button as backup
-        const submitBtn = document.querySelector('.login-submit');
-        submitBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleLogin(e);
+        [emailInput, passwordInput, passcodeInput].forEach(input => {
+            if (input) {
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        loginForm?.requestSubmit();
+                    }
+                });
+            }
         });
 
-        setupPasscodeBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            setupPasscode();
-        });
+        // Setup passcode
+        if (setupPasscodeBtn) {
+            setupPasscodeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setupPasscode();
+            });
+        }
         
-        // Skip login button
-        const skipLoginBtn = document.getElementById('skip-login-btn');
-        skipLoginBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            state.authenticated = true;
-            saveState();
-            showApp();
-            initializeApp();
-        });
+        // Skip login button - Use global function
+        if (skipLoginBtn) {
+            console.log('Setting up skip login button...');
+            
+            // Use the global function
+            skipLoginBtn.onclick = function(e) {
+                e?.preventDefault();
+                e?.stopPropagation();
+                window.skipLoginNow();
+                return false;
+            };
+            
+            // Also add as event listener
+            skipLoginBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.skipLoginNow();
+                return false;
+            }, true);
+            
+            // Make sure it's clickable
+            skipLoginBtn.style.pointerEvents = 'auto';
+            skipLoginBtn.style.cursor = 'pointer';
+            
+            console.log('Skip button setup complete');
+        } else {
+            console.error('Skip login button NOT FOUND!');
+        }
     }
 
     function handleLogin(e) {
@@ -551,74 +909,122 @@
             e.stopPropagation();
         }
         
-        const emailInput = document.getElementById('login-email');
-        const passwordInput = document.getElementById('login-password');
-        const passcodeInput = document.getElementById('login-passcode');
-        const activeTab = document.querySelector('.login-tab.active');
-        const loginType = activeTab?.dataset.loginType || 'email';
+        try {
+            const emailInput = document.getElementById('login-email');
+            const passwordInput = document.getElementById('login-password');
+            const passcodeInput = document.getElementById('login-passcode');
+            const activeTab = document.querySelector('.login-tab.active');
+            const loginType = activeTab?.dataset.loginType || 'email';
 
-        if (loginType === 'email') {
-            const email = emailInput?.value.trim();
-            const password = passwordInput?.value;
-            
-            if (!email || !password) {
-                alert(state.language === 'bn' ? 'ইমেইল এবং পাসওয়ার্ড প্রয়োজন' : 'Email and password required');
-                return false;
-            }
-
-            // Netlify form submission (will work if deployed on Netlify)
-            const form = document.getElementById('login-form');
-            if (form && form.hasAttribute('netlify')) {
-                // Let Netlify handle the form submission in the background
-                // Continue with local authentication
-            }
-
-            if (state.auth.email && state.auth.passwordHash) {
-                // Verify password (simple hash for demo)
-                const hash = simpleHash(password);
-                if (email === state.auth.email && hash === state.auth.passwordHash) {
-                    state.authenticated = true;
-                    saveState();
-                    showApp();
-                    initializeApp();
-                    return true;
-                } else {
-                    alert(state.language === 'bn' ? 'ভুল ইমেইল বা পাসওয়ার্ড' : 'Incorrect email or password');
+            if (loginType === 'email') {
+                const email = emailInput?.value.trim() || '';
+                const password = passwordInput?.value || '';
+                
+                if (!email || !password) {
+                    alert(state.language === 'bn' ? 'ইমেইল এবং পাসওয়ার্ড প্রয়োজন' : 'Email and password required');
                     return false;
                 }
+
+                if (state.auth.email && state.auth.passwordHash) {
+                    // Verify existing credentials
+                    const hash = simpleHash(password);
+                    if (email === state.auth.email && hash === state.auth.passwordHash) {
+                        state.authenticated = true;
+                        saveState();
+                        hideLoginAndShowApp();
+                        return true;
+                    } else {
+                        alert(state.language === 'bn' ? 'ভুল ইমেইল বা পাসওয়ার্ড' : 'Incorrect email or password');
+                        return false;
+                    }
+                } else {
+                    // First time - create account
+                    state.auth.email = email;
+                    state.auth.passwordHash = simpleHash(password);
+                    state.authenticated = true;
+                    saveState();
+                    hideLoginAndShowApp();
+                    return true;
+                }
             } else {
-                // First time setup
-                state.auth.email = email;
-                state.auth.passwordHash = simpleHash(password);
-                state.authenticated = true;
-                saveState();
-                showApp();
+                // Passcode login
+                const passcode = passcodeInput?.value.trim() || '';
+                
+                if (!passcode || passcode.length < 4) {
+                    alert(state.language === 'bn' ? 'অনুগ্রহ করে ৪-৬ সংখ্যার পাসকোড দিন' : 'Please enter 4-6 digit passcode');
+                    return false;
+                }
+
+                if (state.auth.passcode) {
+                    // Verify existing passcode
+                    if (passcode === state.auth.passcode) {
+                        state.authenticated = true;
+                        saveState();
+                        hideLoginAndShowApp();
+                        return true;
+                    } else {
+                        alert(state.language === 'bn' ? 'ভুল পাসকোড' : 'Incorrect passcode');
+                        return false;
+                    }
+                } else {
+                    // First time - set up passcode
+                    if (passcode.length >= 4 && passcode.length <= 6 && /^\d+$/.test(passcode)) {
+                        state.auth.passcode = passcode;
+                        state.authenticated = true;
+                        saveState();
+                        hideLoginAndShowApp();
+                        return true;
+                    } else {
+                        alert(state.language === 'bn' ? 'অবৈধ পাসকোড। ৪-৬ সংখ্যা প্রয়োজন।' : 'Invalid passcode. 4-6 digits required.');
+                        return false;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert(state.language === 'bn' ? 'লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।' : 'Login error. Please try again.');
+            return false;
+        }
+    }
+
+    function hideLoginAndShowApp() {
+        console.log('Hiding login and showing app...');
+        
+        const loginScreen = document.getElementById('login-screen');
+        const app = document.getElementById('app');
+        
+        // Hide login immediately - multiple methods
+        if (loginScreen) {
+            loginScreen.style.display = 'none';
+            loginScreen.hidden = true;
+            loginScreen.style.opacity = '0';
+            loginScreen.style.pointerEvents = 'none';
+            loginScreen.style.visibility = 'hidden';
+            loginScreen.style.zIndex = '-1';
+        }
+        
+        // Show app - multiple methods
+        if (app) {
+            app.hidden = false;
+            app.style.display = 'flex';
+            app.style.opacity = '1';
+            app.style.visibility = 'visible';
+            app.style.pointerEvents = 'auto';
+        }
+        
+        // Force state save
+        state.authenticated = true;
+        saveState();
+        
+        // Initialize app
+        try {
+            initializeApp();
+        } catch (error) {
+            console.error('Error initializing app:', error);
+            // Retry after a short delay
+            setTimeout(() => {
                 initializeApp();
-                return true;
-            }
-        } else {
-            const passcode = passcodeInput?.value.trim();
-            
-            if (!passcode || passcode.length < 4) {
-                alert(state.language === 'bn' ? 'অনুগ্রহ করে ৪-৬ সংখ্যার পাসকোড দিন' : 'Please enter 4-6 digit passcode');
-                return false;
-            }
-
-            if (state.auth.passcode) {
-                if (passcode === state.auth.passcode) {
-                    state.authenticated = true;
-                    saveState();
-                    showApp();
-                    initializeApp();
-                    return true;
-                } else {
-                    alert(state.language === 'bn' ? 'ভুল পাসকোড' : 'Incorrect passcode');
-                    return false;
-                }
-            } else {
-                alert(state.language === 'bn' ? 'পাসকোড সেটআপ করুন' : 'Please setup passcode first');
-                return false;
-            }
+            }, 100);
         }
     }
 
@@ -627,9 +1033,13 @@
         if (passcode && passcode.length >= 4 && passcode.length <= 6 && /^\d+$/.test(passcode)) {
             state.auth.passcode = passcode;
             saveState();
-            alert(state.language === 'bn' ? 'পাসকোড সেটআপ সম্পন্ন' : 'Passcode setup complete');
-            document.querySelector('[data-login-type="passcode"]')?.click();
-        } else {
+            alert(state.language === 'bn' ? 'পাসকোড সেটআপ সম্পন্ন। এখন পাসকোড দিয়ে লগইন করুন।' : 'Passcode setup complete. You can now login with passcode.');
+            // Switch to passcode tab
+            const passcodeTab = document.querySelector('[data-login-type="passcode"]');
+            if (passcodeTab) {
+                passcodeTab.click();
+            }
+        } else if (passcode !== null) {
             alert(state.language === 'bn' ? 'অবৈধ পাসকোড। ৪-৬ সংখ্যা প্রয়োজন।' : 'Invalid passcode. 4-6 digits required.');
         }
     }
@@ -1139,17 +1549,40 @@
             });
         });
 
-        // Chat
-        selectors.aiSendBtn?.addEventListener('click', handleAISend);
-        selectors.aiInput?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleAISend();
-            }
-        });
+        // Chat - Textarea handling
+        const aiInput = selectors.aiInput;
+        const aiSendBtn = selectors.aiSendBtn;
+        
+        if (aiInput) {
+            // Auto-resize textarea
+            aiInput.addEventListener('input', () => {
+                aiInput.style.height = 'auto';
+                aiInput.style.height = Math.min(aiInput.scrollHeight, 200) + 'px';
+                
+                // Enable/disable send button
+                if (aiSendBtn) {
+                    aiSendBtn.disabled = !aiInput.value.trim();
+                    aiSendBtn.classList.toggle('enabled', !!aiInput.value.trim());
+                }
+            });
+            
+            // Enter to send, Shift+Enter for new line
+            aiInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (aiInput.value.trim()) {
+                        handleAISend();
+                    }
+                }
+            });
+        }
+        
+        aiSendBtn?.addEventListener('click', handleAISend);
 
-        selectors.aiQuickActions?.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const action = btn.dataset.action;
+        // Quick suggestion chips
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const action = chip.dataset.action;
                 if (action === 'generate-card') {
                     if (!isPremium()) {
                         alert(state.language === 'bn' 
@@ -1188,22 +1621,52 @@
 
     function handleAISend() {
         const input = selectors.aiInput;
+        const sendBtn = selectors.aiSendBtn;
+        if (!input) return;
+        
         const message = input.value.trim();
         if (!message) return;
 
         addAIMessage('user', message);
         input.value = '';
+        input.style.height = 'auto';
+        
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.classList.remove('enabled');
+        }
 
         // Show loading indicator
-        const loadingMsg = addAIMessage('assistant', '...');
-        loadingMsg.classList.add('ai-loading-message');
+        const loadingWrapper = document.createElement('div');
+        loadingWrapper.className = 'ai-message-wrapper assistant loading';
+        loadingWrapper.innerHTML = `
+            <div class="ai-message-avatar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                </svg>
+            </div>
+            <div class="ai-message-content assistant-message">
+                <div class="message-text">
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const messagesContainer = selectors.aiMessages;
+        messagesContainer.appendChild(loadingWrapper);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         // Process immediately for faster response
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             const response = processAIQuery(message);
-            loadingMsg.textContent = response;
-            loadingMsg.classList.remove('ai-loading-message');
-        });
+            loadingWrapper.classList.remove('loading');
+            const messageText = loadingWrapper.querySelector('.message-text');
+            if (messageText) {
+                messageText.innerHTML = formatMessageText(response);
+            }
+        }, 500);
     }
 
     function handleAIQuickAction(action) {
@@ -1236,25 +1699,73 @@
         const messagesContainer = selectors.aiMessages;
         if (!messagesContainer) return;
 
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `ai-message ${role}`;
-        messageDiv.textContent = text;
+        // Remove welcome message if it exists
+        const welcomeMsg = messagesContainer.querySelector('.ai-welcome-message');
+        if (welcomeMsg) {
+            welcomeMsg.style.opacity = '0';
+            welcomeMsg.style.transform = 'scale(0.95)';
+            setTimeout(() => welcomeMsg.remove(), 200);
+        }
+
+        // Hide quick suggestions after first message
+        const quickSuggestions = document.getElementById('ai-quick-suggestions');
+        if (quickSuggestions && messagesContainer.children.length === 0) {
+            quickSuggestions.style.opacity = '0';
+            setTimeout(() => quickSuggestions.style.display = 'none', 300);
+        }
+
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = `ai-message-wrapper ${role}`;
+        
+        if (role === 'user') {
+            messageWrapper.innerHTML = `
+                <div class="ai-message-content user-message">
+                    <div class="message-text">${escapeHtml(text)}</div>
+                </div>
+            `;
+        } else {
+            messageWrapper.innerHTML = `
+                <div class="ai-message-avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    </svg>
+                </div>
+                <div class="ai-message-content assistant-message">
+                    <div class="message-text">${formatMessageText(text)}</div>
+                </div>
+            `;
+        }
         
         // Add entrance animation
-        messageDiv.style.opacity = '0';
-        messageDiv.style.transform = role === 'user' ? 'translateX(20px)' : 'translateX(-20px)';
+        messageWrapper.style.opacity = '0';
+        messageWrapper.style.transform = role === 'user' ? 'translateY(10px)' : 'translateY(10px)';
         
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        messagesContainer.appendChild(messageWrapper);
         
-        // Trigger animation immediately
+        // Scroll to bottom
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 50);
+        
+        // Trigger animation
         requestAnimationFrame(() => {
-            messageDiv.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            messageDiv.style.opacity = '1';
-            messageDiv.style.transform = 'translateX(0)';
+            messageWrapper.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            messageWrapper.style.opacity = '1';
+            messageWrapper.style.transform = 'translateY(0)';
         });
         
-        return messageDiv;
+        return messageWrapper;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function formatMessageText(text) {
+        // Convert newlines to <br> and preserve formatting
+        return escapeHtml(text).replace(/\n/g, '<br>');
     }
 
     function processAIQuery(query) {
@@ -1400,6 +1911,34 @@
                         type: 'payment'
                     });
                 }
+
+        // Login/Security settings (managed only from Settings)
+        if (selectors.settingsLoginEmail) selectors.settingsLoginEmail.value = state.auth.email || '';
+        if (selectors.settingsLoginPasscode) selectors.settingsLoginPasscode.value = state.auth.passcode || '';
+        if (selectors.settingsLoginRequireToggle) selectors.settingsLoginRequireToggle.checked = state.requireLogin || false;
+
+        selectors.settingsLoginSaveBtn?.addEventListener('click', () => {
+            state.auth.email = selectors.settingsLoginEmail?.value || '';
+            state.auth.passcode = selectors.settingsLoginPasscode?.value || '';
+            const pwd = selectors.settingsLoginPassword?.value || '';
+            state.auth.passwordHash = pwd ? simpleHash(pwd) : '';
+            state.requireLogin = selectors.settingsLoginRequireToggle?.checked || false;
+            state.authenticated = true; // stay logged in
+            saveState();
+            alert('Login info saved in settings. App stays open; login is optional.');
+        });
+
+        selectors.settingsLoginClearBtn?.addEventListener('click', () => {
+            state.auth = { email: '', passwordHash: '', passcode: '' };
+            state.requireLogin = false;
+            state.authenticated = true;
+            if (selectors.settingsLoginEmail) selectors.settingsLoginEmail.value = '';
+            if (selectors.settingsLoginPassword) selectors.settingsLoginPassword.value = '';
+            if (selectors.settingsLoginPasscode) selectors.settingsLoginPasscode.value = '';
+            if (selectors.settingsLoginRequireToggle) selectors.settingsLoginRequireToggle.checked = false;
+            saveState();
+            alert('Login data cleared. App will stay unlocked.');
+        });
             }
         });
 
@@ -1507,8 +2046,13 @@
         });
 
         selectors.learnAppBtn?.addEventListener('click', () => {
-            state.guideCompleted = false;
-            showGuide();
+            // Show help in AI chat instead
+            setActivePanel('ai');
+            document.querySelector('[data-tab="chat"]')?.click();
+            if (selectors.aiInput) {
+                selectors.aiInput.value = 'help';
+                handleAISend();
+            }
         });
         
         // Tasks filter
@@ -2089,6 +2633,10 @@
     }
 
     function setActivePanel(panel) {
+        // Fallback to customers if invalid
+        if (!panel || !selectors.panels[panel]) {
+            panel = 'customers';
+        }
         state.ui.activePanel = panel;
         Object.entries(selectors.nav).forEach(([key, btn]) => {
             if (!btn) return;
@@ -2430,12 +2978,94 @@
         });
     }
 
+    function attachExpenseHandlers() {
+        selectors.expenseForm?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = (selectors.expenseTitle?.value || '').trim();
+            const amount = parseFloat(selectors.expenseAmount?.value || '0');
+            if (!title || isNaN(amount) || amount <= 0) {
+                alert('Enter a valid title and amount.');
+                return;
+            }
+            const expense = {
+                id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+                title,
+                amount,
+                category: selectors.expenseCategory?.value || 'other',
+                note: selectors.expenseNote?.value || '',
+                createdAt: Date.now()
+            };
+            state.expenses.push(expense);
+            saveState();
+            renderExpenses();
+            selectors.expenseForm.reset();
+        });
+
+        selectors.expenseExportBtn?.addEventListener('click', () => {
+            exportExpensesCSV();
+        });
+    }
+
+    function attachDataBackupHandlers() {
+        selectors.dataExportBtn?.addEventListener('click', () => {
+            const backup = { ...state, exportedAt: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'debtx-backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        selectors.dataImportBtn?.addEventListener('click', () => {
+            selectors.dataImportFile?.click();
+        });
+
+        selectors.dataImportFile?.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const imported = JSON.parse(event.target.result);
+                    Object.assign(state, imported);
+                    if (!state.expenses) state.expenses = [];
+                    saveState();
+                    applyTheme(state.theme);
+                    updateShopImagePreview();
+                    renderSubscriptionStatus?.();
+                    renderAll();
+                    renderExpenses();
+                    alert('Data imported successfully.');
+                } catch (err) {
+                    console.error('Import error', err);
+                    alert('Invalid file or parse error.');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        selectors.downloadBillPngBtn?.addEventListener('click', () => {
+            if (typeof downloadPaymentCard === 'function') {
+                downloadPaymentCard();
+            } else {
+                alert('Bill PNG generator is unavailable right now.');
+            }
+        });
+    }
+
     function renderAll() {
         renderCustomers();
         renderNotes();
         renderTasks();
+        renderExpenses();
         updateHeroStats();
         updateAIInsights();
+        // Ensure all dynamically created buttons are clickable
+        setTimeout(() => {
+            ensureButtonsClickable();
+        }, 50);
     }
 
     function updateHeroStats() {
@@ -2468,6 +3098,75 @@
                 : 'Add your first customer to get personalized AI tips.';
         }
         selectors.aiInsightTip?.textContent = tip;
+    }
+
+    function renderExpenses() {
+        const { expenseList, expenseEmpty, expenseTotal, expenseMonthTotal } = selectors;
+        if (!expenseList) return;
+        const items = Array.isArray(state.expenses) ? [...state.expenses] : [];
+        expenseList.innerHTML = '';
+
+        if (!items.length) {
+            expenseEmpty?.removeAttribute('hidden');
+            if (expenseTotal) expenseTotal.textContent = formatCurrency(0);
+            if (expenseMonthTotal) expenseMonthTotal.textContent = formatCurrency(0);
+            return;
+        }
+        expenseEmpty?.setAttribute('hidden', 'hidden');
+
+        const now = new Date();
+        const month = now.getMonth();
+        const year = now.getFullYear();
+        const total = items.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        const monthTotal = items
+            .filter(e => {
+                const d = new Date(e.createdAt || Date.now());
+                return d.getMonth() === month && d.getFullYear() === year;
+            })
+            .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+        if (expenseTotal) expenseTotal.textContent = formatCurrency(total);
+        if (expenseMonthTotal) expenseMonthTotal.textContent = formatCurrency(monthTotal);
+
+        items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        items.forEach(e => {
+            const item = document.createElement('div');
+            item.className = 'expense-item';
+            const date = formatDisplayDate ? formatDisplayDate(e.createdAt || Date.now()) : new Date(e.createdAt || Date.now()).toLocaleDateString();
+            item.innerHTML = `
+                <div class="meta">
+                    <strong>${e.title || 'Expense'}</strong>
+                    <div class="expense-category-pill">${e.category || 'other'}</div>
+                    <small>${date}${e.note ? ' · ' + e.note : ''}</small>
+                </div>
+                <div class="expense-amount">${formatCurrency(Number(e.amount) || 0)}</div>
+            `;
+            expenseList.appendChild(item);
+        });
+    }
+
+    function exportExpensesCSV() {
+        const items = Array.isArray(state.expenses) ? state.expenses : [];
+        if (!items.length) {
+            alert('No expenses to export.');
+            return;
+        }
+        const header = ['Title', 'Amount', 'Category', 'Note', 'Date'];
+        const rows = items.map(e => [
+            `"${(e.title || '').replace(/"/g, '""')}"`,
+            Number(e.amount) || 0,
+            e.category || '',
+            `"${(e.note || '').replace(/"/g, '""')}"`,
+            new Date(e.createdAt || Date.now()).toISOString()
+        ].join(','));
+        const csv = [header.join(','), ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'debtx-expenses.csv';
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     function renderCustomers() {
@@ -3564,4 +4263,3 @@
     }
 
 })();
-
