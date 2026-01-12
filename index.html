@@ -10,79 +10,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Early helper: if skipLoginNow is ready, call it; otherwise mark intent
+        window.__pendingSkipLogin = false;
+        window.skipLoginNow = window.skipLoginNow || function() {
+            window.__pendingSkipLogin = true;
+            console.log('skipLoginNow queued (will run when app loads)');
+        };
+    </script>
 </head>
 <body>
-    <!-- Login Screen -->
-    <div class="login-screen" id="login-screen">
-        <div class="login-container glass-card">
-            <div class="login-header">
-                <img src="iconx.png" alt="Debtx" class="login-logo" />
-                <h1>Debtx</h1>
-                <p data-i18n="login.subtitle">Welcome back! Please sign in.</p>
-            </div>
-            <form class="login-form" id="login-form" name="contact" netlify>
-                <div class="login-tabs">
-                    <button type="button" class="login-tab active" data-login-type="email" data-i18n="login.email">Email</button>
-                    <button type="button" class="login-tab" data-login-type="passcode" data-i18n="login.passcode">Passcode</button>
-                </div>
-                <div class="login-tab-content active" data-content="email">
-                    <label>
-                        <span data-i18n="login.emailLabel">Email</span>
-                        <input type="email" id="login-email" name="email" required placeholder="your@email.com" />
-                    </label>
-                    <label>
-                        <span data-i18n="login.passwordLabel">Password</span>
-                        <input type="password" id="login-password" name="password" required placeholder="••••••••" />
-                    </label>
-                </div>
-                <div class="login-tab-content" data-content="passcode">
-                    <label>
-                        <span data-i18n="login.passcodeLabel">Passcode</span>
-                        <input type="password" id="login-passcode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" />
-                    </label>
-                    <p class="login-hint" data-i18n="login.passcodeHint">Enter 4-6 digit passcode</p>
-                </div>
-                <button type="submit" class="primary-btn login-submit" data-i18n="login.submit">Sign In</button>
-                <button type="button" class="secondary-btn" id="setup-passcode-btn" data-i18n="login.setupPasscode">Setup Passcode</button>
-                <button type="button" class="secondary-btn" id="skip-login-btn" style="margin-top: 10px;">Skip Login</button>
-            </form>
-        </div>
-    </div>
+    <!-- Login screen removed: login is now managed from Settings only -->
 
-    <!-- First Time Guide (Hidden - Disabled) -->
-    <div class="guide-overlay" id="guide-overlay" hidden>
-        <div class="guide-container glass-card">
-            <div class="guide-slide active" data-slide="0">
-                <h2 data-i18n="guide.welcome.title">Welcome to Debtx!</h2>
-                <p data-i18n="guide.welcome.text">Your digital khata for managing customer debts and payments.</p>
-                <img src="iconx.png" alt="Debtx" class="guide-icon" />
-            </div>
-            <div class="guide-slide" data-slide="1">
-                <h2 data-i18n="guide.customers.title">Manage Customers</h2>
-                <p data-i18n="guide.customers.text">Add customers, track their debts, and record payments easily.</p>
-            </div>
-            <div class="guide-slide" data-slide="2">
-                <h2 data-i18n="guide.notes.title">Take Notes</h2>
-                <p data-i18n="guide.notes.text">Keep quick reminders and important information in one place.</p>
-            </div>
-            <div class="guide-slide" data-slide="3">
-                <h2 data-i18n="guide.tasks.title">Track Tasks</h2>
-                <p data-i18n="guide.tasks.text">Set reminders for payments and important shop activities.</p>
-            </div>
-            <div class="guide-slide" data-slide="4">
-                <h2 data-i18n="guide.ai.title">AI Assistant</h2>
-                <p data-i18n="guide.ai.text">Use Optichain AI to get insights, generate cards, and more!</p>
-            </div>
-            <div class="guide-nav">
-                <button class="secondary-btn" id="guide-prev" data-i18n="guide.prev">Previous</button>
-                <div class="guide-dots"></div>
-                <button class="primary-btn" id="guide-next" data-i18n="guide.next">Next</button>
-                <button class="primary-btn" id="guide-skip" data-i18n="guide.skip" style="display: none;">Skip</button>
-            </div>
-        </div>
-    </div>
 
-    <div class="app" id="app" hidden>
+    <div class="app" id="app">
         <header class="app-header">
             <div class="app-title">
                 <span class="title-en">Debtx</span>
@@ -208,6 +149,60 @@
                 </div>
 
                 <div class="cards" id="tasks-list" aria-live="polite"></div>
+
+                <div class="expense-section glass-card">
+                    <div class="expense-header">
+                        <div>
+                            <h2>Shop Expense Tracker (Premium)</h2>
+                            <p class="panel-subtitle">Track personal/shop expenses alongside dues.</p>
+                        </div>
+                        <div class="expense-totals">
+                            <div>
+                                <small>Total spend</small>
+                                <strong id="expense-total">৳0</strong>
+                            </div>
+                            <div>
+                                <small>This month</small>
+                                <strong id="expense-month-total">৳0</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <form class="expense-form" id="expense-form">
+                        <div class="expense-grid">
+                            <label>
+                                <span>Title</span>
+                                <input type="text" id="expense-title" placeholder="Groceries, rent, supplies..." required />
+                            </label>
+                            <label>
+                                <span>Amount</span>
+                                <input type="number" id="expense-amount" placeholder="0" min="0" step="0.01" required />
+                            </label>
+                            <label>
+                                <span>Category</span>
+                                <select id="expense-category">
+                                    <option value="shop">Shop</option>
+                                    <option value="personal">Personal</option>
+                                    <option value="inventory">Inventory</option>
+                                    <option value="rent">Rent</option>
+                                    <option value="utilities">Utilities</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label>
+                            <span>Note (optional)</span>
+                            <input type="text" id="expense-note" placeholder="Short note" />
+                        </label>
+                        <div class="expense-actions">
+                            <button type="submit" class="primary-btn">Add expense</button>
+                            <button type="button" class="secondary-btn" id="expense-export-btn">Export expenses (CSV)</button>
+                        </div>
+                    </form>
+                    <div class="data-empty" id="expenses-empty" hidden>
+                        <p>No expenses yet. Add your first expense.</p>
+                    </div>
+                    <div class="expense-list" id="expense-list" aria-live="polite"></div>
+                </div>
             </section>
 
             <section class="panel" id="panel-bill" aria-label="Generate Bill">
@@ -255,23 +250,56 @@
                 </div>
 
                 <div class="ai-tab-content active" data-content="chat">
-                    <div class="ai-chat-container">
-                        <div class="ai-messages" id="ai-messages"></div>
-                        <div class="ai-input-container">
-                            <input type="text" id="ai-input" placeholder="Ask Optichain anything..." data-i18n-placeholder="ai.placeholder" />
-                            <button class="ai-send-btn" id="ai-send-btn" aria-label="Send">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    <div class="ai-chat-wrapper">
+                        <div class="ai-chat-header">
+                            <div class="ai-avatar">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
                                 </svg>
+                            </div>
+                            <div class="ai-header-text">
+                                <h3>Optichain AI</h3>
+                                <p>Your intelligent business assistant</p>
+                            </div>
+                        </div>
+                        <div class="ai-messages-container" id="ai-messages">
+                            <div class="ai-welcome-message">
+                                <div class="welcome-icon">✨</div>
+                                <h3>How can I help you today?</h3>
+                                <p>Ask me anything about your business, customers, or tasks.</p>
+                            </div>
+                        </div>
+                        <div class="ai-quick-suggestions" id="ai-quick-suggestions">
+                            <button class="suggestion-chip" data-action="find-customer">
+                                <span>🔍</span>
+                                <span>Find Customer</span>
+                            </button>
+                            <button class="suggestion-chip" data-action="trust-ratio">
+                                <span>📊</span>
+                                <span>Trust Ratio</span>
+                            </button>
+                            <button class="suggestion-chip" data-action="plan-day">
+                                <span>📅</span>
+                                <span>Plan Day</span>
+                            </button>
+                            <button class="suggestion-chip" data-action="add-task">
+                                <span>✅</span>
+                                <span>Add Task</span>
                             </button>
                         </div>
-                        <div class="ai-quick-actions">
-                            <button class="ai-quick-btn" data-action="find-customer" data-i18n="ai.quick.findCustomer">Find Customer</button>
-                            <button class="ai-quick-btn" data-action="trust-ratio" data-i18n="ai.quick.trustRatio">Trust Ratio</button>
-                            <button class="ai-quick-btn" data-action="plan-day" data-i18n="ai.quick.planDay">Plan Day</button>
-                            <button class="ai-quick-btn" data-action="add-task" data-i18n="ai.quick.addTask">Add Task</button>
-                            <button class="ai-quick-btn" data-action="generate-card" data-i18n="ai.quick.generateCard">Generate Card</button>
+                        <div class="ai-input-wrapper">
+                            <div class="ai-input-box">
+                                <textarea id="ai-input" rows="1" placeholder="Message Optichain..." data-i18n-placeholder="ai.placeholder"></textarea>
+                                <button class="ai-send-button" id="ai-send-btn" aria-label="Send" disabled>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="ai-input-hint">Optichain can make mistakes. Check important info.</p>
                         </div>
                     </div>
                 </div>
@@ -423,6 +451,40 @@
                     </div>
 
                     <div class="settings-section">
+                        <h2>Login & Security</h2>
+                        <p class="panel-subtitle" style="margin-bottom:12px;">Optional login controls (available only from Settings).</p>
+                        <div class="settings-option">
+                            <label>
+                                <span>Email (optional)</span>
+                                <input type="email" id="settings-login-email" class="settings-input" placeholder="name@email.com" />
+                            </label>
+                        </div>
+                        <div class="settings-option">
+                            <label>
+                                <span>Password (optional)</span>
+                                <input type="password" id="settings-login-password" class="settings-input" placeholder="Set a password" />
+                            </label>
+                        </div>
+                        <div class="settings-option">
+                            <label>
+                                <span>Passcode (4-6 digits)</span>
+                                <input type="password" id="settings-login-passcode" class="settings-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="1234" />
+                            </label>
+                        </div>
+                        <div class="settings-actions-row">
+                            <button class="primary-btn" id="settings-login-save-btn">Save login info</button>
+                            <button class="secondary-btn" id="settings-login-clear-btn">Clear login</button>
+                        </div>
+                        <div class="settings-option" style="margin-top:10px;">
+                            <label class="settings-toggle-label">
+                                <input type="checkbox" id="settings-login-require-toggle" />
+                                <span>Require login on next open (optional)</span>
+                            </label>
+                            <p class="hint-text">App opens without login by default; toggle this only if you want a lock.</p>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
                         <h2 data-i18n="settings.display.title">Display</h2>
                         <div class="settings-option">
                             <label>
@@ -470,6 +532,20 @@
                             <p style="margin: 0 0 12px; color: var(--text-soft);">View your monthly summary and insights</p>
                             <button class="primary-btn" id="view-monthly-wrapped-btn">View Monthly Wrapped</button>
                         </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h2>Data Backup & Export</h2>
+                        <p class="panel-subtitle" style="margin-bottom:12px;">Export/import all your data (customers, notes, tasks, expenses, settings).</p>
+                        <div class="settings-actions-row">
+                            <button class="primary-btn" id="data-export-btn">Export all data (JSON)</button>
+                            <button class="secondary-btn" id="data-import-btn">Import data</button>
+                        </div>
+                        <input type="file" id="data-import-file" accept="application/json" style="display:none;" />
+                        <div class="settings-actions-row" style="margin-top:10px;">
+                            <button class="secondary-btn" id="download-bill-png-btn">Download bill PNG</button>
+                        </div>
+                        <p class="hint-text" style="margin-top:10px;">Exports include everything stored in the app. Bill PNG uses your current bill design.</p>
                     </div>
 
                     <div class="settings-section">
@@ -943,6 +1019,11 @@
             </footer>
         </article>
     </template>
+
+    <script src="app.js" defer></script>
+</body>
+</html>
+
 
     <script src="app.js" defer></script>
 </body>
