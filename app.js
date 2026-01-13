@@ -1,238 +1,311 @@
 'use strict';
 
-// Single authoritative skip login function (defined as early as possible)
-(function() {
-    if (typeof window === 'undefined') return;
-    
-    window.skipLoginNow = function() {
-        console.log('skipLoginNow triggered');
-
-        // Persist auth to localStorage immediately
-        try {
-            const stored = JSON.parse(localStorage.getItem('debtx-data-v1') || '{}');
-            stored.authenticated = true;
-            stored.auth = { email: '', passwordHash: '', passcode: '' };
-            localStorage.setItem('debtx-data-v1', JSON.stringify(stored));
-        } catch (err) {
-            console.error('skipLoginNow localStorage error', err);
-        }
-
-        // Update in-memory state if available
-        if (typeof state !== 'undefined') {
-            state.authenticated = true;
-            state.auth = { email: '', passwordHash: '', passcode: '' };
-        }
-
-        // Hide login UI
-        const loginScreen = document.getElementById('login-screen');
-        if (loginScreen) {
-            loginScreen.style.display = 'none';
-            loginScreen.hidden = true;
-            loginScreen.style.opacity = '0';
-            loginScreen.style.visibility = 'hidden';
-            loginScreen.style.pointerEvents = 'none';
-        }
-
-        // Show app shell
-        const app = document.getElementById('app');
-        if (app) {
-            app.hidden = false;
-            app.style.display = 'flex';
-            app.style.opacity = '1';
-            app.style.visibility = 'visible';
-        }
-
-        // Initialize the app if available, otherwise reload as fallback
-        if (typeof window.initializeApp === 'function') {
-            try {
-                window.initializeApp();
-            } catch (err) {
-                console.error('initializeApp failed after skipLoginNow', err);
-                setTimeout(() => window.location.reload(), 300);
-            }
-        } else {
-            setTimeout(() => window.location.reload(), 300);
-        }
-    };
-
-    // Ensure button gets a click handler as soon as possible
-    const bindSkipBtn = () => {
-        const btn = document.getElementById('skip-login-btn');
-        if (!btn) return;
-        const handler = (e) => {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation?.();
-            }
-            window.skipLoginNow();
-            return false;
-        };
-        btn.onclick = handler;
-        btn.addEventListener('click', handler, true);
-        btn.style.pointerEvents = 'auto';
-        btn.style.cursor = 'pointer';
-        btn.style.zIndex = '10001';
-    };
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bindSkipBtn);
-    } else {
-        bindSkipBtn();
-    }
-
-    // If a pending skip was queued from the inline script, run it now
-    if (window.__pendingSkipLogin) {
-        window.__pendingSkipLogin = false;
-        window.skipLoginNow();
-    }
-})();
-
 (function () {
     const STORAGE_KEY = 'debtx-data-v1';
-    const LS_VERSION = 1;
+    const LS_VERSION = 2;
 
     const todayString = () => new Date().toISOString().slice(0, 10);
 
-    const defaultState = () => ({
+        const defaultState = () => ({
         version: LS_VERSION,
         language: 'bn',
-        theme: 'light',
         notificationsEnabled: false,
-        authenticated: false,
-        auth: {
-            email: '',
-            passwordHash: '',
-            passcode: ''
-        },
-        guideCompleted: false,
-        subscription: {
-            type: 'free',
-            expiresAt: null,
-            activatedAt: null,
-            coupon: null
-        },
-        requireLogin: false,
-        shop: {
-            name: '',
-            image: '',
-            phone: '',
-            bank: ''
-        },
         customers: [],
         notes: [],
         tasks: [],
-        expenses: [],
+        bills: [],
+        shopLogos: [],
+        shop: {
+            ownerName: '',
+            shopName: '',
+            shopLogo: '',
+            ownerPhoto: '',
+            phoneNumber: '',
+            paymentNumber: '',
+            paymentOption: 'bkash',
+            paymentMethods: {
+                bkash: { enabled: false, number: '' },
+                nagad: { enabled: false, number: '' },
+                rocket: { enabled: false, number: '' }
+            }
+        },
+        subscription: {
+            plan: 'free', // free, pro, max, ultra
+            activatedAt: null,
+            expiresAt: null
+        },
+        auth: {
+            name: '',
+            email: '',
+            profilePicture: '',
+            extraPhoto: '',
+            passwordHash: '',
+            passcodeHash: '',
+            createdAt: null,
+            isGuest: true
+        },
+        session: {
+            unlocked: true
+        },
         ui: {
             selectedDate: todayString(),
             activePanel: 'customers',
-            fontSize: 'medium'
+            notesQuery: '',
+            notesFilter: 'all',
+            notesColorFilter: null, // Array of selected colors or null
+            activeNotesTab: 'notes', // notes or tasks
+            theme: 'cozy-ledger', // Default theme - warm and calming
+            haptics: true,
+            sounds: true,
+            textSize: 3
+        },
+        ai: {
+            lastSummary: '',
+            chatHistory: []
+        },
+        calculator: {
+            expression: '',
+            result: '0'
         }
     });
 
     const translations = {
         en: {
             'nav.customers': 'Customers',
+            'nav.bills': 'Bills',
+            'nav.ai': 'AI Tools',
+            'nav.notesTasks': 'Notes & Tasks',
             'nav.notes': 'Notes',
             'nav.tasks': 'To-Do',
-            'nav.ai': 'AI Buddy',
+            'nav.settings': 'Settings',
+            'ai.title': 'AI Tools',
+            'ai.subtitle': 'Calculator, Card Generator & AI Chat',
+            'ai.cardGenerator': 'Card Generator',
+            'ai.calculator': 'Calculator',
+            'ai.chat': 'AI Chat',
+            'ai.debtCardTitle': 'Debt Reminder Card Generator',
+            'ai.debtCardHint': 'Create beautiful payment reminder cards for your customers',
+            'ai.selectCustomer': 'Select Customer',
+            'ai.selectLogo': 'Select Shop Logo',
+            'ai.customerName': 'Customer Name',
+            'ai.debtAmount': 'Debt Amount (৳)',
+            'ai.shopName': 'Shop Name',
+            'ai.paymentMethod': 'Payment Method',
+            'ai.paymentNumber': 'Payment Number/Details',
+            'ai.dueDate': 'Due Date',
+            'ai.cardColor': 'Card Color',
+            'ai.customMessage': 'Custom Message (optional)',
+            'ai.generateCard': 'Generate Card',
+            'ai.requiresPremium': '🔒 This feature requires a premium subscription. Upgrade to Pro, Max, or Ultra to create custom cards.',
+            'ai.preview': 'Preview',
+            'ai.downloadCard': '📥 Download',
+            'ai.shareCard': '📤 Share',
+            'calculator.title': 'Calculator',
+            'calculator.subtitle': 'Quick calculations for your shop',
             'customers.title': 'Customers & Debts',
-            'customers.subtitle': 'Track dues, payments, and reminders',
+            'customers.subtitle': 'Manage customer accounts and track payments',
             'customers.addCustomer': '+ Add Customer',
             'customers.searchPlaceholder': 'Search by name or phone',
-            'customers.empty': 'No customers yet. Add the first customer to begin.',
-            'customers.emptySearch': 'No matching customers. Try a different search.',
-            'customers.card.balance': 'Balance',
-            'customers.card.lastPayment': 'Last payment',
-            'customers.card.dueDate': 'Due date',
-            'customers.card.history': 'History',
+            'customers.empty': 'No customers yet. Add your first customer to get started.',
+            'customers.emptySearch': 'No customers found. Try a different search term.',
+            'customers.card.balance': 'Outstanding Balance',
+            'customers.card.lastPayment': 'Last Payment',
+            'customers.card.dueDate': 'Due Date',
+            'customers.card.trustRatio': 'Payment Reliability',
+            'customers.card.history': 'View History',
             'customers.card.payment': 'Record Payment',
-            'customers.card.debt': 'Add Debt',
-            'customers.card.historyTitle': 'Activity',
-            'customers.card.settled': 'Settled',
-            'customers.card.onTrack': 'On track',
-            'customers.card.dueSoon': 'Due soon',
+            'customers.card.demand': 'Request Payment',
+            'customers.card.debt': 'Add New Debt',
+            'customers.card.historyTitle': 'Transaction History',
+            'customers.card.settled': 'All Paid',
+            'customers.card.onTrack': 'On Schedule',
+            'customers.card.dueSoon': 'Due Soon',
             'customers.card.overdue': 'Overdue',
-            'notes.title': 'Shop Notes',
+            'notes.title': 'Todos',
             'notes.subtitle': 'Keep quick reminders in one place',
-            'notes.addNote': '+ New Note',
-            'notes.empty': 'No notes saved yet. Start writing your ideas.',
+            'notesTasks.title': 'Todos & Tasks',
+            'notesTasks.subtitle': 'Keep todos and track your tasks',
+            'notes.addNote': '+ New Todo',
+            'notes.searchPlaceholder': 'Search notes',
+            'notes.filterAll': 'All',
+            'notes.filterPinned': 'Pinned',
+            'notes.filterRecent': 'Recent',
+            'notes.filterYellow': 'Yellow',
+            'notes.filterGreen': 'Green',
+            'notes.filterBlue': 'Blue',
+            'notes.filterPink': 'Pink',
+            'notes.filterGray': 'Gray',
+            'notes.empty': 'No notes yet. Create your first note to get started.',
+            'notes.pin': 'Pin to top',
+            'notes.unpin': 'Unpin',
+            'notes.deleteConfirm': 'Are you sure you want to delete this note?',
+            'settings.title': 'Settings',
+            'settings.subtitle': 'Customize your experience',
+            'settings.profileTitle': 'Your Profile',
+            'settings.editProfile': 'Edit Profile',
+            'settings.themeTitle': 'Theme & Appearance',
+            'settings.securityTitle': 'Security & Privacy',
+            'settings.securityHint': 'Protect your shop data with a password',
+            'settings.lockNow': 'Lock App Now',
+            'settings.feedbackTitle': 'Haptics & Sounds',
+            'settings.haptics': 'Enable Haptic Feedback',
+            'settings.sounds': 'Enable Sound Effects',
+            'settings.aiTitle': 'AI Assistant',
+            'settings.aiHint': 'Get smart insights about your business',
+            'settings.aiRefresh': 'Refresh Summary',
+            'settings.aiEmpty': 'Tap refresh to see your business summary',
+            'settings.subscriptionTitle': 'Subscription Plans',
+            'settings.subscriptionCurrent': 'Current Plan',
+            'settings.languageTitle': 'Language',
+            'settings.languageHint': 'Choose your preferred language',
+            'settings.textSizeTitle': 'Text Size',
+            'settings.textSizeHint': 'Make text bigger or smaller',
+            'settings.shopProfileTitle': 'Shop Information',
+            'settings.editShopProfile': 'Edit Shop Details',
+            'settings.personalInfoTitle': 'Personal Information',
+            'settings.phoneNumber': 'Phone Number',
+            'settings.myPhoto': 'Your Photo',
+            'settings.tapToUploadPhoto': 'Tap to Upload Photo',
+            'settings.paymentInfoTitle': 'Payment Information',
+            'settings.paymentNumber': 'Payment Number',
+            'settings.paymentOption': 'Payment Method',
+            'settings.monthlyWrapTitle': 'Monthly Summary',
+            'settings.monthlyWrapHint': 'View your monthly business performance',
+            'settings.paymentSettingsTitle': 'Payment Methods',
+            'settings.paymentSettingsHint': 'Enable payment options for your customers',
+            'settings.paymentMethodDesc': 'Mobile Banking',
+            'settings.themeHint': 'Choose a theme that matches your style',
+            'settings.monthlyWrapHint': 'Overview of your monthly activity',
+            'settings.pendingAmount': 'Pending Payments',
+            'settings.overallPerformance': 'Overall Performance',
+            'themes.light': 'Light',
+            'themes.dark': 'Dark',
+            'themes.ocean': 'Ocean',
+            'themes.rose': 'Rose',
+            'themes.cozyLedger': 'Cozy Ledger',
+            'themes.cleanBusiness': 'Clean Business',
+            'themes.nightShop': 'Night Shop',
+            'themes.zenFinance': 'Zen Finance',
+            'themes.streetLedger': 'Street Ledger',
+            'themes.classicPaper': 'Classic Paper',
+            'settings.viewMonthlyWrap': 'View Full Monthly Report',
+            'settings.totalRevenue': 'Total Revenue',
+            'settings.paymentsReceived': 'Payments Received',
+            'settings.billsGenerated': 'Bills Created',
+            'settings.activeCustomers': 'Active Customers',
+            'settings.shopLogosTitle': 'Shop Logos',
+            'settings.shopLogosHint': 'Manage your shop logos',
+            'settings.addLogo': '+ Add Logo',
+            'settings.otherSettingsTitle': 'Other Settings',
+            'settings.credits': 'Made by Cozytustudios\nFounder: Sajid Hossain',
+            'settings.dataTitle': 'Data Backup & Transfer',
+            'settings.dataHint': 'Export your data as JSON to backup or transfer to another device. Import to restore your data.',
+            'settings.exportData': '📤 Export JSON',
+            'settings.importData': '📥 Import JSON',
+            'settings.exportSuccess': 'Data exported successfully',
+            'settings.exportError': 'Export failed. Please try again',
+            'settings.importSuccess': 'Data imported successfully',
+            'settings.importError': 'Import failed. Please check the file format',
+            'settings.premiumRequired': 'This feature requires a premium subscription. Please upgrade to continue.',
+            'settings.themeImported': 'Theme imported successfully',
+            'settings.themeImportError': 'Failed to import theme. Please check the file format',
+            'settings.shopName': 'Shop Name',
+            'settings.ownerName': 'Owner Name',
+            'settings.couponPlaceholder': 'Enter coupon code (optional)',
+            'settings.couponValid': 'Coupon valid!',
+            'settings.couponInvalid': 'Invalid coupon',
+            'language.english': 'English',
+            'language.bengali': 'বাংলা',
+            'subscription.pro': 'Pro',
+            'subscription.proPrice': '40 ৳ / month',
+            'subscription.proDuration': 'Billed monthly',
+            'subscription.proBenefit1': 'Unlimited customers',
+            'subscription.proBenefit2': 'Advanced debt tracking',
+            'subscription.proBenefit3': 'Priority support',
+            'subscription.max': 'Max',
+            'subscription.maxPrice': '300 ৳ / year',
+            'subscription.maxDuration': 'Billed annually (Save 37%)',
+            'subscription.maxBenefit1': 'Everything in Pro',
+            'subscription.maxBenefit2': 'AI-powered insights',
+            'subscription.maxBenefit3': 'Advanced analytics',
+            'subscription.maxBenefit4': 'Custom branding',
+            'subscription.ultra': 'Ultra Pro',
+            'subscription.ultraPrice': '480 ৳ / year',
+            'subscription.ultraDuration': 'Billed annually (Save 50%)',
+            'subscription.ultraBenefit1': 'Everything in Max',
+            'subscription.ultraBenefit2': 'Unlimited AI features',
+            'subscription.ultraBenefit3': '24/7 priority support',
+            'subscription.ultraBenefit4': 'Early access to features',
+            'subscription.ultraBenefit5': 'Custom integrations',
+            'subscription.subscribe': 'Subscribe',
+            'subscription.bestValue': 'Best Value',
+            'subscription.premium': 'Premium',
+            'subscription.free': 'Free',
+            'subscription.couponPlaceholder': 'Coupon code',
+            'subscription.activate': 'Activate',
+            'subscription.subscribe': 'Subscribe',
+            'subscription.monthlyRenewal': 'Monthly renewal',
+            'subscription.yearlyRenewal': 'Yearly renewal',
+            'subscription.couponValid': '✓ Valid coupon code',
+            'subscription.couponRequired': 'Please enter a coupon code',
+            'subscription.buyHint': 'Want to buy a subscription? Visit our Facebook page for payment and confirmation.',
+            'subscription.buyCoupon': 'Subscribe on Facebook',
+            'subscription.invalidCoupon': 'Invalid coupon code',
+            'subscription.activated': 'Subscription activated successfully!',
+            'subscription.chatWelcome': 'Need help choosing a plan? Ask me anything about our subscription plans!',
+            'subscription.chatPlaceholder': 'Ask about plans...',
+            'modals.logo.title': 'Add Shop Logo',
+            'modals.logo.name': 'Logo Name',
+            'modals.logo.image': 'Logo Image',
+            'themes.mint': 'Mint',
+            'themes.midnight': 'Midnight',
+            'themes.sunset': 'Sunset',
+            'themes.rose': 'Rose',
+            'themes.slate': 'Slate',
+            'themes.ocean': 'Ocean',
+            'themes.forest': 'Forest',
+            'themes.neon': 'Neon',
+            'themes.graphite': 'Graphite',
             'tasks.title': 'To-Do & Reminders',
             'tasks.subtitle': 'Watch payment dates and shop work',
             'tasks.addTask': '+ Add Task',
-            'tasks.calendarHint': 'Tap a date to see upcoming payments and tasks.',
-            'tasks.empty': 'No tasks scheduled. Add reminders to stay on track.',
-            'tasks.card.done': 'Done',
-            'tasks.card.due': 'Due',
-            'tasks.card.debtType': 'Customer payment',
-            'tasks.card.debtNote': 'Outstanding balance',
+            'tasks.calendarHint': 'Tap a date to see upcoming payments and tasks',
+            'tasks.empty': 'No tasks scheduled. Add your first task to get started.',
+            'tasks.card.done': 'Mark as Done',
+            'tasks.card.due': 'Due Date',
+            'tasks.card.debtType': 'Customer Payment',
+            'tasks.card.debtNote': 'Outstanding Balance',
             'tasks.card.completed': 'Completed',
-            'ai.subtitle': 'Your intelligent assistant for business insights',
-            'ai.placeholder': 'Ask Optichain anything...',
-            'ai.quick.findCustomer': 'Find Customer',
-            'ai.quick.trustRatio': 'Trust Ratio',
-            'ai.quick.planDay': 'Plan Day',
-            'ai.quick.addTask': 'Add Task',
-            'ai.quick.generateCard': 'Generate Card',
-            'login.subtitle': 'Welcome back! Please sign in.',
-            'login.email': 'Email',
-            'login.passcode': 'Passcode',
-            'login.emailLabel': 'Email',
-            'login.passwordLabel': 'Password',
-            'login.passcodeLabel': 'Passcode',
-            'login.passcodeHint': 'Enter 4-6 digit passcode',
-            'login.submit': 'Sign In',
-            'login.setupPasscode': 'Setup Passcode',
-            'guide.welcome.title': 'Welcome to Debtx!',
-            'guide.welcome.text': 'Your digital khata for managing customer debts and payments.',
-            'guide.customers.title': 'Manage Customers',
-            'guide.customers.text': 'Add customers, track their debts, and record payments easily.',
-            'guide.notes.title': 'Take Notes',
-            'guide.notes.text': 'Keep quick reminders and important information in one place.',
-            'guide.tasks.title': 'Track Tasks',
-            'guide.tasks.text': 'Set reminders for payments and important shop activities.',
-            'guide.ai.title': 'AI Assistant',
-            'guide.ai.text': 'Use Optichain AI to get insights, generate cards, and more!',
-            'guide.prev': 'Previous',
-            'guide.next': 'Next',
-            'guide.skip': 'Get Started',
-            'card.paymentRequest': 'Payment Request',
-            'card.amountDue': 'Amount Due',
-            'card.selectCustomer': 'Select Customer',
-            'card.message': 'Message (optional)',
-            'card.paymentMethods': 'Payment Methods',
-            'card.generate': 'Generate Card',
-            'card.download': 'Download Image',
-            'card.share': 'Share',
-            'settings.shop.title': 'Shop Information',
-            'settings.shop.name': 'Shop Name',
-            'settings.shop.image': 'Shop Image/Logo',
-            'settings.shop.phone': 'Phone Number',
-            'settings.shop.bank': 'Bank Account (optional)',
-            'settings.theme.zen': 'Zen',
-            'settings.theme.cozy': 'Cozy',
-            'settings.theme.ocean': 'Ocean',
-            'settings.theme.forest': 'Forest',
-            'settings.theme.sunset': 'Sunset',
-            'settings.theme.lavender': 'Lavender',
-            'customers.card.generateCard': 'Generate Card',
-            'ai.response.findCustomer': 'Here are your customers:',
-            'ai.response.trustRatio': 'Customer Trust Analysis:',
-            'ai.response.planDay': 'Your day plan:',
-            'ai.response.addTask': 'Task added successfully!',
-            'ai.error': 'Sorry, I encountered an error. Please try again.',
-            'settings.title': 'Settings',
-            'settings.subtitle': 'Manage your preferences',
-            'settings.language.title': 'Language',
-            'settings.language.label': 'Select Language',
-            'settings.notifications.title': 'Notifications',
-            'settings.notifications.enable': 'Enable reminders',
-            'settings.theme.title': 'Theme',
-            'settings.theme.light': 'Light',
-            'settings.theme.dark': 'Dark',
             'actions.cancel': 'Cancel',
             'actions.save': 'Save',
+            'actions.edit': 'Edit',
             'actions.delete': 'Delete',
+            'auth.title': 'Secure Your Shop Records',
+            'auth.subtitle': 'Set a password to protect your data. You can also add a quick passcode for faster access.',
+            'auth.loginTab': 'Login',
+            'auth.setupTab': 'Create account',
+            'auth.passwordLabel': 'Password',
+            'auth.passcodeLabel': 'Passcode (optional)',
+            'auth.loginHint': 'Enter your password or passcode to unlock Debtx.',
+            'auth.unlock': 'Unlock',
+            'auth.nameLabel': 'Full name',
+            'auth.emailLabel': 'Email',
+            'auth.passwordCreateLabel': 'Create password',
+            'auth.passcodeOptional': '4-8 digit passcode (optional)',
+            'auth.profilePicture': 'Profile picture',
+            'auth.extraPhoto': 'Additional photo',
+            'auth.previewProfile': 'Profile',
+            'auth.previewExtra': 'Photo',
+            'auth.setupHint': 'You will need this password each time you open Debtx.',
+            'auth.create': 'Save & Unlock',
+            'auth.getStarted': 'Get Started',
+            'auth.skip': 'Skip for now →',
+            'auth.skipHint': 'Use without password protection',
+            'auth.tapToUpload': 'Tap to add photo',
+            'auth.advancedSecurity': '🔒 Add password protection (optional)',
+            'auth.lock': 'Lock',
+            'auth.errorInvalid': 'Incorrect password or passcode. Try again.',
+            'auth.errorPasswordShort': 'Password must be at least 6 characters',
             'modals.customer.title': 'Add Customer',
             'modals.customer.name': 'Customer Name',
             'modals.customer.phone': 'Phone Number (optional)',
@@ -246,9 +319,16 @@
             'modals.payment.amount': 'Payment Amount (৳)',
             'modals.payment.date': 'Date',
             'modals.payment.note': 'Note',
-            'modals.note.title': 'New Note',
+            'modals.note.title': 'New Todo',
             'modals.note.titleLabel': 'Title',
+            'modals.note.color': 'Color',
+            'modals.note.colorYellow': 'Yellow',
+            'modals.note.colorGreen': 'Green',
+            'modals.note.colorBlue': 'Blue',
+            'modals.note.colorPink': 'Pink',
+            'modals.note.colorGray': 'Gray',
             'modals.note.body': 'Note',
+            'modals.note.pinned': 'Pin to top',
             'modals.task.title': 'Add Task',
             'modals.task.name': 'Task Name',
             'modals.task.type': 'Type',
@@ -258,10 +338,101 @@
             'modals.task.typeOther': 'Other',
             'modals.task.date': 'Due Date',
             'modals.task.note': 'Note',
+            'modals.profile.title': 'Edit Profile',
+            'modals.profile.name': 'Name',
+            'modals.profile.email': 'Email',
+            'modals.profile.profilePicture': 'Profile picture',
+            'modals.profile.extraPhoto': 'Additional photo',
+            'modals.demand.title': 'Demand Payment',
+            'modals.demand.amount': 'Amount to request (৳)',
+            'modals.demand.dueDate': 'Due date',
+            'modals.demand.method': 'Payment method / link',
+            'modals.demand.note': 'Message',
+            'modals.demand.generate': 'Generate card',
+            'modals.demand.share': 'Share',
+            'modals.demand.download': 'Download',
+            'modals.demand.previewText': 'Generated payment card will appear here',
+            'modals.shopProfile.title': 'Shop Profile',
+            'modals.shopProfile.ownerName': 'Your Name',
+            'modals.shopProfile.shopName': 'Shop Name',
+            'modals.shopProfile.phoneNumber': 'Phone Number',
+            'modals.shopProfile.shopLogo': 'Shop Logo/Picture',
+            'modals.shopProfile.yourPhoto': 'Your Photo',
+            'modals.shopProfile.paymentMethods': 'Payment Methods',
+            'modals.shopProfile.bkashNumber': 'bKash Number',
+            'modals.shopProfile.nagadNumber': 'Nagad Number',
+            'modals.shopProfile.rocketNumber': 'Rocket Number',
+            'bills.title': 'Billing & Invoicing',
+            'bills.subtitle': 'Create bills, invoices, and track payments',
+            'bills.newBill': '+ New Bill',
+            'bills.searchPlaceholder': 'Search bills by customer, invoice number...',
+            'bills.filterAll': 'All',
+            'bills.filterPaid': 'Paid',
+            'bills.filterPending': 'Pending',
+            'bills.filterOverdue': 'Overdue',
+            'bills.empty': 'No bills yet. Create your first bill.',
+            'bills.duplicate': 'Duplicate',
+            'bills.view': 'View',
+            'bills.share': 'Share',
+            'bills.invoiceNumber': 'Invoice #',
+            'bills.items': 'Items',
+            'bills.totalAmount': 'Total',
+            'bills.status': 'Status',
+            'bills.dueDate': 'Due Date',
+            'modals.bill.title': 'Create Bill / Invoice',
+            'modals.bill.subtitle': 'Generate professional bills for your customers',
+            'modals.bill.customerName': 'Customer Name',
+            'modals.bill.customerNameManual': 'Or Enter Customer Name',
+            'modals.bill.invoiceNumber': 'Invoice Number (Auto-generated if empty)',
+            'modals.bill.productsTitle': 'Items / Services',
+            'modals.bill.addProduct': 'Add Item',
+            'modals.bill.subtotal': 'Subtotal',
+            'modals.bill.discount': 'Discount (%)',
+            'modals.bill.tax': 'Tax (%) (Optional)',
+            'modals.bill.total': 'Total Amount',
+            'modals.bill.dueDate': 'Due Date',
+            'modals.bill.paymentStatus': 'Payment Status',
+            'modals.bill.statusPending': 'Pending',
+            'modals.bill.statusPaid': 'Paid',
+            'modals.bill.statusPartial': 'Partial',
+            'modals.bill.notes': 'Notes / Terms (Optional)',
+            'modals.bill.generateBill': 'Generate Bill',
+            'modals.billCustomize.title': 'Customize Bill Card',
+            'modals.billCustomize.theme': 'Theme',
+            'modals.billCustomize.themeMinimal': 'Minimal',
+            'modals.billCustomize.themeCozy': 'Cozy',
+            'modals.billCustomize.themeProfessional': 'Professional',
+            'modals.billCustomize.layout': 'Layout Style',
+            'modals.billCustomize.colors': 'Colors',
+            'modals.billCustomize.font': 'Font',
+            'modals.billCustomize.spacing': 'Spacing',
+            'modals.billCustomize.border': 'Border',
+            'modals.billCustomize.logo': 'Shop Logo',
+            'modals.billCustomize.fontSize': 'Font Size',
+            'modals.billCustomize.icons': 'Icons',
+            'modals.billCustomize.customNotes': 'Custom Notes',
+            'modals.billCustomize.sections': 'Section Order',
+            'modals.billCustomize.preview': 'Live Preview',
+            'modals.billCustomize.reset': 'Reset',
+            'modals.billCustomize.apply': 'Apply & Download',
+            'modals.monthlyWrap.title': 'Monthly Summary',
+            'modals.monthlyWrap.loading': 'Loading monthly summary...',
+            'modals.cardCustomize.title': 'Customize Card',
+            'modals.cardCustomize.style': 'Card Style',
+            'modals.cardCustomize.message': 'Custom Message',
+            'modals.cardCustomize.emoji': 'Add Emoji',
+            'actions.close': 'Close',
+            'actions.apply': 'Apply',
             'footer.text': 'Debtx keeps your khata simple, clear, and close to you.',
+            'ai.title': 'AI Assistant',
+            'ai.subtitle': 'Get insights and generate cards',
+            'ai.welcome': 'Hello! I can help you manage your shop, track payments, generate reminder cards, and more. How can I help you today?',
+            'ai.placeholder': 'Ask me anything...',
+            'ai.subscriptionRequired': 'AI Assistant requires a subscription. Please subscribe to use this feature.',
+            'ai.goToSubscription': 'View Subscription Plans',
             'notifications.enabled': 'Reminders on',
             'notifications.disabled': 'Reminders off',
-            'notifications.permissionDenied': 'Notifications blocked. Allow them from browser settings.',
+            'notifications.permissionDenied': 'Notifications blocked. Please allow them from your browser settings.',
             'notifications.dueToday': 'Payment due today for',
             'notifications.dueTodayBody': 'Amount due today: {amount}',
             'notifications.overdue': 'Overdue payment for',
@@ -273,110 +444,243 @@
                 'July', 'August', 'September', 'October', 'November', 'December'
             ],
             'calendar.dayNames': ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-            'calendar.empty': 'No items for this day. Add a task or record a debt.'
+            'calendar.empty': 'No items for this day Add a task or record a debt'
         },
         bn: {
             'nav.customers': 'ক্রেতা',
+            'nav.bills': 'বিল',
+            'nav.ai': 'এআই টুলস',
+            'nav.notesTasks': 'নোট ও কাজ',
             'nav.notes': 'নোট',
             'nav.tasks': 'করণীয়',
-            'nav.ai': 'AI সহায়ক',
+            'nav.settings': 'সেটিংস',
+            'ai.title': 'এআই টুলস',
+            'ai.subtitle': 'ক্যালকুলেটর, কার্ড জেনারেটর ও এআই চ্যাট',
+            'ai.cardGenerator': 'কার্ড জেনারেটর',
+            'ai.calculator': 'ক্যালকুলেটর',
+            'ai.chat': 'এআই চ্যাট',
+            'ai.debtCardTitle': 'ঋণ কার্ড জেনারেটর',
+            'ai.debtCardHint': 'আপনার ক্রেতাদের জন্য কাস্টম ঋণ অনুস্মারক কার্ড তৈরি করুন',
+            'ai.selectCustomer': 'ক্রেতা নির্বাচন করুন',
+            'ai.selectLogo': 'দোকানের লোগো নির্বাচন করুন',
+            'ai.customerName': 'ক্রেতার নাম',
+            'ai.debtAmount': 'ঋণের পরিমাণ (৳)',
+            'ai.shopName': 'দোকানের নাম',
+            'ai.paymentMethod': 'পেমেন্ট পদ্ধতি',
+            'ai.paymentNumber': 'পেমেন্ট নম্বর/বিবরণ',
+            'ai.dueDate': 'শেষ তারিখ',
+            'ai.cardColor': 'কার্ডের রঙ',
+            'ai.customMessage': 'কাস্টম বার্তা (ঐচ্ছিক)',
+            'ai.generateCard': 'কার্ড তৈরি করুন',
+            'ai.requiresPremium': '🔒 কার্ড জেনারেটরের জন্য প্রিমিয়াম সাবস্ক্রিপশন প্রয়োজন। এই ফিচার ব্যবহার করতে দয়া করে Pro, Max বা Ultra তে আপগ্রেড করুন।',
+            'ai.preview': 'প্রিভিউ',
+            'ai.downloadCard': '📥 ডাউনলোড',
+            'ai.shareCard': '📤 শেয়ার',
+            'calculator.title': 'ক্যালকুলেটর',
+            'calculator.subtitle': 'দ্রুত হিসাব করুন',
             'customers.title': 'ক্রেতা ও দেনা',
             'customers.subtitle': 'দেনা, পরিশোধ ও অনুস্মারক ট্র্যাক করুন',
             'customers.addCustomer': '+ নতুন ক্রেতা',
             'customers.searchPlaceholder': 'নাম বা ফোন দিয়ে খুঁজুন',
-            'customers.empty': 'এখনও কোনো ক্রেতা নেই। প্রথম ক্রেতা যুক্ত করুন।',
-            'customers.emptySearch': 'কোনো ক্রেতা পাওয়া যায়নি। অন্যভাবে খুঁজুন।',
+            'customers.empty': 'এখনও কোনো ক্রেতা নেই প্রথম ক্রেতা যুক্ত করুন',
+            'customers.emptySearch': 'কোনো ক্রেতা পাওয়া যায়নি অন্যভাবে খুঁজুন',
             'customers.card.balance': 'বাকি টাকা',
             'customers.card.lastPayment': 'সর্বশেষ পেমেন্ট',
             'customers.card.dueDate': 'পরিশোধের তারিখ',
-            'customers.card.history': 'ইতিহাস',
+            'customers.card.trustRatio': 'পেমেন্ট নির্ভরযোগ্যতা',
+            'customers.card.history': 'ইতিহাস দেখুন',
             'customers.card.payment': 'পেমেন্ট নিন',
-            'customers.card.debt': 'দেনা লিখুন',
-            'customers.card.historyTitle': 'লেনদেন',
-            'customers.card.settled': 'পরিশোধিত',
+            'customers.card.demand': 'পেমেন্ট দাবি',
+            'customers.card.debt': 'নতুন দেনা যোগ করুন',
+            'customers.card.historyTitle': 'লেনদেনের ইতিহাস',
+            'customers.card.settled': 'সমস্ত পরিশোধিত',
             'customers.card.onTrack': 'সময়ের মধ্যে',
             'customers.card.dueSoon': 'শীঘ্রই বাকি',
             'customers.card.overdue': 'বাকি পড়েছে',
-            'notes.title': 'দোকানের নোট',
+            'notes.title': 'টুডু',
             'notes.subtitle': 'দ্রুত নোট এক জায়গায় রাখুন',
-            'notes.addNote': '+ নতুন নোট',
-            'notes.empty': 'এখনও কোনো নোট নেই। লেখা শুরু করুন।',
+            'notesTasks.title': 'টুডু ও কাজ',
+            'notesTasks.subtitle': 'টুডু রাখুন এবং কাজ ট্র্যাক করুন',
+            'notes.addNote': '+ নতুন টুডু',
+            'notes.searchPlaceholder': 'নোট খুঁজুন',
+            'notes.filterAll': 'সব',
+            'notes.filterPinned': 'পিন করা',
+            'notes.filterRecent': 'সাম্প্রতিক',
+            'notes.filterYellow': 'হলুদ',
+            'notes.filterGreen': 'সবুজ',
+            'notes.filterBlue': 'নীল',
+            'notes.filterPink': 'গোলাপি',
+            'notes.filterGray': 'ধূসর',
+            'notes.empty': 'এখনও কোনো নোট নেই লেখা শুরু করুন',
+            'notes.pin': 'উপরে পিন করুন',
+            'notes.unpin': 'আনপিন করুন',
+            'notes.deleteConfirm': 'আপনি কি নিশ্চিত যে আপনি এই নোটটি মুছে ফেলতে চান?',
+            'settings.title': 'সেটিংস',
+            'settings.subtitle': 'থিম, প্রোফাইল ও নিরাপত্তা',
+            'settings.profileTitle': 'প্রোফাইল',
+            'settings.editProfile': 'এডিট',
+            'settings.themeTitle': 'থিম',
+            'settings.securityTitle': 'নিরাপত্তা',
+            'settings.securityHint': 'Debtx খুললেই পাসওয়ার্ড লাগবে',
+            'settings.lockNow': 'এখনই লক',
+            'settings.feedbackTitle': 'হ্যাপটিক ও সাউন্ড',
+            'settings.haptics': 'হ্যাপটিক চালু',
+            'settings.sounds': 'সাউন্ড চালু',
+            'settings.aiTitle': 'এআই সহায়ক',
+            'settings.aiHint': 'অফলাইনে টাস্ক/ইতিহাসের সারাংশ দেখায় কোনো API লাগে না',
+            'ai.subscriptionRequired': 'এআই সহায়ক (অপ্টিচেইন) ব্যবহার করতে সাবস্ক্রিপশন প্রয়োজন। সাবস্ক্রিপশন নিন।',
+            'ai.goToSubscription': 'সাবস্ক্রিপশনে যান',
+            'settings.aiRefresh': 'সারাংশ দেখাও',
+            'settings.aiEmpty': 'সারাংশ দেখতে বাটনে ট্যাপ করুন',
+            'settings.subscriptionTitle': 'সাবস্ক্রিপশন',
+            'settings.subscriptionCurrent': 'বর্তমান প্ল্যান',
+            'settings.languageTitle': 'ভাষা',
+            'settings.textSizeTitle': 'লেখার আকার',
+            'settings.textSizeHint': 'লেখা বড় বা ছোট করুন',
+            'settings.languageHint': 'আপনার পছন্দের ভাষা নির্বাচন করুন',
+            'settings.shopProfileTitle': 'দোকানের প্রোফাইল',
+            'settings.editShopProfile': 'এডিট',
+            'settings.personalInfoTitle': 'ব্যক্তিগত তথ্য',
+            'settings.phoneNumber': 'ফোন নম্বর',
+            'settings.myPhoto': 'আমার ছবি',
+            'settings.tapToUploadPhoto': 'আপলোড করতে ট্যাপ করুন',
+            'settings.paymentInfoTitle': 'পেমেন্ট তথ্য',
+            'settings.paymentNumber': 'পেমেন্ট নম্বর',
+            'settings.paymentOption': 'পেমেন্ট অপশন',
+            'settings.monthlyWrapTitle': 'মাসিক সারাংশ',
+            'settings.monthlyWrapHint': 'আপনার মাসিক ব্যবসার সারাংশ এবং অন্তর্দৃষ্টি দেখুন',
+            'settings.paymentSettingsTitle': 'পেমেন্ট সেটিংস',
+            'settings.paymentSettingsHint': 'সমর্থিত পেমেন্ট বিকল্পগুলি সক্রিয় বা নিষ্ক্রিয় করুন',
+            'settings.paymentMethodDesc': 'মোবাইল ব্যাঙ্কিং',
+            'settings.themeHint': 'তাত্ক্ষণিক প্রিভিউ সহ থিমগুলির মধ্যে স্যুইচ করুন',
+            'settings.monthlyWrapHint': 'আপনার মাসিক কার্যক্রমের ভিজ্যুয়াল সারাংশ',
+            'settings.pendingAmount': 'বকেয়া পরিমাণ',
+            'settings.overallPerformance': 'সামগ্রিক পারফরম্যান্স',
+            'themes.light': 'লাইট',
+            'themes.dark': 'ডার্ক',
+            'themes.ocean': 'ওশান',
+            'themes.rose': 'রোজ',
+            'themes.cozyLedger': 'আরামদায়ক খাতা',
+            'themes.cleanBusiness': 'পরিষ্কার ব্যবসা',
+            'themes.nightShop': 'রাতের দোকান',
+            'themes.zenFinance': 'শান্ত আর্থিক',
+            'themes.streetLedger': 'আধুনিক খাতা',
+            'themes.classicPaper': 'ক্লাসিক কাগজ',
+            'settings.viewMonthlyWrap': 'সম্পূর্ণ মাসিক র্যাপ দেখুন',
+            'settings.totalRevenue': 'মোট আয়',
+            'settings.paymentsReceived': 'পেমেন্ট প্রাপ্ত',
+            'settings.billsGenerated': 'বিল তৈরি',
+            'settings.activeCustomers': 'সক্রিয় ক্রেতা',
+            'settings.shopLogosTitle': 'দোকানের লোগো',
+            'settings.shopLogosHint': 'আপনার দোকানের লোগো পরিচালনা করুন',
+            'settings.addLogo': '+ লোগো যোগ করুন',
+            'settings.otherSettingsTitle': 'অন্যান্য সেটিংস',
+            'settings.credits': 'তৈরি করেছেন কোজিটুস্টুডিওস প্রতিষ্ঠাতা সাজিদ হোসেন',
+            'settings.dataTitle': 'ডেটা ব্যাকআপ ও ট্রান্সফার',
+            'settings.dataHint': 'ব্যাকআপ বা অন্য ডিভাইসে ট্রান্সফারের জন্য JSON এক্সপোর্ট করুন ইমপোর্ট করে রিস্টোর করুন',
+            'settings.exportData': '📤 এক্সপোর্ট JSON',
+            'settings.importData': '📥 ইমপোর্ট JSON',
+            'settings.exportSuccess': 'ডেটা সফলভাবে এক্সপোর্ট হয়েছে',
+            'settings.exportError': 'এক্সপোর্ট ব্যর্থ আবার চেষ্টা করুন',
+            'settings.importSuccess': 'ডেটা সফলভাবে ইমপোর্ট হয়েছে',
+            'settings.importError': 'ইমপোর্ট ব্যর্থ ফাইল ফরম্যাট সঠিক নয়',
+            'settings.shopName': 'দোকানের নাম',
+            'settings.ownerName': 'মালিকের নাম',
+            'settings.couponPlaceholder': 'কুপন কোড লিখুন (ঐচ্ছিক)',
+            'settings.couponValid': 'কুপন বৈধ!',
+            'settings.couponInvalid': 'অবৈধ কুপন',
+            'language.english': 'English',
+            'language.bengali': 'বাংলা',
+            'subscription.pro': 'প্রো',
+            'subscription.proPrice': '৪০ ৳ / মাস',
+            'subscription.proDuration': 'মাসিক বিল',
+            'subscription.proBenefit1': 'সীমাহীন ক্রেতা',
+            'subscription.proBenefit2': 'উন্নত ঋণ ট্র্যাকিং',
+            'subscription.proBenefit3': 'অগ্রাধিকার সহায়তা',
+            'subscription.max': 'ম্যাক্স',
+            'subscription.maxPrice': '৩০০ ৳ / বছর',
+            'subscription.maxDuration': 'বার্ষিক বিল (৩৭% সাশ্রয়)',
+            'subscription.maxBenefit1': 'প্রো-এর সবকিছু',
+            'subscription.maxBenefit2': 'এআই-চালিত অন্তর্দৃষ্টি',
+            'subscription.maxBenefit3': 'উন্নত বিশ্লেষণ',
+            'subscription.maxBenefit4': 'কাস্টম ব্র্যান্ডিং',
+            'subscription.ultra': 'আল্ট্রা প্রো',
+            'subscription.ultraPrice': '৪৮০ ৳ / বছর',
+            'subscription.ultraDuration': 'বার্ষিক বিল (৫০% সাশ্রয়)',
+            'subscription.ultraBenefit1': 'ম্যাক্স-এর সবকিছু',
+            'subscription.ultraBenefit2': 'সীমাহীন এআই ফিচার',
+            'subscription.ultraBenefit3': '২৪/৭ অগ্রাধিকার সহায়তা',
+            'subscription.ultraBenefit4': 'ফিচারের প্রাথমিক অ্যাক্সেস',
+            'subscription.ultraBenefit5': 'কাস্টম ইন্টিগ্রেশন',
+            'subscription.subscribe': 'সাবস্ক্রাইব',
+            'subscription.bestValue': 'সেরা মূল্য',
+            'subscription.premium': 'প্রিমিয়াম',
+            'subscription.free': 'ফ্রি',
+            'subscription.couponPlaceholder': 'কুপন কোড',
+            'subscription.activate': 'সক্রিয় করুন',
+            'subscription.subscribe': 'সাবস্ক্রাইব করুন',
+            'subscription.monthlyRenewal': 'মাসিক নবায়ন',
+            'subscription.yearlyRenewal': 'বার্ষিক নবায়ন',
+            'subscription.couponValid': '✓ বৈধ কুপন কোড',
+            'subscription.couponRequired': 'অনুগ্রহ করে একটি কুপন কোড লিখুন',
+            'subscription.buyHint': 'সাবস্ক্রিপশন কিনতে চান? পেমেন্ট এবং নিশ্চিতকরণের জন্য আমাদের Facebook পেজে যান।',
+            'subscription.buyCoupon': 'Facebook এ সাবস্ক্রাইব করুন',
+            'subscription.invalidCoupon': 'অবৈধ কুপন কোড',
+            'subscription.activated': 'সাবস্ক্রিপশন সফলভাবে সক্রিয় হয়েছে',
+            'subscription.chatWelcome': 'প্ল্যান বেছে নিতে সাহায্য চান? আমাদের সাবস্ক্রিপশন প্ল্যান সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন!',
+            'subscription.chatPlaceholder': 'প্ল্যান সম্পর্কে জিজ্ঞাসা করুন...',
+            'modals.logo.title': 'দোকানের লোগো যোগ করুন',
+            'modals.logo.name': 'লোগোর নাম',
+            'modals.logo.image': 'লোগো ছবি',
+            'themes.mint': 'মিন্ট',
+            'themes.midnight': 'মিডনাইট',
+            'themes.sunset': 'সানসেট',
+            'themes.rose': 'রোজ',
+            'themes.slate': 'স্লেট',
+            'themes.ocean': 'ওশান',
+            'themes.forest': 'ফরেস্ট',
+            'themes.neon': 'নিয়ন',
+            'themes.graphite': 'গ্রাফাইট',
             'tasks.title': 'করণীয় ও রিমাইন্ডার',
             'tasks.subtitle': 'পেমেন্ট তারিখ ও দোকানের কাজ দেখুন',
             'tasks.addTask': '+ নতুন কাজ',
-            'tasks.calendarHint': 'দিনে ট্যাপ করুন, দেখুন পেমেন্ট ও কাজ।',
-            'tasks.empty': 'এখনও কোনো কাজ নেই। রিমাইন্ডার যোগ করুন।',
+            'tasks.calendarHint': 'দিনে ট্যাপ করুন দেখুন পেমেন্ট ও কাজ',
+            'tasks.empty': 'এখনও কোনো কাজ নেই রিমাইন্ডার যোগ করুন',
             'tasks.card.done': 'শেষ',
             'tasks.card.due': 'শেষ করার তারিখ',
             'tasks.card.debtType': 'ক্রেতার পেমেন্ট',
             'tasks.card.debtNote': 'অবশিষ্ট টাকা',
             'tasks.card.completed': 'সম্পন্ন',
-            'ai.subtitle': 'ব্যবসায়িক অন্তর্দৃষ্টির জন্য আপনার বুদ্ধিমান সহায়ক',
-            'ai.placeholder': 'Optichain-কে কিছু জিজ্ঞাসা করুন...',
-            'ai.quick.findCustomer': 'ক্রেতা খুঁজুন',
-            'ai.quick.trustRatio': 'বিশ্বাস অনুপাত',
-            'ai.quick.planDay': 'দিন পরিকল্পনা',
-            'ai.quick.addTask': 'কাজ যোগ করুন',
-            'ai.quick.generateCard': 'কার্ড তৈরি',
-            'card.paymentRequest': 'পেমেন্ট অনুরোধ',
-            'card.amountDue': 'বাকি টাকা',
-            'card.selectCustomer': 'ক্রেতা নির্বাচন করুন',
-            'card.message': 'বার্তা (ঐচ্ছিক)',
-            'card.paymentMethods': 'পেমেন্ট পদ্ধতি',
-            'card.generate': 'কার্ড তৈরি',
-            'card.download': 'ছবি ডাউনলোড',
-            'card.share': 'শেয়ার',
-            'settings.shop.title': 'দোকানের তথ্য',
-            'settings.shop.name': 'দোকানের নাম',
-            'settings.shop.image': 'দোকানের ছবি/লোগো',
-            'settings.shop.phone': 'ফোন নাম্বার',
-            'settings.shop.bank': 'ব্যাংক অ্যাকাউন্ট (ঐচ্ছিক)',
-            'settings.theme.zen': 'জেন',
-            'settings.theme.cozy': 'কোজি',
-            'settings.theme.ocean': 'সমুদ্র',
-            'settings.theme.forest': 'বন',
-            'settings.theme.sunset': 'সূর্যাস্ত',
-            'settings.theme.lavender': 'ল্যাভেন্ডার',
-            'customers.card.generateCard': 'কার্ড তৈরি',
-            'login.subtitle': 'ফিরে আসার জন্য স্বাগতম! অনুগ্রহ করে সাইন ইন করুন।',
-            'login.email': 'ইমেইল',
-            'login.passcode': 'পাসকোড',
-            'login.emailLabel': 'ইমেইল',
-            'login.passwordLabel': 'পাসওয়ার্ড',
-            'login.passcodeLabel': 'পাসকোড',
-            'login.passcodeHint': '৪-৬ সংখ্যার পাসকোড দিন',
-            'login.submit': 'সাইন ইন',
-            'login.setupPasscode': 'পাসকোড সেটআপ',
-            'guide.welcome.title': 'Debtx-এ স্বাগতম!',
-            'guide.welcome.text': 'ক্রেতার দেনা ও পেমেন্ট ব্যবস্থাপনার জন্য আপনার ডিজিটাল খাতা।',
-            'guide.customers.title': 'ক্রেতা পরিচালনা',
-            'guide.customers.text': 'ক্রেতা যোগ করুন, তাদের দেনা ট্র্যাক করুন এবং সহজে পেমেন্ট রেকর্ড করুন।',
-            'guide.notes.title': 'নোট নিন',
-            'guide.notes.text': 'দ্রুত নোট এবং গুরুত্বপূর্ণ তথ্য এক জায়গায় রাখুন।',
-            'guide.tasks.title': 'কাজ ট্র্যাক করুন',
-            'guide.tasks.text': 'পেমেন্ট এবং গুরুত্বপূর্ণ দোকানের কাজের জন্য রিমাইন্ডার সেট করুন।',
-            'guide.ai.title': 'AI সহায়ক',
-            'guide.ai.text': 'Optichain AI ব্যবহার করে অন্তর্দৃষ্টি পান, কার্ড তৈরি করুন এবং আরও অনেক কিছু!',
-            'guide.prev': 'পূর্ববর্তী',
-            'guide.next': 'পরবর্তী',
-            'guide.skip': 'শুরু করুন',
-            'ai.response.findCustomer': 'আপনার ক্রেতারা:',
-            'ai.response.trustRatio': 'ক্রেতা বিশ্বাস বিশ্লেষণ:',
-            'ai.response.planDay': 'আপনার দিনের পরিকল্পনা:',
-            'ai.response.addTask': 'কাজ সফলভাবে যোগ করা হয়েছে!',
-            'ai.error': 'দুঃখিত, একটি ত্রুটি হয়েছে। আবার চেষ্টা করুন।',
-            'settings.title': 'সেটিংস',
-            'settings.subtitle': 'আপনার পছন্দসমূহ পরিচালনা করুন',
-            'settings.language.title': 'ভাষা',
-            'settings.language.label': 'ভাষা নির্বাচন করুন',
-            'settings.notifications.title': 'নোটিফিকেশন',
-            'settings.notifications.enable': 'রিমাইন্ডার চালু করুন',
-            'settings.theme.title': 'থিম',
-            'settings.theme.light': 'হালকা',
-            'settings.theme.dark': 'অন্ধকার',
             'actions.cancel': 'বাতিল',
             'actions.save': 'সংরক্ষণ করুন',
+            'actions.edit': 'সম্পাদনা',
             'actions.delete': 'মুছে ফেলুন',
+            'auth.title': 'আপনার দোকানের ডেটা সুরক্ষিত রাখুন',
+            'auth.subtitle': 'প্রতিবার ঢোকার সময় পাসওয়ার্ড লাগবে দ্রুত আনলকের জন্য পাসকোড দিন',
+            'auth.loginTab': 'লগইন',
+            'auth.setupTab': 'অ্যাকাউন্ট তৈরি',
+            'auth.passwordLabel': 'পাসওয়ার্ড',
+            'auth.passcodeLabel': 'পাসকোড (ঐচ্ছিক)',
+            'auth.loginHint': 'পাসওয়ার্ড (বা সেট করা পাসকোড) লিখে Debtx আনলক করুন',
+            'auth.unlock': 'আনলক',
+            'auth.nameLabel': 'পুরো নাম',
+            'auth.emailLabel': 'ইমেইল',
+            'auth.passwordCreateLabel': 'পাসওয়ার্ড তৈরি করুন',
+            'auth.passcodeOptional': '৪-৮ সংখ্যার পাসকোড (ঐচ্ছিক)',
+            'auth.profilePicture': 'প্রোফাইল ছবি',
+            'auth.extraPhoto': 'অতিরিক্ত ছবি',
+            'auth.previewProfile': 'প্রোফাইল',
+            'auth.previewExtra': 'ছবি',
+            'auth.setupHint': 'প্রতিবার Debtx খুললেই এই পাসওয়ার্ড লাগবে',
+            'auth.create': 'সংরক্ষণ ও আনলক',
+            'auth.getStarted': 'শুরু করুন',
+            'auth.skip': 'এড়িয়ে যান →',
+            'auth.skipHint': 'পাসওয়ার্ড ছাড়া ব্যবহার করুন',
+            'auth.tapToUpload': 'ছবি যোগ করতে ট্যাপ করুন',
+            'auth.advancedSecurity': '🔒 পাসওয়ার্ড সুরক্ষা যোগ করুন (ঐচ্ছিক)',
+            'auth.lock': 'লক',
+            'auth.errorInvalid': 'পাসওয়ার্ড বা পাসকোড ভুল হয়েছে আবার চেষ্টা করুন',
+            'auth.errorPasswordShort': 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে',
             'modals.customer.title': 'ক্রেতা যোগ করুন',
             'modals.customer.name': 'ক্রেতার নাম',
             'modals.customer.phone': 'ফোন নাম্বার (ঐচ্ছিক)',
@@ -390,9 +694,16 @@
             'modals.payment.amount': 'পেমেন্টের পরিমাণ (৳)',
             'modals.payment.date': 'তারিখ',
             'modals.payment.note': 'নোট',
-            'modals.note.title': 'নতুন নোট',
+            'modals.note.title': 'নতুন টুডু',
             'modals.note.titleLabel': 'শিরোনাম',
+            'modals.note.color': 'রং',
+            'modals.note.colorYellow': 'হলুদ',
+            'modals.note.colorGreen': 'সবুজ',
+            'modals.note.colorBlue': 'নীল',
+            'modals.note.colorPink': 'গোলাপি',
+            'modals.note.colorGray': 'ধূসর',
             'modals.note.body': 'নোট',
+            'modals.note.pinned': 'উপরে রাখুন',
             'modals.task.title': 'কাজ যোগ করুন',
             'modals.task.name': 'কাজের নাম',
             'modals.task.type': 'ধরন',
@@ -402,10 +713,101 @@
             'modals.task.typeOther': 'অন্যান্য',
             'modals.task.date': 'শেষ তারিখ',
             'modals.task.note': 'নোট',
-            'footer.text': 'ডেবটএক্স আপনার খাতা রাখে সহজ ও নির্ভরযোগ্য।',
+            'modals.profile.title': 'প্রোফাইল এডিট',
+            'modals.profile.name': 'নাম',
+            'modals.profile.email': 'ইমেইল',
+            'modals.profile.profilePicture': 'প্রোফাইল ছবি',
+            'modals.profile.extraPhoto': 'অতিরিক্ত ছবি',
+            'modals.demand.title': 'পেমেন্ট দাবি',
+            'modals.demand.amount': 'দাবির পরিমাণ (৳)',
+            'modals.demand.dueDate': 'শেষ সময়',
+            'modals.demand.method': 'পেমেন্ট পদ্ধতি / লিংক',
+            'modals.demand.note': 'বার্তা',
+            'modals.demand.generate': 'কার্ড তৈরি করুন',
+            'modals.demand.share': 'শেয়ার',
+            'modals.demand.download': 'ডাউনলোড',
+            'modals.demand.previewText': 'এখানে দাবির কার্ড দেখা যাবে',
+            'modals.shopProfile.title': 'দোকানের প্রোফাইল',
+            'modals.shopProfile.ownerName': 'আপনার নাম',
+            'modals.shopProfile.shopName': 'দোকানের নাম',
+            'modals.shopProfile.phoneNumber': 'ফোন নম্বর',
+            'modals.shopProfile.shopLogo': 'দোকানের লোগো/ছবি',
+            'modals.shopProfile.yourPhoto': 'আপনার ছবি',
+            'modals.shopProfile.paymentMethods': 'পেমেন্ট পদ্ধতি',
+            'modals.shopProfile.bkashNumber': 'bKash নম্বর',
+            'modals.shopProfile.nagadNumber': 'Nagad নম্বর',
+            'modals.shopProfile.rocketNumber': 'Rocket নম্বর',
+            'bills.title': 'বিলিং ও ইনভয়েস',
+            'bills.subtitle': 'বিল তৈরি করুন এবং পেমেন্ট ট্র্যাক করুন',
+            'bills.newBill': '+ নতুন বিল',
+            'bills.searchPlaceholder': 'ক্রেতা বা ইনভয়েস নম্বর দিয়ে খুঁজুন...',
+            'bills.filterAll': 'সব',
+            'bills.filterPaid': 'পরিশোধিত',
+            'bills.filterPending': 'বাকি',
+            'bills.filterOverdue': 'মেয়াদ উত্তীর্ণ',
+            'bills.empty': 'এখনও কোনো বিল নেই। আপনার প্রথম বিল তৈরি করুন।',
+            'bills.duplicate': 'অনুলিপি',
+            'bills.view': 'দেখুন',
+            'bills.share': 'শেয়ার',
+            'bills.invoiceNumber': 'ইনভয়েস #',
+            'bills.items': 'পণ্য',
+            'bills.totalAmount': 'মোট',
+            'bills.status': 'অবস্থা',
+            'bills.dueDate': 'শেষ তারিখ',
+            'modals.bill.title': 'বিল / ইনভয়েস তৈরি',
+            'modals.bill.subtitle': 'আপনার ক্রেতাদের জন্য পেশাদার বিল তৈরি করুন',
+            'modals.bill.customerName': 'ক্রেতার নাম',
+            'modals.bill.customerNameManual': 'অথবা ক্রেতার নাম লিখুন',
+            'modals.bill.invoiceNumber': 'ইনভয়েস নম্বর (খালি রাখলে স্বয়ংক্রিয়)',
+            'modals.bill.productsTitle': 'পণ্য / সেবা',
+            'modals.bill.addProduct': 'পণ্য যোগ করুন',
+            'modals.bill.subtotal': 'উপমোট',
+            'modals.bill.discount': 'ছাড় (%)',
+            'modals.bill.tax': 'কর (%) (ঐচ্ছিক)',
+            'modals.bill.total': 'মোট পরিমাণ',
+            'modals.bill.dueDate': 'শেষ তারিখ',
+            'modals.bill.paymentStatus': 'পেমেন্ট অবস্থা',
+            'modals.bill.statusPending': 'বাকি',
+            'modals.bill.statusPaid': 'পরিশোধিত',
+            'modals.bill.statusPartial': 'আংশিক',
+            'modals.bill.notes': 'নোট / শর্তাবলী (ঐচ্ছিক)',
+            'modals.bill.generateBill': 'বিল তৈরি করুন',
+            'modals.billCustomize.title': 'বিল কার্ড কাস্টমাইজ',
+            'modals.billCustomize.theme': 'থিম',
+            'modals.billCustomize.themeMinimal': 'মিনিমাল',
+            'modals.billCustomize.themeCozy': 'কোজি',
+            'modals.billCustomize.themeProfessional': 'পেশাদার',
+            'modals.billCustomize.layout': 'লেআউট স্টাইল',
+            'modals.billCustomize.colors': 'রং',
+            'modals.billCustomize.font': 'ফন্ট',
+            'modals.billCustomize.spacing': 'স্পেসিং',
+            'modals.billCustomize.border': 'বর্ডার',
+            'modals.billCustomize.logo': 'দোকানের লোগো',
+            'modals.billCustomize.fontSize': 'ফন্ট সাইজ',
+            'modals.billCustomize.icons': 'আইকন',
+            'modals.billCustomize.customNotes': 'কাস্টম নোট',
+            'modals.billCustomize.sections': 'সেকশন ক্রম',
+            'modals.billCustomize.preview': 'লাইভ প্রিভিউ',
+            'modals.billCustomize.reset': 'রিসেট',
+            'modals.billCustomize.apply': 'প্রয়োগ ও ডাউনলোড',
+            'modals.monthlyWrap.title': 'মাসিক সারাংশ',
+            'modals.monthlyWrap.loading': 'মাসিক সারাংশ লোড হচ্ছে...',
+            'modals.cardCustomize.title': 'কার্ড কাস্টমাইজ',
+            'modals.cardCustomize.style': 'কার্ড স্টাইল',
+            'modals.cardCustomize.message': 'কাস্টম বার্তা',
+            'modals.cardCustomize.emoji': 'ইমোজি যোগ করুন',
+            'actions.close': 'বন্ধ',
+            'actions.apply': 'প্রয়োগ',
+            'footer.text': 'ডেবটএক্স আপনার খাতা রাখে সহজ ও নির্ভরযোগ্য',
+            'ai.title': 'এআই সহায়ক',
+            'ai.subtitle': 'ইনসাইট ও কার্ড তৈরি করুন',
+            'ai.welcome': 'হ্যালো আমি আপনার দোকান পরিচালনা ট্রাস্ট রেশিও গণনা (জিজ্ঞাসা করুন: "[ক্রেতার নাম] এর ট্রাস্ট রেশিও কত?") পেমেন্ট কার্ড তৈরি ইত্যাদিতে সাহায্য করতে পারি কিছু জিজ্ঞাসা করুন',
+            'ai.placeholder': 'কিছু জিজ্ঞাসা করুন',
+            'ai.subscriptionRequired': 'এআই সহায়ক (অপ্টিচেইন) ব্যবহার করতে সাবস্ক্রিপশন প্রয়োজন। সাবস্ক্রিপশন নিন।',
+            'ai.goToSubscription': 'সাবস্ক্রিপশনে যান',
             'notifications.enabled': 'রিমাইন্ডার চালু',
             'notifications.disabled': 'রিমাইন্ডার বন্ধ',
-            'notifications.permissionDenied': 'ব্রাউজারের সেটিং থেকে নোটিফিকেশন চালু করুন।',
+            'notifications.permissionDenied': 'ব্রাউজারের সেটিং থেকে নোটিফিকেশন চালু করুন',
             'notifications.dueToday': 'আজ পেমেন্ট নেওয়ার সময়',
             'notifications.dueTodayBody': 'আজ পরিশোধ করুন: {amount}',
             'notifications.overdue': 'বাকি পড়েছে',
@@ -417,103 +819,107 @@
                 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
             ],
             'calendar.dayNames': ['র', 'সো', 'মো', 'বু', 'বৃ', 'শু', 'শো'],
-            'calendar.empty': 'এই দিনে কিছু নেই। কাজ যোগ করুন বা দেনা লিখুন।'
+            'calendar.empty': 'এই দিনে কিছু নেই কাজ যোগ করুন বা দেনা লিখুন'
         }
     };
 
     const state = loadState();
-    if (!state.expenses) state.expenses = [];
-    if (typeof state.requireLogin !== 'boolean') state.requireLogin = false;
+    let lastDemandCardUrl = '';
+    let draggedTaskId = '';
 
     const selectors = {
         nav: {
             customers: document.getElementById('nav-customers'),
+            bills: document.getElementById('nav-bills'),
+            ai: document.getElementById('nav-ai'),
             notes: document.getElementById('nav-notes'),
             tasks: document.getElementById('nav-tasks'),
-            ai: document.getElementById('nav-ai'),
-            bill: document.getElementById('nav-bill')
+            settings: document.getElementById('nav-settings'),
         },
         panels: {
             customers: document.getElementById('panel-customers'),
+            bills: document.getElementById('panel-bills'),
+            ai: document.getElementById('panel-ai'),
             notes: document.getElementById('panel-notes'),
             tasks: document.getElementById('panel-tasks'),
-            ai: document.getElementById('panel-ai'),
-            bill: document.getElementById('panel-bill'),
             settings: document.getElementById('panel-settings')
         },
-        settingsToggle: document.getElementById('settings-toggle'),
-        settingsLanguage: document.getElementById('settings-language'),
-        settingsNotifications: document.getElementById('settings-notifications'),
-        settingsShopName: document.getElementById('settings-shop-name'),
-        settingsShopImage: document.getElementById('settings-shop-image'),
-        settingsShopPhone: document.getElementById('settings-shop-phone'),
-        settingsShopBank: document.getElementById('settings-shop-bank'),
-        shopImagePreview: document.getElementById('shop-image-preview'),
-        settingsLoginEmail: document.getElementById('settings-login-email'),
-        settingsLoginPassword: document.getElementById('settings-login-password'),
-        settingsLoginPasscode: document.getElementById('settings-login-passcode'),
-        settingsLoginSaveBtn: document.getElementById('settings-login-save-btn'),
-        settingsLoginClearBtn: document.getElementById('settings-login-clear-btn'),
-        settingsLoginRequireToggle: document.getElementById('settings-login-require-toggle'),
-        dataExportBtn: document.getElementById('data-export-btn'),
-        dataImportBtn: document.getElementById('data-import-btn'),
-        dataImportFile: document.getElementById('data-import-file'),
-        downloadBillPngBtn: document.getElementById('download-bill-png-btn'),
-        themeButtons: document.querySelectorAll('.theme-btn'),
-        aiTabs: document.querySelectorAll('.ai-tab'),
-        aiTabContents: document.querySelectorAll('.ai-tab-content'),
-        calculatorDisplay: document.getElementById('calculator-display'),
-        calculatorButtons: document.querySelectorAll('.calc-btn'),
-        cardCustomerSelect: document.getElementById('card-customer-select'),
-        cardMessageInput: document.getElementById('card-message-input'),
-        cardPhoneInput: document.getElementById('card-phone-input'),
-        cardBankInput: document.getElementById('card-bank-input'),
-        cardGenerateBtn: document.getElementById('card-generate-btn'),
-        cardDownloadBtn: document.getElementById('card-download-btn'),
-        cardShareBtn: document.getElementById('card-share-btn'),
+        languageToggle: document.getElementById('language-toggle'),
+        notificationToggle: document.getElementById('notification-toggle'),
         customerList: document.getElementById('customer-list'),
         customersEmpty: document.getElementById('customers-empty'),
         customerSearch: document.getElementById('customer-search'),
         notesList: document.getElementById('notes-list'),
         notesEmpty: document.getElementById('notes-empty'),
+        notesSearch: document.getElementById('notes-search'),
+        notesFilter: document.getElementById('notes-filter'),
         tasksList: document.getElementById('tasks-list'),
         tasksEmpty: document.getElementById('tasks-empty'),
         miniCalendar: document.getElementById('mini-calendar'),
         addCustomerBtn: document.getElementById('add-customer-btn'),
         addNoteBtn: document.getElementById('add-note-btn'),
         addTaskBtn: document.getElementById('add-task-btn'),
-        aiMessages: document.getElementById('ai-messages'),
-        aiInput: document.getElementById('ai-input'),
-        aiSendBtn: document.getElementById('ai-send-btn'),
-        aiQuickActions: document.querySelectorAll('.ai-quick-btn'),
-        installAppBtn: document.getElementById('install-app-btn'),
-        learnAppBtn: document.getElementById('learn-app-btn'),
-        statCustomers: document.getElementById('stat-customers-count'),
-        statNotes: document.getElementById('stat-notes-count'),
-        statTasks: document.getElementById('stat-tasks-count'),
-        aiInsightHighest: document.getElementById('insight-highest-debt'),
-        aiInsightTasks: document.getElementById('insight-task-completion'),
-        aiInsightTip: document.getElementById('insight-ai-tip'),
-        expenseTotal: document.getElementById('expense-total'),
-        expenseMonthTotal: document.getElementById('expense-month-total'),
-        expenseList: document.getElementById('expense-list'),
-        expenseEmpty: document.getElementById('expenses-empty'),
-        expenseForm: document.getElementById('expense-form'),
-        expenseTitle: document.getElementById('expense-title'),
-        expenseAmount: document.getElementById('expense-amount'),
-        expenseCategory: document.getElementById('expense-category'),
-        expenseNote: document.getElementById('expense-note'),
-        expenseExportBtn: document.getElementById('expense-export-btn')
+        authOverlay: document.getElementById('auth-overlay'),
+        authTabs: document.querySelectorAll('.auth-tab'),
+        authLoginForm: document.getElementById('auth-login-form'),
+        authSetupForm: document.getElementById('auth-setup-form'),
+        authError: document.getElementById('auth-error'),
+        authCloseBtn: document.getElementById('auth-close-btn'),
+        authSkipBtn: document.getElementById('auth-skip-btn'),
+        authPreviewProfile: document.getElementById('auth-preview-profile'),
+        authPreviewExtra: document.getElementById('auth-preview-extra'),
+        profileUploadPreview: document.getElementById('profile-upload-preview'),
+        userPill: document.getElementById('user-pill'),
+        userName: document.getElementById('user-name'),
+        userEmail: document.getElementById('user-email'),
+        userAvatar: document.getElementById('user-avatar'),
+        lockBtn: document.getElementById('lock-btn'),
+        themeGrid: document.getElementById('theme-grid'),
+        toggleHaptics: document.getElementById('toggle-haptics'),
+        toggleSounds: document.getElementById('toggle-sounds'),
+        aiRefreshBtn: document.getElementById('ai-refresh-btn'),
+        aiSummaryText: document.getElementById('ai-summary-text'),
+        demandPreviewImg: document.getElementById('demand-preview-img'),
+        demandDownloadBtn: document.getElementById('demand-download-btn'),
+        demandShareBtn: document.getElementById('demand-share-btn'),
+        demandPreviewText: document.querySelector('#demand-preview p'),
+        exportDataBtn: document.getElementById('export-data-btn'),
+        importDataInput: document.getElementById('import-data-input'),
+        dataStatus: document.getElementById('data-status'),
+        calculatorButtons: document.querySelectorAll('.calc-btn'),
+        calcExpression: document.getElementById('calc-expression'),
+        calcResult: document.getElementById('calc-result'),
+        notesSection: document.getElementById('notes-section'),
+        tasksSection: document.getElementById('tasks-section'),
+        notesTabBtn: document.querySelector('[data-tab="notes"]'),
+        tasksTabBtn: document.querySelector('[data-tab="tasks"]'),
+        currentPlan: document.getElementById('current-plan'),
+        subscriptionExpiry: document.getElementById('subscription-expiry'),
+        activateProBtn: document.getElementById('activate-pro-btn'),
+        activateMaxBtn: document.getElementById('activate-max-btn'),
+        activateUltraBtn: document.getElementById('activate-ultra-btn'),
+        couponPro: document.getElementById('coupon-pro'),
+        couponMax: document.getElementById('coupon-max'),
+        couponUltra: document.getElementById('coupon-ultra'),
+        logoListContainer: document.getElementById('logo-list-container'),
+        addLogoBtn: document.getElementById('add-logo-btn')
     };
-
-    let deferredInstallPrompt = null;
 
     const modals = {
         customer: document.getElementById('customer-modal'),
         debt: document.getElementById('debt-modal'),
         payment: document.getElementById('payment-modal'),
+        bill: document.getElementById('bill-modal'),
+        billCustomize: document.getElementById('bill-customize-modal'),
         note: document.getElementById('note-modal'),
-        task: document.getElementById('task-modal')
+        task: document.getElementById('task-modal'),
+        demand: document.getElementById('demand-modal'),
+        profile: document.getElementById('profile-modal'),
+        shopProfile: document.getElementById('shop-profile-modal'),
+        bill: document.getElementById('bill-modal'),
+        monthlyWrap: document.getElementById('monthly-wrap-modal'),
+        cardCustomize: document.getElementById('card-customize-modal'),
+        logo: document.getElementById('logo-modal')
     };
 
     const forms = {
@@ -521,7 +927,14 @@
         debt: document.getElementById('debt-form'),
         payment: document.getElementById('payment-form'),
         note: document.getElementById('note-form'),
-        task: document.getElementById('task-form')
+        task: document.getElementById('task-form'),
+        bill: document.getElementById('bill-form'),
+        demand: document.getElementById('demand-form'),
+        profile: document.getElementById('profile-form'),
+        shopProfile: document.getElementById('shop-profile-form'),
+        bill: document.getElementById('bill-form'),
+        cardCustomize: document.getElementById('card-customize-form'),
+        logo: document.getElementById('logo-form')
     };
 
     const templates = {
@@ -530,623 +943,41 @@
         taskCard: document.getElementById('task-card-template')
     };
 
-    // Ensure DOM is ready before initializing
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM already ready
-        init();
-    }
+    init();
 
     function init() {
-        try {
-            // Login removed from entry flow; always show app
-            state.authenticated = true;
-            // Ensure a valid starting panel
-            if (!state.ui || !state.ui.activePanel || !selectors.panels[state.ui.activePanel]) {
-                state.ui.activePanel = 'customers';
-            }
-            saveState();
-            showApp();
-            initializeApp();
-        } catch (error) {
-            console.error('Init error:', error);
-            // Retry after a short delay
-            setTimeout(init, 100);
-        }
-    }
-
-    function refreshSelectors() {
-        // Re-query all selectors to ensure they're available
-        const navCustomers = document.getElementById('nav-customers');
-        const navNotes = document.getElementById('nav-notes');
-        const navTasks = document.getElementById('nav-tasks');
-        const navAi = document.getElementById('nav-ai');
-        const navBill = document.getElementById('nav-bill');
+        console.log('Debtx init starting...');
         
-        if (navCustomers) selectors.nav.customers = navCustomers;
-        if (navNotes) selectors.nav.notes = navNotes;
-        if (navTasks) selectors.nav.tasks = navTasks;
-        if (navAi) selectors.nav.ai = navAi;
-        if (navBill) selectors.nav.bill = navBill;
+        attachNavHandlers();
+        attachModalHandlers();
+        attachFormHandlers();
+        attachMiscHandlers();
+        attachAuthHandlers();
+        attachNewFeatureHandlers();
+        registerServiceWorker();
+        applyLanguage(state.language, { initial: true });
+        applyTheme(state.ui.theme, { initial: true });
+        applyTextSize(state.ui.textSize || 3);
         
-        // Refresh other critical selectors
-        const addCustomerBtn = document.getElementById('add-customer-btn');
-        const addNoteBtn = document.getElementById('add-note-btn');
-        const addTaskBtn = document.getElementById('add-task-btn');
-        const settingsToggle = document.getElementById('settings-toggle');
-        
-        if (addCustomerBtn) selectors.addCustomerBtn = addCustomerBtn;
-        if (addNoteBtn) selectors.addNoteBtn = addNoteBtn;
-        if (addTaskBtn) selectors.addTaskBtn = addTaskBtn;
-        if (settingsToggle) selectors.settingsToggle = settingsToggle;
-    }
-
-    function ensureButtonsClickable() {
-        // Force all buttons to be clickable via inline styles as backup
-        const allButtons = document.querySelectorAll('button:not(:disabled):not([disabled])');
-        allButtons.forEach(btn => {
-            btn.style.pointerEvents = 'auto';
-            btn.style.cursor = 'pointer';
-            btn.style.userSelect = 'none';
-            btn.style.webkitUserSelect = 'none';
-            btn.style.touchAction = 'manipulation';
-            // Ensure button is not hidden
-            if (btn.style.display === 'none') {
-                btn.style.display = '';
-            }
-            if (btn.hidden) {
-                btn.hidden = false;
+        // Initialize text size button
+        const currentSize = state.ui.textSize || 3;
+        document.querySelectorAll('.text-size-btn').forEach(btn => {
+            if (parseInt(btn.dataset.size) === currentSize) {
+                btn.classList.add('active');
             }
         });
         
-        // Also ensure clickable elements
-        const clickableElements = document.querySelectorAll('.primary-btn, .secondary-btn, .nav-btn, .calc-btn, .filter-btn, .theme-btn, .ai-tab, .suggestion-chip');
-        clickableElements.forEach(el => {
-            el.style.pointerEvents = 'auto';
-            el.style.cursor = 'pointer';
-        });
-    }
-
-    function initializeApp() {
-        try {
-            // Refresh selectors to ensure they're available
-            refreshSelectors();
-            
-            // Ensure theme is set to light by default if not set
-            if (!state.theme || state.theme === '') {
-                state.theme = 'light';
-                saveState();
-            }
-            checkSubscriptionStatus();
-            applyTheme(state.theme);
-            attachNavHandlers();
-            attachModalHandlers();
-            attachFormHandlers();
-            attachMiscHandlers();
-            attachSettingsHandlers();
-            attachExpenseHandlers();
-            attachDataBackupHandlers();
-            attachAIHandlers();
-            registerServiceWorker();
-            setupInstallPrompt();
-            applyLanguage(state.language, { initial: true });
-            renderAll();
-            startReminderLoop();
-            // Guide is disabled - always mark as completed
-            state.guideCompleted = true;
-            saveState();
-            
-            // Ensure all buttons are clickable
-            ensureButtonsClickable();
-            
-            // Add global click handler for all buttons (event delegation as fallback)
-            document.addEventListener('click', function(e) {
-                const button = e.target.closest('button');
-                if (!button) return;
-                
-                // Handle nav buttons
-                if (button.classList.contains('nav-btn') && button.dataset.target) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setActivePanel(button.dataset.target);
-                    return;
-                }
-                
-                // Handle add customer button
-                if (button.id === 'add-customer-btn') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (forms.customer) {
-                        forms.customer.reset();
-                        setModalMode(forms.customer, 'create');
-                        if (modals.customer) modals.customer.showModal();
-                    }
-                    return;
-                }
-                
-                // Handle add note button
-                if (button.id === 'add-note-btn') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (forms.note) {
-                        forms.note.reset();
-                        if (modals.note) modals.note.showModal();
-                    }
-                    return;
-                }
-                
-                // Handle add task button
-                if (button.id === 'add-task-btn') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (forms.task) {
-                        forms.task.reset();
-                        if (forms.task.elements.dueDate) {
-                            forms.task.elements.dueDate.value = todayString();
-                        }
-                        if (modals.task) modals.task.showModal();
-                    }
-                    return;
-                }
-                
-                // Handle settings toggle
-                if (button.id === 'settings-toggle') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const settingsPanel = selectors.panels.settings;
-                    if (settingsPanel) {
-                        if (settingsPanel.classList.contains('active')) {
-                            const prevPanel = state.ui.activePanel === 'settings' ? 'customers' : state.ui.activePanel;
-                            setActivePanel(prevPanel);
-                        } else {
-                            setActivePanel('settings');
-                        }
-                    }
-                    return;
-                }
-                
-                // Handle skip login
-                const target = e.target.closest('[data-skip-login="true"]');
-                if (target && target.id === 'skip-login-btn') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    state.authenticated = true;
-                    state.auth = { email: '', passwordHash: '', passcode: '' };
-                    saveState();
-                    hideLoginAndShowApp();
-                    return;
-                }
-                
-                // Handle buttons with data-target
-                if (button.dataset.target) {
-                    e.preventDefault();
-                    setActivePanel(button.dataset.target);
-                    return;
-                }
-            }, true);
-            
-            // Retry attaching handlers after a short delay to catch any missed elements
-            setTimeout(() => {
-                refreshSelectors();
-                attachNavHandlers();
-                attachModalHandlers();
-                attachMiscHandlers();
-                ensureButtonsClickable();
-            }, 100);
-            
-            // Also ensure buttons stay clickable after a longer delay (for dynamic content)
-            setTimeout(() => {
-                ensureButtonsClickable();
-            }, 500);
-        } catch (error) {
-            console.error('InitializeApp error:', error);
-            // Try to at least show the app even if some handlers fail
-            try {
-                refreshSelectors();
-                attachNavHandlers();
-                renderAll();
-            } catch (e) {
-                console.error('Critical error:', e);
-            }
-        }
-    }
-    
-    // Expose initializeApp globally for skipLoginNow
-    window.initializeApp = initializeApp;
-
-    function checkAuth() {
-        // Login flow removed; always consider authenticated
-        state.authenticated = true;
-    }
-
-    function showLoginScreen() {
-        const loginScreen = document.getElementById('login-screen');
-        const app = document.getElementById('app');
-        if (loginScreen) {
-            loginScreen.hidden = false;
-            loginScreen.style.display = 'flex';
-            loginScreen.style.opacity = '0';
-            loginScreen.style.pointerEvents = 'auto';
-            loginScreen.style.zIndex = '10000';
-            setTimeout(() => {
-                loginScreen.style.opacity = '1';
-            }, 10);
-        }
-        if (app) {
-            app.hidden = true;
-            app.style.opacity = '0';
-        }
-    }
-
-    function showApp() {
-        const loginScreen = document.getElementById('login-screen');
-        const app = document.getElementById('app');
+        // No initial auth overlay - login moved to settings
+        renderAll();
         
-        // Hide login screen immediately
-        if (loginScreen) {
-            loginScreen.style.opacity = '0';
-            loginScreen.style.pointerEvents = 'none';
-            loginScreen.style.display = 'none';
-            loginScreen.hidden = true;
-            loginScreen.style.zIndex = '-1';
-        }
+        startReminderLoop();
+        refreshAISummary();
+        console.log('Debtx init complete');
         
-        // Show app and ensure it's clickable
-        if (app) {
-            app.hidden = false;
-            app.style.display = 'flex';
-            app.style.opacity = '1';
-            app.style.visibility = 'visible';
-            app.style.pointerEvents = 'auto';
-            app.style.zIndex = '1';
-            app.style.transition = 'opacity 0.3s ease';
+        // Initialize notes/tasks tab on load
+        if (state.ui.activeNotesTab) {
+            switchNotesTab(state.ui.activeNotesTab);
         }
-        
-        // Ensure all buttons are clickable
-        setTimeout(() => {
-            document.querySelectorAll('button').forEach(btn => {
-                btn.style.pointerEvents = 'auto';
-                btn.style.cursor = 'pointer';
-            });
-        }, 50);
-    }
-
-    function attachLoginHandlers() {
-        const loginForm = document.getElementById('login-form');
-        const loginTabs = document.querySelectorAll('.login-tab');
-        const loginTabContents = document.querySelectorAll('.login-tab-content');
-        const setupPasscodeBtn = document.getElementById('setup-passcode-btn');
-        const skipLoginBtn = document.getElementById('skip-login-btn');
-        
-        console.log('Attaching login handlers...', {
-            loginForm: !!loginForm,
-            skipLoginBtn: !!skipLoginBtn,
-            setupPasscodeBtn: !!setupPasscodeBtn
-        });
-
-        // Tab switching
-        loginTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                const loginType = tab.dataset.loginType;
-                loginTabs.forEach(t => t.classList.remove('active'));
-                loginTabContents.forEach(c => c.classList.remove('active'));
-                tab.classList.add('active');
-                const content = document.querySelector(`[data-content="${loginType}"]`);
-                if (content) content.classList.add('active');
-            });
-        });
-
-        // Form submission
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                handleLogin(e);
-                return false;
-            }, true);
-        }
-
-        // Enter key support
-        const emailInput = document.getElementById('login-email');
-        const passwordInput = document.getElementById('login-password');
-        const passcodeInput = document.getElementById('login-passcode');
-        
-        [emailInput, passwordInput, passcodeInput].forEach(input => {
-            if (input) {
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        loginForm?.requestSubmit();
-                    }
-                });
-            }
-        });
-
-        // Setup passcode
-        if (setupPasscodeBtn) {
-            setupPasscodeBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setupPasscode();
-            });
-        }
-        
-        // Skip login button - Use global function
-        if (skipLoginBtn) {
-            console.log('Setting up skip login button...');
-            
-            // Use the global function
-            skipLoginBtn.onclick = function(e) {
-                e?.preventDefault();
-                e?.stopPropagation();
-                window.skipLoginNow();
-                return false;
-            };
-            
-            // Also add as event listener
-            skipLoginBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                window.skipLoginNow();
-                return false;
-            }, true);
-            
-            // Make sure it's clickable
-            skipLoginBtn.style.pointerEvents = 'auto';
-            skipLoginBtn.style.cursor = 'pointer';
-            
-            console.log('Skip button setup complete');
-        } else {
-            console.error('Skip login button NOT FOUND!');
-        }
-    }
-
-    function handleLogin(e) {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        try {
-            const emailInput = document.getElementById('login-email');
-            const passwordInput = document.getElementById('login-password');
-            const passcodeInput = document.getElementById('login-passcode');
-            const activeTab = document.querySelector('.login-tab.active');
-            const loginType = activeTab?.dataset.loginType || 'email';
-
-            if (loginType === 'email') {
-                const email = emailInput?.value.trim() || '';
-                const password = passwordInput?.value || '';
-                
-                if (!email || !password) {
-                    alert(state.language === 'bn' ? 'ইমেইল এবং পাসওয়ার্ড প্রয়োজন' : 'Email and password required');
-                    return false;
-                }
-
-                if (state.auth.email && state.auth.passwordHash) {
-                    // Verify existing credentials
-                    const hash = simpleHash(password);
-                    if (email === state.auth.email && hash === state.auth.passwordHash) {
-                        state.authenticated = true;
-                        saveState();
-                        hideLoginAndShowApp();
-                        return true;
-                    } else {
-                        alert(state.language === 'bn' ? 'ভুল ইমেইল বা পাসওয়ার্ড' : 'Incorrect email or password');
-                        return false;
-                    }
-                } else {
-                    // First time - create account
-                    state.auth.email = email;
-                    state.auth.passwordHash = simpleHash(password);
-                    state.authenticated = true;
-                    saveState();
-                    hideLoginAndShowApp();
-                    return true;
-                }
-            } else {
-                // Passcode login
-                const passcode = passcodeInput?.value.trim() || '';
-                
-                if (!passcode || passcode.length < 4) {
-                    alert(state.language === 'bn' ? 'অনুগ্রহ করে ৪-৬ সংখ্যার পাসকোড দিন' : 'Please enter 4-6 digit passcode');
-                    return false;
-                }
-
-                if (state.auth.passcode) {
-                    // Verify existing passcode
-                    if (passcode === state.auth.passcode) {
-                        state.authenticated = true;
-                        saveState();
-                        hideLoginAndShowApp();
-                        return true;
-                    } else {
-                        alert(state.language === 'bn' ? 'ভুল পাসকোড' : 'Incorrect passcode');
-                        return false;
-                    }
-                } else {
-                    // First time - set up passcode
-                    if (passcode.length >= 4 && passcode.length <= 6 && /^\d+$/.test(passcode)) {
-                        state.auth.passcode = passcode;
-                        state.authenticated = true;
-                        saveState();
-                        hideLoginAndShowApp();
-                        return true;
-                    } else {
-                        alert(state.language === 'bn' ? 'অবৈধ পাসকোড। ৪-৬ সংখ্যা প্রয়োজন।' : 'Invalid passcode. 4-6 digits required.');
-                        return false;
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            alert(state.language === 'bn' ? 'লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।' : 'Login error. Please try again.');
-            return false;
-        }
-    }
-
-    function hideLoginAndShowApp() {
-        console.log('Hiding login and showing app...');
-        
-        const loginScreen = document.getElementById('login-screen');
-        const app = document.getElementById('app');
-        
-        // Hide login immediately - multiple methods
-        if (loginScreen) {
-            loginScreen.style.display = 'none';
-            loginScreen.hidden = true;
-            loginScreen.style.opacity = '0';
-            loginScreen.style.pointerEvents = 'none';
-            loginScreen.style.visibility = 'hidden';
-            loginScreen.style.zIndex = '-1';
-        }
-        
-        // Show app - multiple methods
-        if (app) {
-            app.hidden = false;
-            app.style.display = 'flex';
-            app.style.opacity = '1';
-            app.style.visibility = 'visible';
-            app.style.pointerEvents = 'auto';
-        }
-        
-        // Force state save
-        state.authenticated = true;
-        saveState();
-        
-        // Initialize app
-        try {
-            initializeApp();
-        } catch (error) {
-            console.error('Error initializing app:', error);
-            // Retry after a short delay
-            setTimeout(() => {
-                initializeApp();
-            }, 100);
-        }
-    }
-
-    function setupPasscode() {
-        const passcode = prompt(state.language === 'bn' ? '৪-৬ সংখ্যার পাসকোড দিন:' : 'Enter 4-6 digit passcode:');
-        if (passcode && passcode.length >= 4 && passcode.length <= 6 && /^\d+$/.test(passcode)) {
-            state.auth.passcode = passcode;
-            saveState();
-            alert(state.language === 'bn' ? 'পাসকোড সেটআপ সম্পন্ন। এখন পাসকোড দিয়ে লগইন করুন।' : 'Passcode setup complete. You can now login with passcode.');
-            // Switch to passcode tab
-            const passcodeTab = document.querySelector('[data-login-type="passcode"]');
-            if (passcodeTab) {
-                passcodeTab.click();
-            }
-        } else if (passcode !== null) {
-            alert(state.language === 'bn' ? 'অবৈধ পাসকোড। ৪-৬ সংখ্যা প্রয়োজন।' : 'Invalid passcode. 4-6 digits required.');
-        }
-    }
-
-    function simpleHash(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return hash.toString();
-    }
-
-    function showGuide() {
-        const guideOverlay = document.getElementById('guide-overlay');
-        if (!guideOverlay) return;
-        
-        let currentSlide = 0;
-        const slides = guideOverlay.querySelectorAll('.guide-slide');
-        const totalSlides = slides.length;
-        const dotsContainer = guideOverlay.querySelector('.guide-dots');
-        const prevBtn = document.getElementById('guide-prev');
-        const nextBtn = document.getElementById('guide-next');
-        const skipBtn = document.getElementById('guide-skip');
-
-        // Create dots
-        dotsContainer.innerHTML = '';
-        for (let i = 0; i < totalSlides; i++) {
-            const dot = document.createElement('div');
-            dot.className = 'guide-dot' + (i === 0 ? ' active' : '');
-            dot.addEventListener('click', () => goToSlide(i));
-            dotsContainer.appendChild(dot);
-        }
-
-        function goToSlide(index) {
-            if (index < 0 || index >= totalSlides) return;
-            
-            const currentSlideEl = slides[currentSlide];
-            const nextSlideEl = slides[index];
-            
-            // Animate out current slide
-            if (currentSlideEl && currentSlide !== index) {
-                currentSlideEl.style.transition = 'all 0.3s ease';
-                currentSlideEl.style.opacity = '0';
-                currentSlideEl.style.transform = 'scale(0.9)';
-            }
-            
-            setTimeout(() => {
-                currentSlide = index;
-                slides.forEach((slide, i) => {
-                    slide.classList.toggle('active', i === index);
-                    if (i === index) {
-                        slide.style.opacity = '0';
-                        slide.style.transform = 'scale(0.9)';
-                    }
-                });
-                dotsContainer.querySelectorAll('.guide-dot').forEach((dot, i) => {
-                    dot.classList.toggle('active', i === index);
-                });
-                prevBtn.style.display = index === 0 ? 'none' : 'block';
-                nextBtn.style.display = index === totalSlides - 1 ? 'none' : 'block';
-                skipBtn.style.display = index === totalSlides - 1 ? 'block' : 'none';
-                
-                // Animate in next slide
-                if (nextSlideEl) {
-                    setTimeout(() => {
-                        nextSlideEl.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                        nextSlideEl.style.opacity = '1';
-                        nextSlideEl.style.transform = 'scale(1)';
-                    }, 50);
-                }
-            }, currentSlide !== index ? 300 : 0);
-        }
-
-        prevBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            goToSlide(currentSlide - 1);
-        });
-        
-        nextBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            goToSlide(currentSlide + 1);
-        });
-        
-        skipBtn?.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            state.guideCompleted = true;
-            saveState();
-            guideOverlay.style.animation = 'zoomOut 0.3s ease';
-            guideOverlay.style.opacity = '0';
-            setTimeout(() => {
-                guideOverlay.hidden = true;
-                guideOverlay.style.animation = '';
-            }, 300);
-        });
-
-        guideOverlay.hidden = false;
-        guideOverlay.style.opacity = '0';
-        guideOverlay.style.animation = 'fadeIn 0.4s ease';
-        setTimeout(() => {
-            guideOverlay.style.opacity = '1';
-        }, 10);
-        goToSlide(0);
     }
 
     function loadState() {
@@ -1160,15 +991,24 @@
                 return Object.assign(defaultState(), parsed, { version: LS_VERSION });
             }
             parsed.ui = Object.assign(defaultState().ui, parsed.ui || {});
+            parsed.auth = Object.assign(defaultState().auth, parsed.auth || {});
+            parsed.subscription = Object.assign(defaultState().subscription, parsed.subscription || {});
+            parsed.shopLogos = parsed.shopLogos || [];
+            parsed.calculator = Object.assign(defaultState().calculator, parsed.calculator || {});
+            // Guest users stay unlocked, password users need to re-authenticate
+            const isGuest = parsed.auth?.isGuest || false;
+            parsed.session = { unlocked: isGuest };
+            parsed.notes = (parsed.notes || []).map(note => Object.assign(
+                {
+                    color: 'yellow',
+                    pinned: false,
+                    updatedAt: note?.createdAt || Date.now()
+                },
+                note
+            ));
             parsed.customers = (parsed.customers || []).map(prepareCustomerRecord);
             parsed.tasks = (parsed.tasks || []).map(task => Object.assign({ reminderSent: false }, task));
-            if (!parsed.theme || parsed.theme === '') {
-                parsed.theme = 'light';
-            }
-            parsed.shop = Object.assign(defaultState().shop, parsed.shop || {});
-            parsed.auth = Object.assign(defaultState().auth, parsed.auth || {});
-            parsed.authenticated = parsed.authenticated !== undefined ? parsed.authenticated : false;
-            parsed.subscription = Object.assign(defaultState().subscription, parsed.subscription || {});
+            parsed.ai = Object.assign(defaultState().ai, parsed.ai || {});
             return Object.assign(defaultState(), parsed);
         } catch (error) {
             console.error('Failed to load state', error);
@@ -1178,6 +1018,134 @@
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function exportDataAsJSON() {
+        try {
+            const exportData = {
+                exportedAt: new Date().toISOString(),
+                version: LS_VERSION,
+                language: state.language,
+                notificationsEnabled: state.notificationsEnabled,
+                auth: {
+                    name: state.auth.name,
+                    email: state.auth.email,
+                    profilePicture: state.auth.profilePicture,
+                    extraPhoto: state.auth.extraPhoto,
+                    // Note: passwords are NOT exported for security
+                    createdAt: state.auth.createdAt
+                },
+                customers: state.customers,
+                notes: state.notes,
+                tasks: state.tasks,
+                ui: {
+                    theme: state.ui.theme,
+                    haptics: state.ui.haptics,
+                    sounds: state.ui.sounds
+                }
+            };
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `debtx-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showDataStatus(translate('settings.exportSuccess'), 'success');
+        } catch (error) {
+            console.error('Export failed:', error);
+            showDataStatus(translate('settings.exportError'), 'error');
+        }
+    }
+
+    async function importDataFromJSON(file) {
+        try {
+            const text = await file.text();
+            const imported = JSON.parse(text);
+            if (!imported || typeof imported !== 'object') {
+                throw new Error('Invalid JSON structure');
+            }
+            // Validate minimum structure
+            if (!Array.isArray(imported.customers) && !Array.isArray(imported.notes) && !Array.isArray(imported.tasks)) {
+                throw new Error('No data found in file');
+            }
+            // Merge imported data - keep existing auth passwords
+            if (imported.auth) {
+                state.auth.name = imported.auth.name || state.auth.name;
+                state.auth.email = imported.auth.email || state.auth.email;
+                if (imported.auth.profilePicture) state.auth.profilePicture = imported.auth.profilePicture;
+                if (imported.auth.extraPhoto) state.auth.extraPhoto = imported.auth.extraPhoto;
+            }
+            if (imported.customers && Array.isArray(imported.customers)) {
+                // Merge customers - avoid duplicates by ID
+                const existingIds = new Set(state.customers.map(c => c.id));
+                imported.customers.forEach(customer => {
+                    const prepared = prepareCustomerRecord(customer);
+                    if (existingIds.has(customer.id)) {
+                        const idx = state.customers.findIndex(c => c.id === customer.id);
+                        if (idx >= 0) state.customers[idx] = prepared;
+                    } else {
+                        state.customers.push(prepared);
+                    }
+                });
+            }
+            if (imported.notes && Array.isArray(imported.notes)) {
+                const existingIds = new Set(state.notes.map(n => n.id));
+                imported.notes.forEach(note => {
+                    if (existingIds.has(note.id)) {
+                        const idx = state.notes.findIndex(n => n.id === note.id);
+                        if (idx >= 0) state.notes[idx] = note;
+                    } else {
+                        state.notes.push(note);
+                    }
+                });
+            }
+            if (imported.tasks && Array.isArray(imported.tasks)) {
+                const existingIds = new Set(state.tasks.map(t => t.id));
+                imported.tasks.forEach(task => {
+                    if (existingIds.has(task.id)) {
+                        const idx = state.tasks.findIndex(t => t.id === task.id);
+                        if (idx >= 0) state.tasks[idx] = task;
+                    } else {
+                        state.tasks.push(task);
+                    }
+                });
+            }
+            if (imported.ui) {
+                if (imported.ui.theme) {
+                    state.ui.theme = imported.ui.theme;
+                    applyTheme(state.ui.theme);
+                }
+                if (typeof imported.ui.haptics === 'boolean') state.ui.haptics = imported.ui.haptics;
+                if (typeof imported.ui.sounds === 'boolean') state.ui.sounds = imported.ui.sounds;
+            }
+            if (imported.language) {
+                state.language = imported.language;
+                applyLanguage(state.language);
+            }
+            saveState();
+            renderAll();
+            updateUserBadge();
+            updateSettingsToggles();
+            refreshAISummary();
+            showDataStatus(translate('settings.importSuccess'), 'success');
+        } catch (error) {
+            console.error('Import failed:', error);
+            showDataStatus(translate('settings.importError'), 'error');
+        }
+    }
+
+    function showDataStatus(message, type) {
+        if (!selectors.dataStatus) return;
+        selectors.dataStatus.textContent = message;
+        selectors.dataStatus.className = `data-status data-status--${type}`;
+        setTimeout(() => {
+            selectors.dataStatus.textContent = '';
+            selectors.dataStatus.className = 'data-status';
+        }, 4000);
     }
 
     function prepareCustomerRecord(customer) {
@@ -1202,6 +1170,7 @@
     function attachNavHandlers() {
         Object.entries(selectors.nav).forEach(([key, btn]) => {
             if (!btn) return;
+            btn.dataset.i18n = `nav.${key}`;
             btn.addEventListener('click', () => {
                 setActivePanel(key);
             });
@@ -1209,786 +1178,18 @@
         setActivePanel(state.ui.activePanel);
     }
 
-    function attachSettingsHandlers() {
-        selectors.settingsToggle?.addEventListener('click', () => {
-            const settingsPanel = selectors.panels.settings;
-            if (settingsPanel) {
-                if (settingsPanel.classList.contains('active')) {
-                    // Return to previous panel or customers
-                    const prevPanel = state.ui.activePanel === 'settings' ? 'customers' : state.ui.activePanel;
-                    setActivePanel(prevPanel);
-                } else {
-                    setActivePanel('settings');
-                }
-            }
-        });
-
-        selectors.settingsLanguage?.addEventListener('change', (e) => {
-            applyLanguage(e.target.value);
-            saveState();
-        });
-
-        selectors.settingsNotifications?.addEventListener('change', (e) => {
-            state.notificationsEnabled = e.target.checked;
-            saveState();
-            if (e.target.checked && 'Notification' in window && Notification.permission !== 'granted') {
-                Notification.requestPermission();
-            }
-        });
-
-        selectors.themeButtons?.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const theme = btn.dataset.theme;
-                applyTheme(theme);
-                state.theme = theme;
-                saveState();
-                selectors.themeButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-
-        if (selectors.settingsLanguage) {
-            selectors.settingsLanguage.value = state.language;
-        }
-        if (selectors.settingsNotifications) {
-            selectors.settingsNotifications.checked = state.notificationsEnabled;
-        }
-        selectors.themeButtons?.forEach(btn => {
-            if (btn.dataset.theme === state.theme) {
-                btn.classList.add('active');
-            }
-        });
-
-        // Shop settings
-        if (selectors.settingsShopName) {
-            selectors.settingsShopName.value = state.shop.name || '';
-            selectors.settingsShopName.addEventListener('input', (e) => {
-                state.shop.name = e.target.value;
-                saveState();
-            });
-        }
-        if (selectors.settingsShopPhone) {
-            selectors.settingsShopPhone.value = state.shop.phone || '';
-            selectors.settingsShopPhone.addEventListener('input', (e) => {
-                state.shop.phone = e.target.value;
-                saveState();
-            });
-        }
-        if (selectors.settingsShopBank) {
-            selectors.settingsShopBank.value = state.shop.bank || '';
-            selectors.settingsShopBank.addEventListener('input', (e) => {
-                state.shop.bank = e.target.value;
-                saveState();
-            });
-        }
-        if (selectors.settingsShopImage) {
-            selectors.settingsShopImage.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        state.shop.image = event.target.result;
-                        saveState();
-                        updateShopImagePreview();
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-        updateShopImagePreview();
-        
-        // Subscription handlers
-        document.getElementById('buy-pro-btn')?.addEventListener('click', () => {
-            window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank');
-        });
-        
-        document.getElementById('buy-max-btn')?.addEventListener('click', () => {
-            window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank');
-        });
-        
-        document.getElementById('apply-coupon-btn')?.addEventListener('click', () => {
-            const couponInput = document.getElementById('subscription-coupon');
-            const couponCode = couponInput?.value || '';
-            if (applyCoupon(couponCode)) {
-                const subType = state.subscription.type === 'pro' ? 'Pro' : 'Max';
-                const duration = state.subscription.type === 'pro' ? '1 month' : '1 year';
-                alert(state.language === 'bn' 
-                    ? `কুপন প্রয়োগ করা হয়েছে! ${subType} প্রিমিয়াম সক্রিয় (${duration})।` 
-                    : `Coupon applied! ${subType} premium activated (${duration}).`);
-                couponInput.value = '';
-            } else {
-                alert(state.language === 'bn' ? 'অবৈধ কুপন কোড।' : 'Invalid coupon code.');
-            }
-        });
-        
-        document.getElementById('export-premium-btn')?.addEventListener('click', () => {
-            if (!isPremium()) {
-                alert(state.language === 'bn' ? 'প্রিমিয়াম প্রয়োজন।' : 'Premium required.');
-                return;
-            }
-            const premiumData = {
-                subscription: state.subscription,
-                exportedAt: Date.now()
-            };
-            const blob = new Blob([JSON.stringify(premiumData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'debtx-premium.json';
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-        
-        document.getElementById('import-premium-btn')?.addEventListener('click', () => {
-            document.getElementById('import-premium-file')?.click();
-        });
-        
-        document.getElementById('import-premium-file')?.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const premiumData = JSON.parse(event.target.result);
-                    if (premiumData.subscription) {
-                        state.subscription = premiumData.subscription;
-                        saveState();
-                        renderSubscriptionStatus();
-                        alert(state.language === 'bn' ? 'প্রিমিয়াম সফলভাবে আমদানি করা হয়েছে!' : 'Premium imported successfully!');
-                    } else {
-                        alert(state.language === 'bn' ? 'অবৈধ ফাইল ফরম্যাট।' : 'Invalid file format.');
-                    }
-                } catch (error) {
-                    alert(state.language === 'bn' ? 'ফাইল পড়তে ত্রুটি হয়েছে।' : 'Error reading file.');
-                }
-            };
-            reader.readAsText(file);
-        });
-        
-        renderSubscriptionStatus();
-        
-        // Font size controls
-        const fontSizeButtons = document.querySelectorAll('.font-size-btn');
-        fontSizeButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const size = btn.dataset.size;
-                state.ui.fontSize = size;
-                applyFontSize(size);
-                saveState();
-                fontSizeButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-        
-        // Apply initial font size
-        if (state.ui.fontSize) {
-            applyFontSize(state.ui.fontSize);
-            fontSizeButtons.forEach(btn => {
-                if (btn.dataset.size === state.ui.fontSize) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-        
-        // Monthly Wrapped
-        document.getElementById('view-monthly-wrapped-btn')?.addEventListener('click', () => {
-            showMonthlyWrapped();
-        });
-        
-        document.getElementById('share-wrapped-btn')?.addEventListener('click', () => {
-            shareMonthlyWrapped();
-        });
-    }
-    
-    function applyFontSize(size) {
-        const root = document.documentElement;
-        if (size === 'smaller') {
-            root.style.setProperty('--base-font-size', '12px');
-        } else if (size === 'small') {
-            root.style.setProperty('--base-font-size', '14px');
-        } else if (size === 'large') {
-            root.style.setProperty('--base-font-size', '18px');
-        } else {
-            root.style.setProperty('--base-font-size', '16px');
-        }
-        // Apply to body
-        document.body.style.fontSize = root.style.getPropertyValue('--base-font-size') || '16px';
-    }
-    
-    function showMonthlyWrapped() {
-        const modal = document.getElementById('monthly-wrapped-modal');
-        const content = document.getElementById('monthly-wrapped-content');
-        if (!modal || !content) return;
-        
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        const startOfMonth = new Date(currentYear, currentMonth, 1).getTime();
-        const endOfMonth = new Date(currentYear, currentMonth + 1, 0).getTime();
-        
-        // Calculate stats
-        const monthlyDebts = state.customers.flatMap(c => 
-            c.debts.filter(d => {
-                const debtDate = new Date(d.date).getTime();
-                return debtDate >= startOfMonth && debtDate <= endOfMonth;
-            })
-        );
-        
-        const monthlyPayments = state.customers.flatMap(c => 
-            c.payments.filter(p => {
-                const payDate = new Date(p.date).getTime();
-                return payDate >= startOfMonth && payDate <= endOfMonth;
-            })
-        );
-        
-        const totalDebts = monthlyDebts.reduce((sum, d) => sum + d.amount, 0);
-        const totalPayments = monthlyPayments.reduce((sum, p) => sum + p.amount, 0);
-        const newCustomers = state.customers.filter(c => {
-            const created = new Date(c.createdAt).getTime();
-            return created >= startOfMonth && created <= endOfMonth;
-        }).length;
-        
-        const completedTasks = state.tasks.filter(t => {
-            const taskDate = new Date(t.dueDate).getTime();
-            return taskDate >= startOfMonth && taskDate <= endOfMonth && t.completed;
-        }).length;
-        
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-                          'July', 'August', 'September', 'October', 'November', 'December'];
-        
-        content.innerHTML = `
-            <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="font-size: 2rem; margin: 0; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                    ${monthNames[currentMonth]} ${currentYear}
-                </h2>
-                <p style="color: var(--text-soft); margin-top: 8px;">Your Monthly Summary</p>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
-                <div style="background: var(--primary-soft); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary-strong);">৳${totalDebts.toLocaleString()}</div>
-                    <div style="color: var(--text-soft); margin-top: 8px;">Total Debts</div>
-                </div>
-                <div style="background: rgba(28, 139, 115, 0.1); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--success);">৳${totalPayments.toLocaleString()}</div>
-                    <div style="color: var(--text-soft); margin-top: 8px;">Total Payments</div>
-                </div>
-                <div style="background: rgba(242, 160, 61, 0.1); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--accent);">${newCustomers}</div>
-                    <div style="color: var(--text-soft); margin-top: 8px;">New Customers</div>
-                </div>
-                <div style="background: var(--primary-soft); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary-strong);">${completedTasks}</div>
-                    <div style="color: var(--text-soft); margin-top: 8px;">Completed Tasks</div>
-                </div>
-            </div>
-            <div style="background: var(--surface-soft); padding: 20px; border-radius: var(--radius-lg);">
-                <h3 style="margin: 0 0 12px;">Top Customers</h3>
-                ${getTopCustomers(5).map((c, i) => `
-                    <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border);">
-                        <span>${i + 1}. ${c.name}</span>
-                        <strong>৳${c.balance.toLocaleString()}</strong>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        
-        modal.showModal();
-    }
-    
-    function getTopCustomers(limit = 5) {
-        return state.customers
-            .map(c => ({
-                name: c.name,
-                balance: getCustomerBalance(c)
-            }))
-            .sort((a, b) => b.balance - a.balance)
-            .slice(0, limit);
-    }
-    
-    function shareMonthlyWrapped() {
-        const content = document.getElementById('monthly-wrapped-content');
-        if (!content) return;
-        
-        if (navigator.share) {
-            navigator.share({
-                title: 'My Monthly Wrapped - Debtx',
-                text: content.innerText,
-                url: window.location.href
-            }).catch(() => {
-                // Fallback to copy
-                copyToClipboard(content.innerText);
-            });
-        } else {
-            copyToClipboard(content.innerText);
-            alert(state.language === 'bn' ? 'কপি করা হয়েছে!' : 'Copied to clipboard!');
-        }
-    }
-    
-    function copyToClipboard(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-    }
-
-    function attachAIHandlers() {
-        // AI Tabs
-        selectors.aiTabs?.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabName = tab.dataset.tab;
-                selectors.aiTabs.forEach(t => t.classList.remove('active'));
-                selectors.aiTabContents.forEach(c => c.classList.remove('active'));
-                tab.classList.add('active');
-                document.querySelector(`[data-content="${tabName}"]`)?.classList.add('active');
-                if (tabName === 'cards') {
-                    renderCardGenerator();
-                }
-            });
-        });
-
-        // Chat - Textarea handling
-        const aiInput = selectors.aiInput;
-        const aiSendBtn = selectors.aiSendBtn;
-        
-        if (aiInput) {
-            // Auto-resize textarea
-            aiInput.addEventListener('input', () => {
-                aiInput.style.height = 'auto';
-                aiInput.style.height = Math.min(aiInput.scrollHeight, 200) + 'px';
-                
-                // Enable/disable send button
-                if (aiSendBtn) {
-                    aiSendBtn.disabled = !aiInput.value.trim();
-                    aiSendBtn.classList.toggle('enabled', !!aiInput.value.trim());
-                }
-            });
-            
-            // Enter to send, Shift+Enter for new line
-            aiInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (aiInput.value.trim()) {
-                        handleAISend();
-                    }
-                }
-            });
-        }
-        
-        aiSendBtn?.addEventListener('click', handleAISend);
-
-        // Quick suggestion chips
-        document.querySelectorAll('.suggestion-chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                const action = chip.dataset.action;
-                if (action === 'generate-card') {
-                    if (!isPremium()) {
-                        alert(state.language === 'bn' 
-                            ? 'পেমেন্ট কার্ড তৈরি করতে প্রিমিয়াম প্রয়োজন। সেটিংস থেকে কিনুন।' 
-                            : 'Premium required to generate payment cards. Purchase from Settings.');
-                        setActivePanel('settings');
-                        return;
-                    }
-                    setActivePanel('ai');
-                    document.querySelector('[data-tab="cards"]')?.click();
-                } else {
-                    handleAIQuickAction(action);
-                }
-            });
-        });
-
-        // Calculator
-        let calculatorState = { current: '0', previous: null, operation: null };
-        selectors.calculatorButtons?.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const value = btn.dataset.value;
-                const action = btn.dataset.action;
-                handleCalculatorInput(value, action, calculatorState);
-            });
-        });
-
-        // Payment Card Generator
-        selectors.cardGenerateBtn?.addEventListener('click', generatePaymentCard);
-        selectors.cardDownloadBtn?.addEventListener('click', downloadPaymentCard);
-        selectors.cardShareBtn?.addEventListener('click', sharePaymentCard);
-        selectors.cardCustomerSelect?.addEventListener('change', updateCardPreview);
-        selectors.cardMessageInput?.addEventListener('input', updateCardPreview);
-        selectors.cardPhoneInput?.addEventListener('input', updateCardPreview);
-        selectors.cardBankInput?.addEventListener('input', updateCardPreview);
-    }
-
-    function handleAISend() {
-        const input = selectors.aiInput;
-        const sendBtn = selectors.aiSendBtn;
-        if (!input) return;
-        
-        const message = input.value.trim();
-        if (!message) return;
-
-        addAIMessage('user', message);
-        input.value = '';
-        input.style.height = 'auto';
-        
-        if (sendBtn) {
-            sendBtn.disabled = true;
-            sendBtn.classList.remove('enabled');
-        }
-
-        // Show loading indicator
-        const loadingWrapper = document.createElement('div');
-        loadingWrapper.className = 'ai-message-wrapper assistant loading';
-        loadingWrapper.innerHTML = `
-            <div class="ai-message-avatar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                </svg>
-            </div>
-            <div class="ai-message-content assistant-message">
-                <div class="message-text">
-                    <div class="typing-indicator">
-                        <span></span><span></span><span></span>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const messagesContainer = selectors.aiMessages;
-        messagesContainer.appendChild(loadingWrapper);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        // Process immediately for faster response
-        setTimeout(() => {
-            const response = processAIQuery(message);
-            loadingWrapper.classList.remove('loading');
-            const messageText = loadingWrapper.querySelector('.message-text');
-            if (messageText) {
-                messageText.innerHTML = formatMessageText(response);
-            }
-        }, 500);
-    }
-
-    function handleAIQuickAction(action) {
-        let query = '';
-        switch (action) {
-            case 'find-customer':
-                query = translate('ai.quick.findCustomer');
-                break;
-            case 'trust-ratio':
-                query = translate('ai.quick.trustRatio');
-                break;
-            case 'plan-day':
-                query = translate('ai.quick.planDay');
-                break;
-            case 'add-task':
-                query = translate('ai.quick.addTask');
-                break;
-            case 'generate-card':
-                setActivePanel('ai');
-                document.querySelector('[data-tab="cards"]')?.click();
-                return;
-        }
-        if (query) {
-            selectors.aiInput.value = query;
-            handleAISend();
-        }
-    }
-
-    function addAIMessage(role, text) {
-        const messagesContainer = selectors.aiMessages;
-        if (!messagesContainer) return;
-
-        // Remove welcome message if it exists
-        const welcomeMsg = messagesContainer.querySelector('.ai-welcome-message');
-        if (welcomeMsg) {
-            welcomeMsg.style.opacity = '0';
-            welcomeMsg.style.transform = 'scale(0.95)';
-            setTimeout(() => welcomeMsg.remove(), 200);
-        }
-
-        // Hide quick suggestions after first message
-        const quickSuggestions = document.getElementById('ai-quick-suggestions');
-        if (quickSuggestions && messagesContainer.children.length === 0) {
-            quickSuggestions.style.opacity = '0';
-            setTimeout(() => quickSuggestions.style.display = 'none', 300);
-        }
-
-        const messageWrapper = document.createElement('div');
-        messageWrapper.className = `ai-message-wrapper ${role}`;
-        
-        if (role === 'user') {
-            messageWrapper.innerHTML = `
-                <div class="ai-message-content user-message">
-                    <div class="message-text">${escapeHtml(text)}</div>
-                </div>
-            `;
-        } else {
-            messageWrapper.innerHTML = `
-                <div class="ai-message-avatar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    </svg>
-                </div>
-                <div class="ai-message-content assistant-message">
-                    <div class="message-text">${formatMessageText(text)}</div>
-                </div>
-            `;
-        }
-        
-        // Add entrance animation
-        messageWrapper.style.opacity = '0';
-        messageWrapper.style.transform = role === 'user' ? 'translateY(10px)' : 'translateY(10px)';
-        
-        messagesContainer.appendChild(messageWrapper);
-        
-        // Scroll to bottom
-        setTimeout(() => {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }, 50);
-        
-        // Trigger animation
-        requestAnimationFrame(() => {
-            messageWrapper.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            messageWrapper.style.opacity = '1';
-            messageWrapper.style.transform = 'translateY(0)';
-        });
-        
-        return messageWrapper;
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function formatMessageText(text) {
-        // Convert newlines to <br> and preserve formatting
-        return escapeHtml(text).replace(/\n/g, '<br>');
-    }
-
-    function processAIQuery(query) {
-        const lowerQuery = query.toLowerCase();
-        const lang = state.language;
-
-        if (lowerQuery.includes('find') || lowerQuery.includes('customer') || lowerQuery.includes('ক্রেতা')) {
-            return generateFindCustomerResponse(lang);
-        } else if (lowerQuery.includes('trust') || lowerQuery.includes('ratio') || lowerQuery.includes('বিশ্বাস')) {
-            return generateTrustRatioResponse(lang);
-        } else if (lowerQuery.includes('plan') || lowerQuery.includes('day') || lowerQuery.includes('পরিকল্পনা')) {
-            return generatePlanDayResponse(lang);
-        } else if (lowerQuery.includes('add') && (lowerQuery.includes('task') || lowerQuery.includes('কাজ'))) {
-            return generateAddTaskResponse(lang);
-        } else if (lowerQuery.includes('generate') && (lowerQuery.includes('card') || lowerQuery.includes('কার্ড'))) {
-            return lang === 'bn' 
-                ? 'কার্ড তৈরি করতে, AI ট্যাবে "Payment Cards" ট্যাবে যান এবং একটি ক্রেতা নির্বাচন করুন।'
-                : 'To generate a card, go to the "Payment Cards" tab in the AI section and select a customer.';
-        } else if (lowerQuery.includes('calc') || lowerQuery.includes('calculate') || lowerQuery.includes('calculator') || lowerQuery.includes('ক্যালকুলেটর')) {
-            return lang === 'bn' 
-                ? 'ক্যালকুলেটর ব্যবহার করতে, AI ট্যাবে "Calculator" ট্যাবে যান।'
-                : 'To use the calculator, go to the "Calculator" tab in the AI section.';
-        } else if (lowerQuery.includes('help') || lowerQuery.includes('সাহায্য')) {
-            return lang === 'bn' 
-                ? 'আমি Optichain, আপনার AI সহায়ক।\n\nআমি করতে পারি:\n• ক্রেতা খুঁজা\n• বিশ্বাস অনুপাত বিশ্লেষণ\n• দিনের পরিকল্পনা\n• কাজ যোগ করা\n• কার্ড তৈরি\n• হিসাব করা\n• ব্যবসায়িক পরামর্শ\n\nআমাকে যেকোনো প্রশ্ন করুন!'
-                : 'I\'m Optichain, your AI assistant.\n\nI can help you with:\n• Finding customers\n• Analyzing trust ratios\n• Planning your day\n• Adding tasks\n• Generating payment cards\n• Calculations\n• Business insights\n\nAsk me anything!';
-        } else if (lowerQuery.includes('summary') || lowerQuery.includes('সারাংশ')) {
-            return generateBusinessSummary(lang);
-        } else {
-            return lang === 'bn' 
-                ? 'আমি Optichain, আপনার AI সহায়ক। আমি আপনাকে ক্রেতা খুঁজতে, বিশ্বাস অনুপাত বিশ্লেষণ করতে, দিন পরিকল্পনা করতে, কাজ যোগ করতে, কার্ড তৈরি করতে, হিসাব করতে এবং ব্যবসায়িক পরামর্শ দিতে সাহায্য করতে পারি। "help" লিখে আরও জানুন।'
-                : 'I\'m Optichain, your AI assistant. I can help you find customers, analyze trust ratios, plan your day, add tasks, generate cards, calculate, and provide business insights. Type "help" to learn more.';
-        }
-    }
-
-    function generateFindCustomerResponse(lang) {
-        if (state.customers.length === 0) {
-            return lang === 'bn' 
-                ? 'আপনার এখনও কোনো ক্রেতা নেই। প্রথমে একটি ক্রেতা যোগ করুন।'
-                : 'You don\'t have any customers yet. Please add a customer first.';
-        }
-
-        let response = lang === 'bn' ? 'আপনার ক্রেতারা:\n\n' : 'Your customers:\n\n';
-        state.customers.forEach((customer, index) => {
-            const balance = getCustomerBalance(customer);
-            response += `${index + 1}. ${customer.name}`;
-            if (customer.phone) response += ` (${customer.phone})`;
-            response += ` - Balance: ${formatCurrency(balance)}\n`;
-        });
-        return response;
-    }
-
-    function generateTrustRatioResponse(lang) {
-        if (state.customers.length === 0) {
-            return lang === 'bn' 
-                ? 'বিশ্লেষণের জন্য কোনো ক্রেতা নেই।'
-                : 'No customers to analyze.';
-        }
-
-        let response = lang === 'bn' ? 'ক্রেতা বিশ্বাস বিশ্লেষণ:\n\n' : 'Customer Trust Analysis:\n\n';
-        
-        state.customers.forEach(customer => {
-            const totalDebts = customer.debts.reduce((sum, d) => sum + (d.amount || 0), 0);
-            const totalPaid = customer.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-            const balance = getCustomerBalance(customer);
-            const paymentCount = customer.payments.length;
-            const debtCount = customer.debts.length;
-            
-            let trustScore = 0;
-            if (totalDebts > 0) {
-                trustScore = Math.round((totalPaid / totalDebts) * 100);
-            }
-            if (paymentCount > debtCount) trustScore += 10;
-            trustScore = Math.min(100, trustScore);
-
-            const status = trustScore >= 80 ? (lang === 'bn' ? 'উচ্চ' : 'High') :
-                          trustScore >= 50 ? (lang === 'bn' ? 'মধ্যম' : 'Medium') :
-                          (lang === 'bn' ? 'নিম্ন' : 'Low');
-
-            response += `${customer.name}: ${trustScore}% (${status})\n`;
-            response += `  ${lang === 'bn' ? 'মোট দেনা' : 'Total Debt'}: ${formatCurrency(totalDebts)}\n`;
-            response += `  ${lang === 'bn' ? 'মোট পরিশোধ' : 'Total Paid'}: ${formatCurrency(totalPaid)}\n`;
-            response += `  ${lang === 'bn' ? 'বর্তমান বাকি' : 'Current Balance'}: ${formatCurrency(balance)}\n\n`;
-        });
-
-        return response;
-    }
-
-    function generatePlanDayResponse(lang) {
-        const today = todayString();
-        const todayTasks = state.tasks.filter(t => t.dueDate === today && !t.done);
-        const overdueDebts = [];
-
-        state.customers.forEach(customer => {
-            customer.debts.forEach(debt => {
-                if (getDebtOutstanding(debt) > 0 && debt.dueDate && new Date(debt.dueDate) < new Date(today)) {
-                    overdueDebts.push({ customer: customer.name, amount: getDebtOutstanding(debt) });
-                }
-            });
-        });
-
-        let response = lang === 'bn' ? 'আপনার দিনের পরিকল্পনা:\n\n' : 'Your day plan:\n\n';
-
-        if (overdueDebts.length > 0) {
-            response += lang === 'bn' ? '⚠️ বাকি পড়েছে:\n' : '⚠️ Overdue:\n';
-            overdueDebts.forEach(item => {
-                response += `  • ${item.customer}: ${formatCurrency(item.amount)}\n`;
-            });
-            response += '\n';
-        }
-
-        if (todayTasks.length > 0) {
-            response += lang === 'bn' ? '📋 আজকের কাজ:\n' : '📋 Today\'s Tasks:\n';
-            todayTasks.forEach(task => {
-                response += `  • ${task.name}\n`;
-            });
-            response += '\n';
-        }
-
-        if (overdueDebts.length === 0 && todayTasks.length === 0) {
-            response += lang === 'bn' 
-                ? 'আজকের জন্য কোনো জরুরি কাজ নেই। ভালো দিন!'
-                : 'No urgent tasks for today. Have a great day!';
-        }
-
-        return response;
-    }
-
-    function generateAddTaskResponse(lang) {
-        const today = todayString();
-        const suggestedTasks = [];
-
-        state.customers.forEach(customer => {
-            const balance = getCustomerBalance(customer);
-            if (balance > 0) {
-                const dueInfo = getCustomerDueInfo(customer);
-                if (dueInfo.nextDueDate) {
-                    suggestedTasks.push({
-                        name: lang === 'bn' 
-                            ? `${customer.name}-এর কাছে পেমেন্ট নিন`
-                            : `Collect payment from ${customer.name}`,
-                        dueDate: dueInfo.nextDueDate,
-                        type: 'payment'
-                    });
-                }
-
-        // Login/Security settings (managed only from Settings)
-        if (selectors.settingsLoginEmail) selectors.settingsLoginEmail.value = state.auth.email || '';
-        if (selectors.settingsLoginPasscode) selectors.settingsLoginPasscode.value = state.auth.passcode || '';
-        if (selectors.settingsLoginRequireToggle) selectors.settingsLoginRequireToggle.checked = state.requireLogin || false;
-
-        selectors.settingsLoginSaveBtn?.addEventListener('click', () => {
-            state.auth.email = selectors.settingsLoginEmail?.value || '';
-            state.auth.passcode = selectors.settingsLoginPasscode?.value || '';
-            const pwd = selectors.settingsLoginPassword?.value || '';
-            state.auth.passwordHash = pwd ? simpleHash(pwd) : '';
-            state.requireLogin = selectors.settingsLoginRequireToggle?.checked || false;
-            state.authenticated = true; // stay logged in
-            saveState();
-            alert('Login info saved in settings. App stays open; login is optional.');
-        });
-
-        selectors.settingsLoginClearBtn?.addEventListener('click', () => {
-            state.auth = { email: '', passwordHash: '', passcode: '' };
-            state.requireLogin = false;
-            state.authenticated = true;
-            if (selectors.settingsLoginEmail) selectors.settingsLoginEmail.value = '';
-            if (selectors.settingsLoginPassword) selectors.settingsLoginPassword.value = '';
-            if (selectors.settingsLoginPasscode) selectors.settingsLoginPasscode.value = '';
-            if (selectors.settingsLoginRequireToggle) selectors.settingsLoginRequireToggle.checked = false;
-            saveState();
-            alert('Login data cleared. App will stay unlocked.');
-        });
-            }
-        });
-
-        if (suggestedTasks.length > 0) {
-            const task = suggestedTasks[0];
-            const newTask = {
-                id: generateId('task'),
-                name: task.name,
-                type: task.type,
-                dueDate: task.dueDate,
-                note: '',
-                done: false,
-                reminderSent: false,
-                createdAt: Date.now()
-            };
-            state.tasks.push(newTask);
-            saveState();
-            renderTasks();
-            return lang === 'bn' 
-                ? `কাজ যোগ করা হয়েছে: ${task.name}`
-                : `Task added: ${task.name}`;
-        }
-
-        return lang === 'bn' 
-            ? 'কোনো সুপারিশকৃত কাজ নেই।'
-            : 'No suggested tasks available.';
-    }
-
     function attachModalHandlers() {
         document.querySelectorAll('[data-close]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const dialog = btn.closest('dialog');
-                if (dialog) {
-                    dialog.style.animation = 'zoomOut 0.2s ease';
-                    setTimeout(() => {
-                        dialog.close();
-                        dialog.style.animation = '';
-                    }, 200);
-                }
+                if (dialog) dialog.close();
             });
         });
 
         Object.values(modals).forEach(dialog => {
             if (!dialog) return;
             dialog.addEventListener('cancel', () => {
-                dialog.style.animation = 'zoomOut 0.2s ease';
-                setTimeout(() => {
-                    dialog.close();
-                    dialog.style.animation = '';
-                }, 200);
+                dialog.close();
             });
         });
 
@@ -1996,21 +1197,21 @@
             forms.customer.reset();
             setModalMode(forms.customer, 'create');
             modals.customer.showModal();
-            // Add modal entrance animation
-            modals.customer.style.animation = 'zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
         });
 
         selectors.addNoteBtn?.addEventListener('click', () => {
             forms.note.reset();
+            setModalMode(forms.note, 'create');
+            forms.note.elements.noteId.value = '';
+            forms.note.elements.color.value = 'yellow';
+            forms.note.elements.pinned.checked = false;
             modals.note.showModal();
-            modals.note.style.animation = 'zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
         });
 
         selectors.addTaskBtn?.addEventListener('click', () => {
             forms.task.reset();
             forms.task.elements.dueDate.value = todayString();
             modals.task.showModal();
-            modals.task.style.animation = 'zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
         });
     }
 
@@ -2020,574 +1221,608 @@
         forms.payment?.addEventListener('submit', handlePaymentSubmit);
         forms.note?.addEventListener('submit', handleNoteSubmit);
         forms.task?.addEventListener('submit', handleTaskSubmit);
+        forms.bill?.addEventListener('submit', handleBillSubmit);
+        forms.demand?.addEventListener('submit', handleDemandSubmit);
+        forms.profile?.addEventListener('submit', async event => {
+            event.preventDefault();
+            await handleProfileSubmit(event);
+        });
     }
 
     function attachMiscHandlers() {
+        selectors.languageToggle?.addEventListener('click', () => {
+            const nextLang = state.language === 'en' ? 'bn' : 'en';
+            applyLanguage(nextLang);
+            saveState();
+        });
+
+        // Language toggle removed with settings panel
+        const languageToggleSettings = document.getElementById('language-toggle-settings');
+        if (languageToggleSettings) {
+            languageToggleSettings.addEventListener('click', () => {
+                const nextLang = state.language === 'en' ? 'bn' : 'en';
+                applyLanguage(nextLang);
+                saveState();
+                playFeedback();
+            });
+        }
+
+        selectors.notificationToggle?.addEventListener('click', handleNotificationToggle);
+
         selectors.customerSearch?.addEventListener('input', () => {
             renderCustomers();
         });
-        
-        // Notes search
-        const notesSearchBtn = document.getElementById('notes-search-btn');
-        const notesSearchBar = document.getElementById('notes-search-bar');
-        const notesSearch = document.getElementById('notes-search');
-        
-        notesSearchBtn?.addEventListener('click', () => {
-            if (notesSearchBar) {
-                notesSearchBar.style.display = notesSearchBar.style.display === 'none' ? 'block' : 'none';
-                if (notesSearchBar.style.display === 'block') {
-                    notesSearch?.focus();
-                }
-            }
-        });
-        
-        notesSearch?.addEventListener('input', () => {
+
+        selectors.notesSearch?.addEventListener('input', event => {
+            state.ui.notesQuery = (event.target.value || '').trim().toLowerCase();
+            saveState();
             renderNotes();
         });
 
-        selectors.learnAppBtn?.addEventListener('click', () => {
-            // Show help in AI chat instead
-            setActivePanel('ai');
-            document.querySelector('[data-tab="chat"]')?.click();
-            if (selectors.aiInput) {
-                selectors.aiInput.value = 'help';
-                handleAISend();
-            }
-        });
-        
-        // Tasks filter
-        const tasksFilterBtn = document.getElementById('tasks-filter-btn');
-        const tasksFilterBar = document.getElementById('tasks-filter-bar');
-        const filterButtons = document.querySelectorAll('.filter-btn');
-        
-        tasksFilterBtn?.addEventListener('click', () => {
-            if (tasksFilterBar) {
-                tasksFilterBar.style.display = tasksFilterBar.style.display === 'none' ? 'flex' : 'none';
-            }
-        });
-        
-        filterButtons.forEach(btn => {
+        // New filter button handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const filter = btn.dataset.filter;
-                filterButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                state.ui.taskFilter = filter;
-                saveState();
-                renderTasks();
+                if (filter) {
+                    // Update active state
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    state.ui.notesFilter = filter;
+                    saveState();
+                    renderNotes();
+                    playFeedback();
+                }
             });
         });
         
-        // Bill generation
-        document.getElementById('generate-bill-btn')?.addEventListener('click', () => {
-            showBillModal();
+        // Color filter buttons
+        document.querySelectorAll('.color-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const color = btn.dataset.color;
+                if (color) {
+                    // Toggle active state
+                    btn.classList.toggle('active');
+                    
+                    // Update filter to show selected colors
+                    const activeColors = Array.from(document.querySelectorAll('.color-filter-btn.active')).map(b => b.dataset.color);
+                    if (activeColors.length > 0) {
+                        // Filter by active colors
+                        state.ui.notesColorFilter = activeColors;
+                    } else {
+                        state.ui.notesColorFilter = null;
+                    }
+                    saveState();
+                    renderNotes();
+                    playFeedback();
+                }
+            });
         });
         
-        document.getElementById('quick-bill-btn')?.addEventListener('click', () => {
-            showBillModal();
+        // Legacy select filter (if it exists)
+        selectors.notesFilter?.addEventListener('change', event => {
+            state.ui.notesFilter = event.target.value;
+            saveState();
+            renderNotes();
         });
-        
-        // Cancel premium
-        document.getElementById('cancel-premium-btn')?.addEventListener('click', () => {
-            if (confirm(state.language === 'bn' 
-                ? 'আপনি কি নিশ্চিত যে আপনি প্রিমিয়াম বাতিল করতে চান?' 
-                : 'Are you sure you want to cancel premium?')) {
-                state.subscription = {
-                    type: 'free',
-                    expiresAt: null,
-                    activatedAt: null,
-                    coupon: null
-                };
-                saveState();
-                renderSubscriptionStatus();
-                alert(state.language === 'bn' ? 'প্রিমিয়াম বাতিল করা হয়েছে' : 'Premium cancelled');
+
+        selectors.lockBtn?.addEventListener('click', () => {
+            lockSession();
+        });
+
+
+        selectors.themeGrid?.addEventListener('click', event => {
+            const btn = event.target.closest('[data-theme]');
+            if (!btn) return;
+            const theme = btn.dataset.theme;
+            applyTheme(theme);
+            saveState();
+        });
+
+        selectors.editProfileBtn?.addEventListener('click', () => {
+            openProfileModal();
+        });
+
+        selectors.toggleHaptics?.addEventListener('change', e => {
+            state.ui.haptics = !!e.target.checked;
+            saveState();
+        });
+
+        selectors.toggleSounds?.addEventListener('change', e => {
+            state.ui.sounds = !!e.target.checked;
+            saveState();
+        });
+
+        selectors.aiRefreshBtn?.addEventListener('click', () => {
+            refreshAISummary();
+            playFeedback();
+        });
+
+        selectors.exportDataBtn?.addEventListener('click', () => {
+            if (!canImportExport()) {
+                alert(state.language === 'bn' ? 'ইমপোর্ট/এক্সপোর্ট করতে সাবস্ক্রিপশন প্রয়োজন।' : 'Subscription required for import/export.');
+                return;
+            }
+            exportDataAsJSON();
+            playFeedback();
+        });
+
+        selectors.importDataInput?.addEventListener('change', async event => {
+            if (!canImportExport()) {
+                alert(state.language === 'bn' ? 'ইমপোর্ট/এক্সপোর্ট করতে সাবস্ক্রিপশন প্রয়োজন।' : 'Subscription required for import/export.');
+                event.target.value = '';
+                return;
+            }
+            const file = event.target.files?.[0];
+            if (file) {
+                await importDataFromJSON(file);
+                playFeedback();
+            }
+            event.target.value = '';
+        });
+    }
+
+    function attachAuthHandlers() {
+        selectors.authTabs?.forEach(tab => {
+            tab.addEventListener('click', () => {
+                setAuthMode(tab.dataset.mode);
+            });
+        });
+
+        // Close button only works when already unlocked
+        selectors.authCloseBtn?.addEventListener('click', () => {
+            if (state.session.unlocked && state.auth.passwordHash) {
+                selectors.authOverlay.hidden = true;
+                document.body.classList.remove('locked');
             }
         });
-        
-        document.getElementById('add-bill-item-btn')?.addEventListener('click', () => {
-            addBillItem();
+
+        // Prevent clicking overlay background from doing anything
+        selectors.authOverlay?.addEventListener('click', event => {
+            if (event.target === selectors.authOverlay) {
+                event.stopPropagation();
+            }
         });
-        
-        document.getElementById('generate-bill-pdf-btn')?.addEventListener('click', () => {
-            generateBillPDF();
+
+        // Prevent escape key from closing overlay when locked
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                const needsAuth = !state.auth.passwordHash || !state.session.unlocked;
+                if (needsAuth && selectors.authOverlay && !selectors.authOverlay.hidden) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            }
         });
+
+        selectors.authLoginForm?.addEventListener('submit', async event => {
+            event.preventDefault();
+            await handleAuthLogin(event);
+        });
+
+        selectors.authSetupForm?.addEventListener('submit', async event => {
+            event.preventDefault();
+            await handleAuthSetup(event);
+        });
+
+        // Profile picture upload with visual preview
+        const profileInput = selectors.authSetupForm?.elements.profilePicture;
+        profileInput?.addEventListener('change', async e => {
+            const file = e.target.files?.[0];
+            if (file && selectors.profileUploadPreview) {
+                const url = await readFileAsDataUrl(file);
+                selectors.profileUploadPreview.innerHTML = `<img src="${url}" alt="Profile">`;
+                selectors.profileUploadPreview.classList.add('has-image');
+            }
+        });
+
+        // Skip button - continue without password
+        if (selectors.authSkipBtn) {
+            console.log('Skip button found, attaching click handler');
+            selectors.authSkipBtn.addEventListener('click', () => {
+                console.log('Skip button clicked');
+                skipAuth();
+            });
+        } else {
+            console.warn('Skip button not found!');
+        }
+
+        document.querySelectorAll('[data-action="toggle-password"]').forEach(btn => {
+            btn.addEventListener('click', () => togglePasswordInput(selectors.authLoginForm?.elements.password, btn));
+        });
+        document.querySelectorAll('[data-action="toggle-passcode"]').forEach(btn => {
+            btn.addEventListener('click', () => togglePasswordInput(selectors.authLoginForm?.elements.passcode, btn));
+        });
+        document.querySelectorAll('[data-action="toggle-new-password"]').forEach(btn => {
+            btn.addEventListener('click', () => togglePasswordInput(selectors.authSetupForm?.elements.password, btn));
+        });
+    }
+
+    function skipAuth() {
+        // Allow using app without password - mark as guest
+        state.auth.isGuest = true;
+        state.auth.name = state.auth.name || 'Guest';
+        state.session.unlocked = true;
+        saveState();
+        renderAuthState();
+        renderAll();
+        playFeedback();
+        console.log('Skip auth - guest mode activated');
+    }
+
+    function togglePasswordInput(input, button) {
+        if (!input) return;
+        const next = input.type === 'password' ? 'text' : 'password';
+        input.type = next;
+        if (button) {
+            button.setAttribute('aria-label', next === 'text' ? 'Hide' : 'Show');
+        }
+    }
+
+    function setAuthMode(mode) {
+        const effectiveMode = state.auth.passwordHash ? mode : 'setup';
+        selectors.authTabs?.forEach(tab => {
+            const isActive = tab.dataset.mode === effectiveMode;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        selectors.authLoginForm?.classList.toggle('hidden', effectiveMode !== 'login');
+        selectors.authSetupForm?.classList.toggle('hidden', effectiveMode !== 'setup');
+    }
+
+    function renderAuthState() {
+        const overlay = selectors.authOverlay;
+        if (!overlay) {
+            console.warn('Auth overlay not found');
+            return;
+        }
         
-        // Update bill total on input
-        const billItemsContainer = document.getElementById('bill-items-container');
-        if (billItemsContainer) {
-            billItemsContainer.addEventListener('input', (e) => {
-                if (e.target.classList.contains('bill-item-qty') || e.target.classList.contains('bill-item-price')) {
-                    updateBillTotal();
+        const isGuest = !!state.auth.isGuest;
+        const hasPassword = !!state.auth.passwordHash;
+        const isUnlocked = !!state.session.unlocked;
+        
+        console.log('renderAuthState:', { isGuest, hasPassword, isUnlocked });
+        
+        // Determine if we need to show auth screen
+        // Show if: not a guest AND (no password set OR not unlocked)
+        const needsSetup = !hasPassword && !isGuest;
+        const needsLogin = hasPassword && !isUnlocked;
+        const showAuth = needsSetup || needsLogin;
+        
+        console.log('Auth decision:', { needsSetup, needsLogin, showAuth });
+        
+        // Update overlay visibility
+        if (showAuth) {
+            overlay.hidden = false;
+            overlay.removeAttribute('hidden');
+            overlay.style.display = 'flex';
+            console.log('Showing auth overlay');
+        } else {
+            overlay.hidden = true;
+            overlay.setAttribute('hidden', '');
+            overlay.style.display = 'none';
+            console.log('Hiding auth overlay');
+        }
+        
+        document.body.classList.toggle('locked', showAuth);
+        setAuthMode(needsSetup ? 'setup' : 'login');
+        
+        if (selectors.authError) selectors.authError.textContent = '';
+        
+        // Hide close button when auth is required
+        if (selectors.authCloseBtn) {
+            selectors.authCloseBtn.hidden = showAuth;
+        }
+        
+        // Show/hide lock button based on whether password is set
+        if (selectors.lockBtn) {
+            selectors.lockBtn.hidden = !hasPassword;
+        }
+        // Settings lock button removed
+        
+        // Clear form fields when showing login
+        if (showAuth && !needsSetup) {
+            selectors.authLoginForm?.reset();
+        }
+        
+        updateUserBadge();
+        updateThemePickerUI();
+    }
+
+    async function handleAuthLogin(event) {
+        const data = new FormData(event.target);
+        const password = (data.get('password') || '').toString();
+        const passcode = (data.get('passcode') || '').toString();
+        const passwordHash = password ? await hashString(password) : '';
+        const passcodeHash = passcode ? await hashString(passcode) : '';
+        const matchedPassword = passwordHash && passwordHash === state.auth.passwordHash;
+        const matchedPasscode = passcodeHash && state.auth.passcodeHash && passcodeHash === state.auth.passcodeHash;
+        if (matchedPassword || matchedPasscode) {
+            selectors.authError.textContent = '';
+            unlockSession();
+        } else {
+            selectors.authError.textContent = translate('auth.errorInvalid');
+        }
+    }
+
+    async function handleAuthSetup(event) {
+        console.log('handleAuthSetup called');
+        const data = new FormData(event.target);
+        const name = (data.get('name') || '').toString().trim();
+        const email = (data.get('email') || '').toString().trim();
+        const password = (data.get('password') || '').toString();
+        const passcode = (data.get('passcode') || '').toString().trim();
+        
+        // Password is optional - if provided, must be at least 6 chars
+        let passwordHash = '';
+        let passcodeHash = '';
+        if (password) {
+            if (password.length < 6) {
+                if (selectors.authError) {
+                    selectors.authError.textContent = translate('auth.errorPasswordShort');
+                }
+                return;
+            }
+            passwordHash = await hashString(password);
+            passcodeHash = passcode ? await hashString(passcode) : '';
+        }
+        
+        const profilePicture = await readFileAsDataUrl(data.get('profilePicture'));
+
+        state.auth = {
+            name: name || 'Guest',
+            email,
+            passwordHash,
+            passcodeHash,
+            profilePicture,
+            extraPhoto: '',
+            createdAt: Date.now(),
+            isGuest: !passwordHash
+        };
+        console.log('Auth setup complete, isGuest:', state.auth.isGuest);
+        saveState();
+        unlockSession();
+        playFeedback();
+    }
+
+    async function hashString(value) {
+        try {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(value);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (error) {
+            return btoa(value);
+        }
+    }
+
+    async function readFileAsDataUrl(file) {
+        return new Promise(resolve => {
+            if (!file || !(file instanceof File)) return resolve('');
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.toString());
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function updateUserBadge() {
+        const { userPill, userName, userEmail, userAvatar } = selectors;
+        if (!userPill) return;
+        const hasAuth = state.auth?.name || state.auth?.email || state.auth?.profilePicture;
+        userPill.hidden = !hasAuth;
+        if (!hasAuth) return;
+        userName.textContent = state.auth.name || 'Debtx user';
+        userEmail.textContent = state.auth.email || '';
+        if (state.auth.profilePicture) {
+            userAvatar.innerHTML = `<img src="${state.auth.profilePicture}" alt="">`;
+        } else {
+            userAvatar.textContent = (state.auth.name || 'D').slice(0, 1).toUpperCase();
+        }
+        renderSettingsProfile();
+    }
+
+    function renderSettingsProfile() {
+        // Settings profile display removed
+    }
+
+    function updateSettingsToggles() {
+        if (selectors.toggleHaptics) selectors.toggleHaptics.checked = !!state.ui.haptics;
+        if (selectors.toggleSounds) selectors.toggleSounds.checked = !!state.ui.sounds;
+    }
+
+    function refreshAISummary(silent = false) {
+        const text = buildAISummary();
+        state.ai.lastSummary = text;
+        if (selectors.aiSummaryText) selectors.aiSummaryText.textContent = text;
+        saveState();
+        if (!silent) playFeedback();
+    }
+
+    function buildAISummary() {
+        const totalTasks = state.tasks.length;
+        const doneTasks = state.tasks.filter(t => t.done).length;
+        const overdueTasks = state.tasks.filter(t => !t.done && t.dueDate && daysUntil(t.dueDate) < 0).length;
+        const dueToday = state.tasks.filter(t => !t.done && t.dueDate === todayString()).length;
+        const notesCount = state.notes.length;
+        const customersCount = state.customers.length;
+        const overdueCustomers = state.customers.filter(c => getCustomerDueInfo(c).status === 'overdue').length;
+        return [
+            `Tasks: ${totalTasks} total · ${doneTasks} done · ${overdueTasks} overdue · ${dueToday} due today.`,
+            `Notes: ${notesCount} saved.`,
+            `Customers: ${customersCount} tracked · ${overdueCustomers} overdue.`
+        ].join(' ');
+    }
+
+    function openProfileModal() {
+        if (!forms.profile || !modals.profile) return;
+        forms.profile.reset();
+        forms.profile.elements.name.value = state.auth?.name || '';
+        forms.profile.elements.email.value = state.auth?.email || '';
+        modals.profile.showModal();
+    }
+
+    async function handleProfileSubmit(event) {
+        const data = new FormData(event.target);
+        const name = (data.get('name') || '').toString().trim();
+        const email = (data.get('email') || '').toString().trim();
+        const profilePicture = await readFileAsDataUrl(data.get('profilePicture'));
+        const extraPhoto = await readFileAsDataUrl(data.get('extraPhoto'));
+
+        state.auth.name = name || state.auth.name;
+        state.auth.email = email;
+        if (profilePicture) state.auth.profilePicture = profilePicture;
+        if (extraPhoto) state.auth.extraPhoto = extraPhoto;
+        saveState();
+        updateUserBadge();
+        modals.profile?.close();
+    }
+
+    function applyTheme(theme, options = {}) {
+        // All available themes - 6 new professional themes + legacy themes
+        const allThemes = [
+            // New professional themes
+            'cozy-ledger',      // Warm & calming
+            'clean-business',   // Minimal high-contrast
+            'night-shop',       // Dark mode optimized
+            'zen-finance',      // Peaceful pastels
+            'street-ledger',    // Bold & modern
+            'classic-paper',    // Traditional ledger
+            // Legacy themes for backward compatibility
+            'light', 'dark', 'ocean', 'rose'
+        ];
+        
+        // Map old theme names to new themes
+        const themeMap = {
+            'default': 'cozy-ledger',
+            'mint': 'cozy-ledger',
+            'light': 'clean-business',
+            'midnight': 'night-shop',
+            'dark': 'night-shop',
+            'sunset': 'street-ledger',
+            'slate': 'zen-finance',
+            'ocean': 'zen-finance',
+            'forest': 'classic-paper',
+            'neon': 'street-ledger',
+            'graphite': 'night-shop',
+            'lavender': 'zen-finance',
+            'amber': 'cozy-ledger',
+            'emerald': 'classic-paper',
+            'rose': 'street-ledger',
+            'sapphire': 'clean-business',
+            'coral': 'street-ledger',
+            'teal': 'zen-finance'
+        };
+        
+        // Theme descriptions for UI
+        const themeDescriptions = {
+            'cozy-ledger': 'Warm, calming tones with soft shadows — designed to reduce stress during long daily use.',
+            'clean-business': 'Minimal high-contrast layout — prioritizes clarity and speed for professional use.',
+            'night-shop': 'Dark theme with eye-friendly highlights — perfect for night-time use.',
+            'zen-finance': 'Peaceful pastel layout — feels spacious and organized for clear financial overview.',
+            'street-ledger': 'Bold modern theme — highlights important actions with energetic colors.',
+            'classic-paper': 'Paper-inspired design — feels familiar and reliable like a traditional ledger.'
+        };
+        
+        let safe = theme;
+        if (themeMap[theme]) {
+            safe = themeMap[theme];
+        } else if (!allThemes.includes(theme)) {
+            safe = 'cozy-ledger'; // Default to cozy-ledger
+        }
+        
+        state.ui.theme = safe;
+        
+        // Add transition class for smooth theme switching
+        if (!options.initial) {
+            document.documentElement.setAttribute('data-theme-transitioning', 'true');
+            setTimeout(() => {
+                document.documentElement.removeAttribute('data-theme-transitioning');
+            }, 350);
+        }
+        
+        // Apply theme immediately to document element
+        if (document.documentElement) {
+            document.documentElement.setAttribute('data-theme', safe);
+        }
+        
+        // Update theme description in UI
+        const descEl = document.querySelector('.theme-description-text');
+        if (descEl && themeDescriptions[safe]) {
+            descEl.textContent = themeDescriptions[safe];
+        }
+        
+        // Update theme picker UI
+        updateThemePickerUI();
+        
+        // Save state if not initial load
+        if (!options.initial) {
+            saveState();
+        }
+    }
+
+    function updateThemePickerUI() {
+        // Update old theme grid if it exists
+        const grid = selectors.themeGrid;
+        if (grid) {
+            grid.querySelectorAll('[data-theme]').forEach(btn => {
+                const isActive = btn.dataset.theme === state.ui.theme;
+                btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+                if (isActive) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
                 }
             });
         }
         
-        // Bill preview
-        document.getElementById('preview-bill-btn')?.addEventListener('click', () => {
-            previewBill();
-        });
-    }
-    
-    function previewBill() {
-        const customerSelect = document.getElementById('bill-customer-select');
-        const billDate = document.getElementById('bill-date');
-        const items = document.querySelectorAll('.bill-item');
-        
-        if (!customerSelect || customerSelect.value === '') {
-            alert(state.language === 'bn' ? 'অনুগ্রহ করে একজন ক্রেতা নির্বাচন করুন' : 'Please select a customer');
-            return;
-        }
-        
-        const customer = state.customers.find(c => c.id === customerSelect.value);
-        if (!customer) return;
-        
-        const billItems = Array.from(items).map(item => ({
-            name: item.querySelector('.bill-item-name')?.value || '',
-            qty: parseFloat(item.querySelector('.bill-item-qty')?.value || 0),
-            price: parseFloat(item.querySelector('.bill-item-price')?.value || 0)
-        })).filter(item => item.name && item.qty > 0 && item.price > 0);
-        
-        if (billItems.length === 0) {
-            alert(state.language === 'bn' ? 'অনুগ্রহ করে অন্তত একটি আইটেম যোগ করুন' : 'Please add at least one item');
-            return;
-        }
-        
-        const total = billItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
-        
-        // Show preview in modal
-        const previewHTML = generateBillHTML(customer, billItems, total, billDate?.value || todayString());
-        const previewWindow = window.open('', '_blank', 'width=800,height=600');
-        previewWindow.document.write(previewHTML);
-        previewWindow.document.close();
-    }
-    
-    function generateBillHTML(customer, billItems, total, billDate) {
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Bill - ${customer.name}</title>
-                <style>
-                    body { font-family: 'Inter', Arial, sans-serif; padding: 40px; background: #f5f5f5; }
-                    .bill-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 800px; margin: 0 auto; }
-                    .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-                    .header h1 { margin: 0; color: #1c8b73; font-size: 2rem; }
-                    .customer-info { margin-bottom: 30px; }
-                    .customer-info p { margin: 8px 0; }
-                    table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-                    th, td { padding: 16px; text-align: left; border-bottom: 1px solid #eee; }
-                    th { background-color: #f8f9fa; font-weight: 600; color: #333; }
-                    .total-section { text-align: right; margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
-                    .total-row { font-size: 1.5rem; font-weight: 700; color: #1c8b73; }
-                </style>
-            </head>
-            <body>
-                <div class="bill-container">
-                    <div class="header">
-                        <h1>${state.shop.name || 'Shop'}</h1>
-                        <p style="color: #666; margin: 8px 0;">${state.shop.phone || ''}</p>
-                    </div>
-                    <div class="customer-info">
-                        <p><strong>Bill To:</strong> ${customer.name}</p>
-                        <p><strong>Date:</strong> ${billDate}</p>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${billItems.map(item => `
-                                <tr>
-                                    <td>${item.name}</td>
-                                    <td>${item.qty}</td>
-                                    <td>৳${item.price.toFixed(2)}</td>
-                                    <td>৳${(item.qty * item.price).toFixed(2)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    <div class="total-section">
-                        <div class="total-row">
-                            <span>Total: ৳${total.toFixed(2)}</span>
-                        </div>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-    }
-    
-    function showBillModal() {
-        const modal = document.getElementById('bill-modal');
-        const customerSelect = document.getElementById('bill-customer-select');
-        const billDate = document.getElementById('bill-date');
-        
-        if (!modal || !customerSelect) return;
-        
-        // Populate customer select
-        customerSelect.innerHTML = '<option value="">-- Select Customer --</option>';
-        state.customers.forEach(customer => {
-            const option = document.createElement('option');
-            option.value = customer.id;
-            option.textContent = customer.name;
-            customerSelect.appendChild(option);
-        });
-        
-        // Set today's date
-        if (billDate) {
-            billDate.value = todayString();
-        }
-        
-        // Reset items
-        const itemsContainer = document.getElementById('bill-items-container');
-        if (itemsContainer) {
-            itemsContainer.innerHTML = `
-                <div class="bill-item">
-                    <label>
-                        <span>Product/Service</span>
-                        <input type="text" class="bill-item-name" placeholder="Item name" required />
-                    </label>
-                    <label>
-                        <span>Quantity</span>
-                        <input type="number" class="bill-item-qty" min="1" value="1" required />
-                    </label>
-                    <label>
-                        <span>Price (৳)</span>
-                        <input type="number" class="bill-item-price" min="0" step="0.01" required />
-                    </label>
-                    <label>
-                        <span>Total</span>
-                        <input type="text" class="bill-item-total" readonly value="৳0" />
-                    </label>
-                </div>
-            `;
-            
-            // Add event listeners to initial item
-            const initialItem = itemsContainer.querySelector('.bill-item');
-            const qtyInput = initialItem.querySelector('.bill-item-qty');
-            const priceInput = initialItem.querySelector('.bill-item-price');
-            [qtyInput, priceInput].forEach(input => {
-                input.addEventListener('input', updateBillTotal);
-            });
-        }
-        
-        updateBillTotal();
-        modal.showModal();
-    }
-    
-    function addBillItem() {
-        const itemsContainer = document.getElementById('bill-items-container');
-        if (!itemsContainer) return;
-        
-        const newItem = document.createElement('div');
-        newItem.className = 'bill-item';
-        newItem.innerHTML = `
-            <label>
-                <span>Product/Service</span>
-                <input type="text" class="bill-item-name" placeholder="Item name" required />
-            </label>
-            <label>
-                <span>Quantity</span>
-                <input type="number" class="bill-item-qty" min="1" value="1" required />
-            </label>
-            <label>
-                <span>Price (৳)</span>
-                <input type="number" class="bill-item-price" min="0" step="0.01" required />
-            </label>
-            <label>
-                <span>Total</span>
-                <input type="text" class="bill-item-total" readonly value="৳0" />
-            </label>
-            <button type="button" class="secondary-btn small-btn" onclick="this.parentElement.remove(); updateBillTotal();" title="Remove Item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        `;
-        
-        // Add event listeners for auto-calculation
-        const qtyInput = newItem.querySelector('.bill-item-qty');
-        const priceInput = newItem.querySelector('.bill-item-price');
-        [qtyInput, priceInput].forEach(input => {
-            input.addEventListener('input', updateBillTotal);
-        });
-        
-        itemsContainer.appendChild(newItem);
-    }
-    
-    function updateBillTotal() {
-        const items = document.querySelectorAll('.bill-item');
-        let subtotal = 0;
-        
-        items.forEach(item => {
-            const qty = parseFloat(item.querySelector('.bill-item-qty')?.value || 0);
-            const price = parseFloat(item.querySelector('.bill-item-price')?.value || 0);
-            const itemTotal = qty * price;
-            subtotal += itemTotal;
-            
-            // Update item total
-            const itemTotalEl = item.querySelector('.bill-item-total');
-            if (itemTotalEl) {
-                itemTotalEl.value = `৳${itemTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        // Update settings panel theme tiles
+        document.querySelectorAll('.theme-appearance-tile').forEach(tile => {
+            const isActive = tile.dataset.theme === state.ui.theme;
+            tile.setAttribute('aria-checked', isActive ? 'true' : 'false');
+            if (isActive) {
+                tile.classList.add('active');
+            } else {
+                tile.classList.remove('active');
             }
         });
-        
-        const tax = 0; // Can be made configurable
-        const total = subtotal + tax;
-        
-        const subtotalEl = document.getElementById('bill-subtotal');
-        const taxEl = document.getElementById('bill-tax');
-        const totalEl = document.getElementById('bill-total');
-        
-        if (subtotalEl) {
-            subtotalEl.textContent = `৳${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        }
-        if (taxEl) {
-            taxEl.textContent = `৳${tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        }
-        if (totalEl) {
-            totalEl.textContent = `৳${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        }
     }
-    
-    function generateBillPDF() {
-        const customerSelect = document.getElementById('bill-customer-select');
-        const billDate = document.getElementById('bill-date');
-        const items = document.querySelectorAll('.bill-item');
-        
-        if (!customerSelect || customerSelect.value === '') {
-            alert(state.language === 'bn' ? 'অনুগ্রহ করে একজন ক্রেতা নির্বাচন করুন' : 'Please select a customer');
-            return;
-        }
-        
-        const customer = state.customers.find(c => c.id === customerSelect.value);
-        if (!customer) return;
-        
-        const billItems = Array.from(items).map(item => ({
-            name: item.querySelector('.bill-item-name')?.value || '',
-            qty: parseFloat(item.querySelector('.bill-item-qty')?.value || 0),
-            price: parseFloat(item.querySelector('.bill-item-price')?.value || 0)
-        })).filter(item => item.name && item.qty > 0 && item.price > 0);
-        
-        if (billItems.length === 0) {
-            alert(state.language === 'bn' ? 'অনুগ্রহ করে অন্তত একটি আইটেম যোগ করুন' : 'Please add at least one item');
-            return;
-        }
-        
-        const total = billItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
-        
-        // Generate bill HTML
-        const billHTML = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Bill - ${customer.name}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 40px; }
-                    .header { text-align: center; margin-bottom: 30px; }
-                    .shop-info { margin-bottom: 20px; }
-                    .customer-info { margin-bottom: 20px; }
-                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-                    th { background-color: #f2f2f2; }
-                    .total { text-align: right; font-size: 1.2em; font-weight: bold; margin-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>${state.shop.name || 'Shop'}</h1>
-                    <p>${state.shop.phone || ''}</p>
-                </div>
-                <div class="customer-info">
-                    <p><strong>Bill To:</strong> ${customer.name}</p>
-                    <p><strong>Date:</strong> ${billDate?.value || todayString()}</p>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${billItems.map(item => `
-                            <tr>
-                                <td>${item.name}</td>
-                                <td>${item.qty}</td>
-                                <td>৳${item.price.toFixed(2)}</td>
-                                <td>৳${(item.qty * item.price).toFixed(2)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                <div class="total">
-                    <p>Total: ৳${total.toFixed(2)}</p>
-                </div>
-            </body>
-            </html>
-        `;
-        
-        // Open in new window for printing
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(billHTML);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-        }, 250);
-        
-        // Close modal
-        document.getElementById('bill-modal')?.close();
-    }
-    
-    function showCustomizeCardModal(customer) {
-        const modal = document.getElementById('customize-card-modal');
-        const customerIdInput = document.getElementById('customize-customer-id');
-        if (!modal || !customerIdInput) return;
-        
-        customerIdInput.value = customer.id;
-        
-        // Set up background options
-        const bgOptions = document.querySelectorAll('.bg-option');
-        bgOptions.forEach(btn => {
-            btn.addEventListener('click', () => {
-                bgOptions.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                updateCardPreviewMini(customer, btn.dataset.bg);
-            });
-        });
-        
-        // Custom color picker
-        const customColorInput = document.getElementById('custom-bg-color');
-        customColorInput?.addEventListener('change', (e) => {
-            updateCardPreviewMini(customer, null, e.target.value);
-        });
-        
-        // Apply button
-        document.getElementById('apply-card-customization-btn')?.addEventListener('click', () => {
-            const selectedBg = document.querySelector('.bg-option.active')?.dataset.bg;
-            const customColor = customColorInput?.value;
-            applyCardCustomization(customer.id, selectedBg, customColor);
-            modal.close();
-        });
-        
-        // Download button
-        document.getElementById('download-customized-card-btn')?.addEventListener('click', () => {
-            downloadCustomerCard(customer, true);
-        });
-        
-        updateCardPreviewMini(customer, 'gradient-primary');
-        modal.showModal();
-    }
-    
-    function updateCardPreviewMini(customer, bgType, customColor) {
-        const preview = document.getElementById('card-preview-mini');
-        if (!preview) return;
-        
-        let bgStyle = '';
-        if (customColor) {
-            bgStyle = `background: ${customColor};`;
-        } else {
-            switch(bgType) {
-                case 'gradient-primary':
-                    bgStyle = 'background: var(--gradient-primary);';
-                    break;
-                case 'gradient-accent':
-                    bgStyle = 'background: var(--gradient-accent);';
-                    break;
-                case 'blue':
-                    bgStyle = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
-                    break;
-                case 'purple':
-                    bgStyle = 'background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);';
-                    break;
-                case 'green':
-                    bgStyle = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%);';
-                    break;
-                case 'orange':
-                    bgStyle = 'background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);';
-                    break;
-                default:
-                    bgStyle = 'background: var(--gradient-primary);';
-            }
-        }
-        
-        const balance = getCustomerBalance(customer);
-        preview.innerHTML = `
-            <div class="payment-card-mini" style="${bgStyle} color: #fff; padding: 20px; border-radius: 12px; margin-top: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 style="margin: 0; font-size: 1.2rem;">${customer.name}</h3>
-                    ${state.shop.image ? `<img src="${state.shop.image}" style="width: 40px; height: 40px; border-radius: 8px;" />` : ''}
-                </div>
-                <div style="font-size: 2rem; font-weight: 700; margin: 16px 0;">
-                    ৳${balance.toLocaleString()}
-                </div>
-                <p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">Payment Request</p>
-            </div>
-        `;
-    }
-    
-    function applyCardCustomization(customerId, bgType, customColor) {
-        const customer = state.customers.find(c => c.id === customerId);
-        if (!customer) return;
-        
-        customer.cardCustomization = {
-            backgroundType: bgType,
-            customColor: customColor
-        };
+
+    function lockSession() {
+        state.session.unlocked = false;
         saveState();
-    }
-    
-    function downloadCustomerCard(customer, useCustomization = false) {
-        const balance = getCustomerBalance(customer);
-        const customization = useCustomization ? customer.cardCustomization : null;
-        const colors = resolveCardColors(customization);
-        const message = state.language === 'bn'
-            ? 'অনুগ্রহ করে আপনার বাকি পরিশোধ করুন।'
-            : 'Please pay your outstanding balance.';
-        const phone = state.shop.phone;
-        const bank = state.shop.bank;
-
-        createPaymentCardBlob({
-            title: customer.name,
-            amount: formatCurrency(balance),
-            message,
-            phone,
-            bank,
-            colors
-        }).then(blob => {
-            downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`);
-        }).catch(() => {
-            alert(state.language === 'bn' ? 'ডাউনলোড ব্যর্থ হয়েছে।' : 'Download failed.');
-        });
+        renderAuthState();
     }
 
-    function resolveCardColors(customization) {
-        if (customization?.customColor) {
-            return [customization.customColor, customization.customColor];
+    function unlockSession() {
+        console.log('Unlocking session...');
+        state.session.unlocked = true;
+        saveState();
+        renderAuthState();
+        renderAll();
+        console.log('Session unlocked, auth state rendered');
+    }
+
+    function playFeedback() {
+        if (state.ui.haptics && 'vibrate' in navigator) {
+            navigator.vibrate(12);
         }
-        switch (customization?.backgroundType) {
-            case 'gradient-accent':
-                return ['#f2a03d', '#e68900'];
-            case 'blue':
-                return ['#667eea', '#764ba2'];
-            case 'purple':
-                return ['#8b5cf6', '#ec4899'];
-            case 'green':
-                return ['#10b981', '#059669'];
-            case 'orange':
-                return ['#f59e0b', '#d97706'];
-            default:
-                return getDefaultCardColors();
+        if (state.ui.sounds) {
+            playUISound();
+        }
+    }
+
+    let uiAudio;
+    function playUISound() {
+        try {
+            if (!uiAudio) {
+                uiAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=');
+            }
+            uiAudio.currentTime = 0;
+            uiAudio.play();
+        } catch (error) {
+            // ignore sound failures
         }
     }
 
@@ -2595,194 +1830,41 @@
         if (!('serviceWorker' in navigator)) return;
         window.addEventListener('load', () => {
             navigator.serviceWorker
-                .register('sw.js')
+                .register('js/sw.js')
                 .catch(error => console.error('Service worker registration failed', error));
         });
     }
 
-    function setupInstallPrompt() {
-        const installBtn = selectors.installAppBtn;
-        if (!installBtn) return;
-        installBtn.setAttribute('disabled', 'true');
-        window.addEventListener('beforeinstallprompt', (event) => {
-            event.preventDefault();
-            deferredInstallPrompt = event;
-            installBtn.classList.add('ready');
-            installBtn.removeAttribute('disabled');
-        });
-        installBtn.addEventListener('click', async () => {
-            if (!deferredInstallPrompt) {
-                alert(state.language === 'bn' 
-                    ? 'ব্রাউজারের মেনু থেকে ইনস্টল করুন।' 
-                    : 'Install via the browser menu.');
-                return;
-            }
-            deferredInstallPrompt.prompt();
-            const choice = await deferredInstallPrompt.userChoice;
-            if (choice.outcome === 'accepted') {
-                installBtn.textContent = state.language === 'bn' ? 'ইনস্টল সম্পন্ন' : 'Installed';
-            }
-            installBtn.classList.remove('ready');
-            installBtn.setAttribute('disabled', 'true');
-            deferredInstallPrompt = null;
-        });
-        window.addEventListener('appinstalled', () => {
-            installBtn.classList.remove('ready');
-            installBtn.setAttribute('disabled', 'true');
-        });
-    }
-
     function setActivePanel(panel) {
-        // Fallback to customers if invalid
-        if (!panel || !selectors.panels[panel]) {
-            panel = 'customers';
-        }
         state.ui.activePanel = panel;
         Object.entries(selectors.nav).forEach(([key, btn]) => {
             if (!btn) return;
-            const wasActive = btn.classList.contains('active');
             btn.classList.toggle('active', key === panel);
-            
-            // Add bounce animation when switching
-            if (!wasActive && key === panel) {
-                btn.style.animation = 'bounce 0.5s ease';
-                setTimeout(() => {
-                    btn.style.animation = '';
-                }, 500);
-            }
         });
         Object.entries(selectors.panels).forEach(([key, panelEl]) => {
             if (!panelEl) return;
-            const wasActive = panelEl.classList.contains('active');
             panelEl.classList.toggle('active', key === panel);
-            
-            // Add fade animation when switching panels
-            if (wasActive && key !== panel) {
-                panelEl.style.opacity = '0';
-                panelEl.style.transform = 'translateX(20px)';
-            } else if (!wasActive && key === panel) {
-                panelEl.style.opacity = '0';
-                panelEl.style.transform = 'translateX(-20px)';
-                setTimeout(() => {
-                    panelEl.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-                    panelEl.style.opacity = '1';
-                    panelEl.style.transform = 'translateX(0)';
-                }, 10);
-            }
         });
+        
+        // Show/hide AI subscription message
+        if (panel === 'ai') {
+            const aiMessage = document.getElementById('ai-subscription-message');
+            const aiContainer = document.getElementById('ai-chat-container');
+            if (aiMessage && aiContainer) {
+                const hasSubscription = canUseAI();
+                aiMessage.hidden = hasSubscription;
+                aiContainer.hidden = !hasSubscription;
+            }
+        }
+        
+        // Update settings display when settings panel is shown
+        if (panel === 'settings') {
+            setTimeout(() => {
+                updateSettingsDisplay();
+            }, 100);
+        }
+        
         saveState();
-    }
-
-    function applyTheme(theme) {
-        if (!theme) theme = 'light';
-        document.documentElement.setAttribute('data-theme', theme);
-    }
-
-    function hasActiveSubscription() {
-        if (!state.subscription || state.subscription.type === 'free') {
-            return false;
-        }
-        if (state.subscription.expiresAt) {
-            return Date.now() < state.subscription.expiresAt;
-        }
-        return true; // Legacy or coupon-based subscriptions
-    }
-
-    function isPremium() {
-        return hasActiveSubscription();
-    }
-
-    function checkSubscriptionStatus() {
-        if (state.subscription.expiresAt && Date.now() >= state.subscription.expiresAt) {
-            state.subscription.type = 'free';
-            state.subscription.expiresAt = null;
-            saveState();
-        }
-    }
-
-    function activateSubscription(type, durationMonths) {
-        const now = Date.now();
-        const expiresAt = durationMonths ? now + (durationMonths * 30 * 24 * 60 * 60 * 1000) : null;
-        
-        state.subscription = {
-            type: type,
-            expiresAt: expiresAt,
-            activatedAt: now,
-            coupon: state.subscription.coupon || null
-        };
-        saveState();
-        renderSubscriptionStatus();
-    }
-
-    function applyCoupon(couponCode) {
-        couponCode = couponCode.trim().toLowerCase();
-        const now = Date.now();
-        
-        if (couponCode === 'terenceofclpro') {
-            // Pro subscription - 1 month
-            const oneMonth = 30 * 24 * 60 * 60 * 1000;
-            state.subscription = {
-                type: 'pro',
-                expiresAt: now + oneMonth,
-                activatedAt: now,
-                coupon: couponCode
-            };
-            saveState();
-            renderSubscriptionStatus();
-            return true;
-        } else if (couponCode === 'terencemax') {
-            // Max subscription - 1 year
-            const oneYear = 365 * 24 * 60 * 60 * 1000;
-            state.subscription = {
-                type: 'max',
-                expiresAt: now + oneYear,
-                activatedAt: now,
-                coupon: couponCode
-            };
-            saveState();
-            renderSubscriptionStatus();
-            return true;
-        } else if (couponCode === 'welovehayamis') {
-            // Legacy coupon - still works
-            const oneYear = 365 * 24 * 60 * 60 * 1000;
-            state.subscription = {
-                type: 'max',
-                expiresAt: now + oneYear,
-                activatedAt: now,
-                coupon: couponCode
-            };
-            saveState();
-            renderSubscriptionStatus();
-            return true;
-        }
-        return false;
-    }
-
-    function renderSubscriptionStatus() {
-        const statusEl = document.getElementById('subscription-status');
-        if (!statusEl) return;
-        
-        checkSubscriptionStatus();
-        
-        if (hasActiveSubscription()) {
-            const typeText = state.subscription.type === 'pro' ? 'Pro' : 'Max';
-            const expiresText = state.subscription.expiresAt 
-                ? new Date(state.subscription.expiresAt).toLocaleDateString()
-                : 'Lifetime';
-            statusEl.innerHTML = `
-                <div style="padding: 16px; background: rgba(28, 139, 115, 0.1); border-radius: 12px; border: 2px solid var(--primary);">
-                    <strong style="color: var(--primary);">✓ ${typeText} Active</strong>
-                    ${state.subscription.expiresAt ? `<div style="font-size: 0.9rem; margin-top: 4px; color: var(--text-soft);">Expires: ${expiresText}</div>` : ''}
-                </div>
-            `;
-        } else {
-            statusEl.innerHTML = `
-                <div style="padding: 16px; background: rgba(204, 59, 59, 0.1); border-radius: 12px; border: 2px solid var(--danger);">
-                    <strong style="color: var(--danger);">Free Plan</strong>
-                    <div style="font-size: 0.9rem; margin-top: 4px; color: var(--text-soft);">Limited to 10 customers, no payment cards</div>
-                </div>
-            `;
-        }
     }
 
     function setModalMode(form, mode) {
@@ -2791,16 +1873,14 @@
 
     function handleCustomerSubmit(event) {
         event.preventDefault();
-        const form = event.target;
         
-        // Check subscription limit
-        if (!isPremium() && state.customers.length >= 10) {
-            alert(state.language === 'bn' 
-                ? 'ফ্রি প্ল্যানে সর্বোচ্চ ১০ জন ক্রেতা যোগ করা যায়। প্রিমিয়াম কিনুন।' 
-                : 'Free plan limited to 10 customers. Upgrade to Premium.');
+        if (!canAddCustomer()) {
+            alert(state.language === 'bn' ? 'ফ্রি ভার্সনে সর্বোচ্চ ৫ জন ক্রেতা যোগ করা যাবে। সাবস্ক্রিপশন নিন।' : 'Free version allows maximum 5 customers. Please subscribe.');
+            modals.customer?.close();
             return;
         }
         
+        const form = event.target;
         const data = new FormData(form);
         const customer = {
             id: generateId('cust'),
@@ -2819,11 +1899,8 @@
         state.customers.push(customer);
         saveState();
         renderCustomers();
-        modals.customer.style.animation = 'zoomOut 0.2s ease';
-        setTimeout(() => {
-            modals.customer.close();
-            modals.customer.style.animation = '';
-        }, 200);
+        populateCardCustomerSelect();
+        modals.customer.close();
     }
 
     function handleDebtSubmit(event) {
@@ -2862,11 +1939,7 @@
         saveState();
         renderCustomers();
         renderTasks();
-        modals.debt.style.animation = 'zoomOut 0.2s ease';
-        setTimeout(() => {
-            modals.debt.close();
-            modals.debt.style.animation = '';
-        }, 200);
+        modals.debt.close();
     }
 
     function handlePaymentSubmit(event) {
@@ -2904,31 +1977,38 @@
         saveState();
         renderCustomers();
         renderTasks();
-        modals.payment.style.animation = 'zoomOut 0.2s ease';
-        setTimeout(() => {
-            modals.payment.close();
-            modals.payment.style.animation = '';
-        }, 200);
+        modals.payment.close();
     }
 
     function handleNoteSubmit(event) {
         event.preventDefault();
         const form = event.target;
         const data = new FormData(form);
-        const note = {
-            id: generateId('note'),
+        const noteId = data.get('noteId');
+        const payload = {
             title: data.get('title').trim(),
             body: (data.get('body') || '').trim(),
-            createdAt: Date.now()
+            color: data.get('color') || 'yellow',
+            pinned: !!data.get('pinned'),
+            updatedAt: Date.now()
         };
-        state.notes.unshift(note);
+
+        if (noteId) {
+            const existing = state.notes.find(n => n.id === noteId);
+            if (existing) {
+                Object.assign(existing, payload);
+            }
+        } else {
+            state.notes.unshift({
+                id: generateId('note'),
+                createdAt: Date.now(),
+                ...payload
+            });
+        }
         saveState();
         renderNotes();
-        modals.note.style.animation = 'zoomOut 0.2s ease';
-        setTimeout(() => {
-            modals.note.close();
-            modals.note.style.animation = '';
-        }, 200);
+        modals.note.close();
+        playFeedback();
     }
 
     function handleTaskSubmit(event) {
@@ -2948,11 +2028,52 @@
         state.tasks.push(task);
         saveState();
         renderTasks();
-        modals.task.style.animation = 'zoomOut 0.2s ease';
-        setTimeout(() => {
-            modals.task.close();
-            modals.task.style.animation = '';
-        }, 200);
+        modals.task.close();
+    }
+
+    async function handleDemandSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const data = new FormData(form);
+        const customerId = data.get('customerId');
+        const customer = state.customers.find(c => c.id === customerId);
+        if (!customer) return;
+
+        const amount = Math.max(1, Number(data.get('amount')) || 0);
+        const dueDate = data.get('dueDate') || todayString();
+        const paymentMethod = (data.get('paymentMethod') || '').trim();
+        const note = (data.get('note') || '').trim();
+
+        const cardUrl = await generateDemandCard(customer, {
+            amount,
+            dueDate,
+            paymentMethod,
+            note
+        });
+        lastDemandCardUrl = cardUrl;
+        if (selectors.demandPreviewImg) selectors.demandPreviewImg.src = cardUrl;
+        if (selectors.demandDownloadBtn) {
+            selectors.demandDownloadBtn.href = cardUrl;
+            selectors.demandDownloadBtn.removeAttribute('disabled');
+        }
+        selectors.demandShareBtn?.removeAttribute('disabled');
+        selectors.demandPreviewText?.setAttribute('hidden', 'hidden');
+
+        const shareText = `${customer.name} — ${formatCurrency(amount)}${dueDate ? ` · ${formatDisplayDate(dueDate)}` : ''}${paymentMethod ? ` · ${paymentMethod}` : ''}${note ? ` — ${note}` : ''}`;
+        if (selectors.demandShareBtn) {
+            selectors.demandShareBtn.onclick = () => shareDemandCard(cardUrl, shareText);
+        }
+
+        customer.history.push({
+            id: generateId('hist'),
+            type: 'demand',
+            amount,
+            date: dueDate,
+            description: note || paymentMethod
+        });
+        customer.updatedAt = Date.now();
+        saveState();
+        renderCustomers();
     }
 
     function applyPaymentToDebts(customer, paymentAmount) {
@@ -2978,195 +2099,24 @@
         });
     }
 
-    function attachExpenseHandlers() {
-        selectors.expenseForm?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const title = (selectors.expenseTitle?.value || '').trim();
-            const amount = parseFloat(selectors.expenseAmount?.value || '0');
-            if (!title || isNaN(amount) || amount <= 0) {
-                alert('Enter a valid title and amount.');
-                return;
-            }
-            const expense = {
-                id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-                title,
-                amount,
-                category: selectors.expenseCategory?.value || 'other',
-                note: selectors.expenseNote?.value || '',
-                createdAt: Date.now()
-            };
-            state.expenses.push(expense);
-            saveState();
-            renderExpenses();
-            selectors.expenseForm.reset();
-        });
-
-        selectors.expenseExportBtn?.addEventListener('click', () => {
-            exportExpensesCSV();
-        });
-    }
-
-    function attachDataBackupHandlers() {
-        selectors.dataExportBtn?.addEventListener('click', () => {
-            const backup = { ...state, exportedAt: new Date().toISOString() };
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'debtx-backup.json';
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-
-        selectors.dataImportBtn?.addEventListener('click', () => {
-            selectors.dataImportFile?.click();
-        });
-
-        selectors.dataImportFile?.addEventListener('change', (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const imported = JSON.parse(event.target.result);
-                    Object.assign(state, imported);
-                    if (!state.expenses) state.expenses = [];
-                    saveState();
-                    applyTheme(state.theme);
-                    updateShopImagePreview();
-                    renderSubscriptionStatus?.();
-                    renderAll();
-                    renderExpenses();
-                    alert('Data imported successfully.');
-                } catch (err) {
-                    console.error('Import error', err);
-                    alert('Invalid file or parse error.');
-                }
-            };
-            reader.readAsText(file);
-        });
-
-        selectors.downloadBillPngBtn?.addEventListener('click', () => {
-            if (typeof downloadPaymentCard === 'function') {
-                downloadPaymentCard();
-            } else {
-                alert('Bill PNG generator is unavailable right now.');
-            }
-        });
-    }
-
     function renderAll() {
+        console.log('renderAll running...');
         renderCustomers();
+        renderBills();
         renderNotes();
         renderTasks();
-        renderExpenses();
-        updateHeroStats();
-        updateAIInsights();
-        // Ensure all dynamically created buttons are clickable
-        setTimeout(() => {
-            ensureButtonsClickable();
-        }, 50);
-    }
-
-    function updateHeroStats() {
-        selectors.statCustomers?.textContent = state.customers.length.toString();
-        selectors.statNotes?.textContent = state.notes.length.toString();
-        const pending = state.tasks.filter(task => !task.done).length;
-        selectors.statTasks?.textContent = pending.toString();
-    }
-
-    function updateAIInsights() {
-        const highest = state.customers.reduce((max, customer) => Math.max(max, getCustomerBalance(customer)), 0);
-        selectors.aiInsightHighest?.textContent = formatCurrency(highest);
-        const total = state.tasks.length;
-        const completed = state.tasks.filter(task => task.done).length;
-        const completion = total ? Math.round((completed / total) * 100) : 0;
-        selectors.aiInsightTasks?.textContent = `${completion}%`;
-        let tip = '';
-        if (state.customers.length) {
-            const balance = formatCurrency(getCustomerBalance(state.customers[0]));
-            tip = state.language === 'bn'
-                ? `${state.customers[0].name}-এর কাছে ${balance} বাকি আছে।`
-                : `${state.customers[0].name} owes ${balance}.`;
-        } else if (state.notes.length) {
-            tip = state.language === 'bn'
-                ? 'একটি নোট পিন করুন আপনার পরবর্তী আইডিয়া ধরে রাখতে।'
-                : 'Pin a note to capture your next insight.';
+        updateNotificationToggle();
+        updateSettingsToggles();
+        // Shop profile display removed with settings panel
+        updateSubscriptionDisplay();
+        refreshAISummary(true);
+        
+        // Initialize notes/tasks tab
+        if (state.ui.activeNotesTab) {
+            switchNotesTab(state.ui.activeNotesTab);
         } else {
-            tip = state.language === 'bn'
-                ? 'প্রথম ক্রেতাকে যোগ করে AI টিপস দেখুন।'
-                : 'Add your first customer to get personalized AI tips.';
+            switchNotesTab('notes');
         }
-        selectors.aiInsightTip?.textContent = tip;
-    }
-
-    function renderExpenses() {
-        const { expenseList, expenseEmpty, expenseTotal, expenseMonthTotal } = selectors;
-        if (!expenseList) return;
-        const items = Array.isArray(state.expenses) ? [...state.expenses] : [];
-        expenseList.innerHTML = '';
-
-        if (!items.length) {
-            expenseEmpty?.removeAttribute('hidden');
-            if (expenseTotal) expenseTotal.textContent = formatCurrency(0);
-            if (expenseMonthTotal) expenseMonthTotal.textContent = formatCurrency(0);
-            return;
-        }
-        expenseEmpty?.setAttribute('hidden', 'hidden');
-
-        const now = new Date();
-        const month = now.getMonth();
-        const year = now.getFullYear();
-        const total = items.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-        const monthTotal = items
-            .filter(e => {
-                const d = new Date(e.createdAt || Date.now());
-                return d.getMonth() === month && d.getFullYear() === year;
-            })
-            .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-
-        if (expenseTotal) expenseTotal.textContent = formatCurrency(total);
-        if (expenseMonthTotal) expenseMonthTotal.textContent = formatCurrency(monthTotal);
-
-        items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        items.forEach(e => {
-            const item = document.createElement('div');
-            item.className = 'expense-item';
-            const date = formatDisplayDate ? formatDisplayDate(e.createdAt || Date.now()) : new Date(e.createdAt || Date.now()).toLocaleDateString();
-            item.innerHTML = `
-                <div class="meta">
-                    <strong>${e.title || 'Expense'}</strong>
-                    <div class="expense-category-pill">${e.category || 'other'}</div>
-                    <small>${date}${e.note ? ' · ' + e.note : ''}</small>
-                </div>
-                <div class="expense-amount">${formatCurrency(Number(e.amount) || 0)}</div>
-            `;
-            expenseList.appendChild(item);
-        });
-    }
-
-    function exportExpensesCSV() {
-        const items = Array.isArray(state.expenses) ? state.expenses : [];
-        if (!items.length) {
-            alert('No expenses to export.');
-            return;
-        }
-        const header = ['Title', 'Amount', 'Category', 'Note', 'Date'];
-        const rows = items.map(e => [
-            `"${(e.title || '').replace(/"/g, '""')}"`,
-            Number(e.amount) || 0,
-            e.category || '',
-            `"${(e.note || '').replace(/"/g, '""')}"`,
-            new Date(e.createdAt || Date.now()).toISOString()
-        ].join(','));
-        const csv = [header.join(','), ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'debtx-expenses.csv';
-        a.click();
-        URL.revokeObjectURL(url);
     }
 
     function renderCustomers() {
@@ -3215,6 +2165,7 @@
             const phoneEl = card.querySelector('.customer-phone');
             const lastPaymentEl = card.querySelector('.customer-last-payment');
             const dueDateEl = card.querySelector('.customer-due-date');
+            const trustRatioEl = card.querySelector('.customer-trust-ratio');
             const noteEl = card.querySelector('.customer-note');
             const statusPill = card.querySelector('.status-pill');
             const statusText = card.querySelector('.status-text');
@@ -3231,6 +2182,8 @@
             dueDateEl.textContent = dueInfo.nextDueDate
                 ? formatDisplayDate(dueInfo.nextDueDate)
                 : '\u2014';
+            const trustRatio = calculateTrustRatio(customer);
+            trustRatioEl.textContent = trustRatio + '%';
             noteEl.textContent = customer.note || '';
             noteEl.hidden = !customer.note;
 
@@ -3256,78 +2209,22 @@
 
             card.querySelector('[data-action="history"]').addEventListener('click', () => {
                 const historySection = card.querySelector('.customer-history');
-                if (historySection.hidden) {
-                    historySection.hidden = false;
-                    historySection.style.opacity = '0';
-                    historySection.style.transform = 'translateY(-10px)';
-                    setTimeout(() => {
-                        historySection.style.transition = 'all 0.3s ease';
-                        historySection.style.opacity = '1';
-                        historySection.style.transform = 'translateY(0)';
-                    }, 10);
-                } else {
-                    historySection.style.transition = 'all 0.3s ease';
-                    historySection.style.opacity = '0';
-                    historySection.style.transform = 'translateY(-10px)';
-                    setTimeout(() => {
-                        historySection.hidden = true;
-                    }, 300);
-                }
+                historySection.hidden = !historySection.hidden;
             });
 
             card.querySelector('[data-action="payment"]').addEventListener('click', () => {
                 preparePaymentModal(customer);
             });
 
+            card.querySelector('[data-action="demand"]').addEventListener('click', () => {
+                prepareDemandModal(customer);
+            });
+
             card.querySelector('[data-action="debt"]').addEventListener('click', () => {
                 prepareDebtModal(customer);
             });
 
-            const customizeCardBtn = card.querySelector('[data-action="customize-card"]');
-            if (customizeCardBtn) {
-                customizeCardBtn.addEventListener('click', () => {
-                    showCustomizeCardModal(customer);
-                });
-            }
-            
-            const downloadCardBtn = card.querySelector('[data-action="download-card"]');
-            if (downloadCardBtn) {
-                downloadCardBtn.addEventListener('click', () => {
-                    downloadCustomerCard(customer);
-                });
-            }
-            
-            const deleteCustomerBtn = card.querySelector('[data-action="delete-customer"]');
-            if (deleteCustomerBtn) {
-                deleteCustomerBtn.addEventListener('click', () => {
-                    if (confirm(state.language === 'bn' 
-                        ? `আপনি কি নিশ্চিত যে আপনি ${customer.name} কে মুছে ফেলতে চান?` 
-                        : `Are you sure you want to delete ${customer.name}?`)) {
-                        // Add delete animation
-                        card.style.animation = 'zoomOut 0.3s ease';
-                        card.style.opacity = '0';
-                        setTimeout(() => {
-                            state.customers = state.customers.filter(c => c.id !== customer.id);
-                            saveState();
-                            renderCustomers();
-                        }, 300);
-                    }
-                });
-            }
-
             customerList.appendChild(fragment);
-            
-            // Trigger entrance animation
-            const customerCardEl = customerList.lastElementChild;
-            if (customerCardEl) {
-                customerCardEl.style.opacity = '0';
-                customerCardEl.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    customerCardEl.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                    customerCardEl.style.opacity = '1';
-                    customerCardEl.style.transform = 'translateY(0)';
-                }, 10);
-            }
         });
     }
 
@@ -3336,67 +2233,156 @@
         if (!notesList) return;
 
         notesList.innerHTML = '';
+        const query = (state.ui.notesQuery || '').toLowerCase();
+        const filter = state.ui.notesFilter || 'all';
+        if (selectors.notesSearch) selectors.notesSearch.value = state.ui.notesQuery || '';
+        if (selectors.notesFilter) selectors.notesFilter.value = filter;
         
-        // Get search query
-        const searchQuery = document.getElementById('notes-search')?.value.toLowerCase() || '';
-        let filteredNotes = state.notes;
+        // Update filter button active states
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filter);
+        });
         
-        if (searchQuery) {
-            filteredNotes = state.notes.filter(note => 
-                (note.title || '').toLowerCase().includes(searchQuery) ||
-                (note.body || '').toLowerCase().includes(searchQuery)
-            );
+        // Update color filter button active states
+        if (state.ui.notesColorFilter) {
+            document.querySelectorAll('.color-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', state.ui.notesColorFilter.includes(btn.dataset.color));
+            });
         }
-        
-        if (!filteredNotes.length) {
+
+        const filtered = [...state.notes]
+            .filter(note => {
+                if (!query) return true;
+                return (
+                    note.title.toLowerCase().includes(query) ||
+                    (note.body || '').toLowerCase().includes(query)
+                );
+            })
+            .filter(note => {
+                if (filter === 'all') {
+                    // Check color filter if set
+                    if (state.ui.notesColorFilter && state.ui.notesColorFilter.length > 0) {
+                        return state.ui.notesColorFilter.includes(note.color || 'yellow');
+                    }
+                    return true;
+                }
+                if (filter === 'pinned') return note.pinned;
+                if (filter === 'recent') {
+                    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                    const isRecent = (note.updatedAt || note.createdAt) > sevenDaysAgo;
+                    // Also check color filter if set
+                    if (state.ui.notesColorFilter && state.ui.notesColorFilter.length > 0) {
+                        return isRecent && state.ui.notesColorFilter.includes(note.color || 'yellow');
+                    }
+                    return isRecent;
+                }
+                return note.color === filter;
+            })
+            .sort((a, b) => (b.pinned - a.pinned) || (b.updatedAt - a.updatedAt) || (b.createdAt - a.createdAt));
+
+        if (!filtered.length) {
             notesEmpty?.removeAttribute('hidden');
             return;
         }
         notesEmpty?.setAttribute('hidden', 'hidden');
 
-        filteredNotes
-            .sort((a, b) => b.createdAt - a.createdAt)
-            .forEach(note => {
-                const fragment = document.importNode(templates.noteCard.content, true);
-                localizeFragment(fragment);
-                const card = fragment.querySelector('.note-card');
-                card.dataset.noteId = note.id;
-                card.querySelector('.note-title').textContent = note.title || translate('notes.addNote');
-                card.querySelector('.note-date').textContent = formatDateTime(note.createdAt);
-                card.querySelector('.note-body').textContent = note.body;
+        filtered.forEach(note => {
+            const fragment = document.importNode(templates.noteCard.content, true);
+            localizeFragment(fragment);
+            const card = fragment.querySelector('.note-card');
+            card.dataset.noteId = note.id;
+            card.dataset.color = note.color || 'yellow';
+            
+            // Mark as pinned
+            if (note.pinned) {
+                card.classList.add('pinned');
+            }
+            
+            card.querySelector('.note-title').textContent = note.title || translate('notes.addNote');
+            card.querySelector('.note-date').textContent = formatDateTime(note.updatedAt || note.createdAt);
+            card.querySelector('.note-body').textContent = note.body;
 
-                const deleteBtn = card.querySelector('[data-action="delete"]');
-                deleteBtn.addEventListener('click', () => {
-                    // Add delete animation
-                    const noteCard = card;
-                    noteCard.style.animation = 'zoomOut 0.3s ease';
-                    noteCard.style.opacity = '0';
-                    setTimeout(() => {
-                        state.notes = state.notes.filter(item => item.id !== note.id);
+            const colorIndicator = card.querySelector('.note-color-indicator');
+            if (colorIndicator) {
+                colorIndicator.classList.add(note.color || 'yellow');
+                colorIndicator.title = translate(`modals.note.color${(note.color || 'yellow')[0].toUpperCase()}${(note.color || 'yellow').slice(1)}`) || note.color;
+            }
+
+            const pinBtn = card.querySelector('.note-pin-btn');
+            if (pinBtn) {
+                pinBtn.title = note.pinned ? translate('notes.unpin') || 'Unpin' : translate('notes.pin') || 'Pin to top';
+                pinBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const existingNote = state.notes.find(n => n.id === note.id);
+                    if (existingNote) {
+                        existingNote.pinned = !existingNote.pinned;
+                        existingNote.updatedAt = Date.now();
                         saveState();
                         renderNotes();
-                    }, 300);
+                        playFeedback();
+                    }
                 });
+            }
 
-                notesList.appendChild(fragment);
-                
-                // Trigger entrance animation
-                const noteCardEl = notesList.lastElementChild;
-                if (noteCardEl) {
-                    noteCardEl.style.opacity = '0';
-                    noteCardEl.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        noteCardEl.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                        noteCardEl.style.opacity = '1';
-                        noteCardEl.style.transform = 'translateY(0)';
-                    }, 10);
+            const tags = card.querySelector('.note-tags');
+            if (tags) {
+                tags.innerHTML = '';
+                if (note.pinned) {
+                    const tag = document.createElement('span');
+                    tag.className = 'note-tag';
+                    tag.innerHTML = '📌 ' + (translate('notes.filterPinned') || 'Pinned');
+                    tags.appendChild(tag);
+                }
+                const colorTag = document.createElement('span');
+                colorTag.className = 'note-tag';
+                colorTag.textContent = translate(`modals.note.color${(note.color || 'yellow')[0].toUpperCase()}${(note.color || 'yellow').slice(1)}`) || note.color;
+                tags.appendChild(colorTag);
+            }
+
+            const editBtn = card.querySelector('[data-action="edit"]');
+            editBtn.addEventListener('click', () => {
+                forms.note.reset();
+                setModalMode(forms.note, 'edit');
+                forms.note.elements.title.value = note.title;
+                forms.note.elements.body.value = note.body;
+                forms.note.elements.color.value = note.color || 'yellow';
+                forms.note.elements.pinned.checked = !!note.pinned;
+                forms.note.elements.noteId.value = note.id;
+                modals.note.showModal();
+            });
+
+            const deleteBtn = card.querySelector('[data-action="delete"]');
+            deleteBtn.addEventListener('click', () => {
+                if (confirm(translate('notes.deleteConfirm') || 'Are you sure you want to delete this note?')) {
+                    state.notes = state.notes.filter(item => item.id !== note.id);
+                    saveState();
+                    renderNotes();
+                    playFeedback();
                 }
             });
+
+            notesList.appendChild(fragment);
+        });
     }
 
     function renderTasks() {
         renderCalendar();
+        updateTaskStats();
         renderTaskCards();
+    }
+    
+    function updateTaskStats() {
+        const totalTasks = state.tasks.length;
+        const completedTasks = state.tasks.filter(t => t.done).length;
+        const pendingTasks = totalTasks - completedTasks;
+        
+        const totalEl = document.getElementById('tasks-total');
+        const completedEl = document.getElementById('tasks-completed');
+        const pendingEl = document.getElementById('tasks-pending');
+        
+        if (totalEl) totalEl.textContent = `${totalTasks} Total`;
+        if (completedEl) completedEl.textContent = `${completedTasks} Done`;
+        if (pendingEl) pendingEl.textContent = `${pendingTasks} Pending`;
     }
 
     function renderTaskCards() {
@@ -3405,27 +2391,7 @@
         tasksList.innerHTML = '';
 
         const selectedDate = state.ui.selectedDate || todayString();
-        let itemsForDate = getCalendarItemsForDate(selectedDate);
-        
-        // Apply filter if set
-        const filter = state.ui.taskFilter || 'all';
-        if (filter !== 'all') {
-            const now = new Date().getTime();
-            itemsForDate = itemsForDate.filter(item => {
-                const dueDate = new Date(item.dueDate).getTime();
-                if (filter === 'pending') {
-                    return !item.done && dueDate >= now;
-                } else if (filter === 'completed' || filter === 'done') {
-                    return item.done;
-                } else if (filter === 'overdue') {
-                    return !item.done && dueDate < now;
-                }
-                return true;
-            });
-        } else {
-            // By default, show all tasks including completed (but styled differently)
-            // Completed tasks are shown but with reduced opacity
-        }
+        const itemsForDate = getCalendarItemsForDate(selectedDate);
 
         if (!itemsForDate.length) {
             if (tasksEmpty) {
@@ -3453,19 +2419,12 @@
                 card.querySelector('.task-date').textContent = formatDisplayDate(item.dueDate);
                 card.querySelector('.task-note').textContent = `${translate('tasks.card.debtNote')}: ${formatCurrency(item.amountRemaining)}`;
                 card.querySelector('.task-status').style.visibility = 'hidden';
+                card.setAttribute('draggable', 'true');
+                card.addEventListener('dragstart', e => {
+                    draggedTaskId = item.id;
+                    e.dataTransfer?.setData('text/plain', item.id);
+                });
                 tasksList.appendChild(fragment);
-                
-                // Trigger entrance animation for debt reminder
-                const debtCardEl = tasksList.lastElementChild;
-                if (debtCardEl) {
-                    debtCardEl.style.opacity = '0';
-                    debtCardEl.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        debtCardEl.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                        debtCardEl.style.opacity = '1';
-                        debtCardEl.style.transform = 'translateY(0)';
-                    }, 10);
-                }
             } else {
                 const fragment = document.importNode(templates.taskCard.content, true);
                 localizeFragment(fragment);
@@ -3474,73 +2433,36 @@
                 card.querySelector('.task-name').textContent = item.name;
                 card.querySelector('.task-type').textContent = translateTaskType(item.type);
                 card.querySelector('.task-date').textContent = formatDisplayDate(item.dueDate);
-                
-                // Add payment info for payment tasks
-                const payInfoEl = card.querySelector('.task-pay-info');
-                if (payInfoEl && item.type === 'payment') {
-                    payInfoEl.innerHTML = `
-                        <div class="pay-date">${state.language === 'bn' ? 'পেমেন্ট তারিখ' : 'Payment Date'}: ${formatDisplayDate(item.dueDate)}</div>
-                    `;
-                    payInfoEl.hidden = false;
-                } else if (payInfoEl) {
-                    payInfoEl.hidden = true;
-                }
-                
                 card.querySelector('.task-note').textContent = item.note;
                 card.querySelector('.task-note').hidden = !item.note;
                 const checkbox = card.querySelector('input[type="checkbox"]');
                 checkbox.checked = item.done;
-                
-                // Add completed class for styling
-                if (item.done) {
-                    card.classList.add('completed');
-                }
-                
                 const doneLabel = card.querySelector('.task-status span');
                 doneLabel.textContent = item.done ? translate('tasks.card.completed') : translate('tasks.card.done');
                 checkbox.addEventListener('change', () => {
                     item.done = checkbox.checked;
                     if (!item.done) {
                         item.reminderSent = false;
-                        card.classList.remove('completed');
-                    } else {
-                        // Mark as completed
-                        card.classList.add('completed');
-                        // Add completion animation
-                        checkbox.style.animation = 'bounce 0.5s ease';
-                        setTimeout(() => {
-                            checkbox.style.animation = '';
-                        }, 500);
                     }
                     saveState();
                     renderTasks();
+                    playFeedback();
                 });
 
-                const taskCard = card;
                 card.querySelector('[data-action="delete"]').addEventListener('click', () => {
-                    // Add delete animation
-                    taskCard.style.animation = 'zoomOut 0.3s ease';
-                    taskCard.style.opacity = '0';
-                    setTimeout(() => {
-                        state.tasks = state.tasks.filter(task => task.id !== item.id);
-                        saveState();
-                        renderTasks();
-                    }, 300);
+                    state.tasks = state.tasks.filter(task => task.id !== item.id);
+                    saveState();
+                    renderTasks();
+                    playFeedback();
+                });
+
+                card.setAttribute('draggable', 'true');
+                card.addEventListener('dragstart', e => {
+                    draggedTaskId = item.id;
+                    e.dataTransfer?.setData('text/plain', item.id);
                 });
 
                 tasksList.appendChild(fragment);
-                
-                // Trigger entrance animation
-                const taskCardEl = tasksList.lastElementChild;
-                if (taskCardEl) {
-                    taskCardEl.style.opacity = '0';
-                    taskCardEl.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        taskCardEl.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                        taskCardEl.style.opacity = '1';
-                        taskCardEl.style.transform = 'translateY(0)';
-                    }, 10);
-                }
             }
         });
     }
@@ -3636,6 +2558,23 @@
                 renderTasks();
             });
 
+            button.addEventListener('dragover', e => {
+                if (draggedTaskId) e.preventDefault();
+            });
+            button.addEventListener('drop', e => {
+                e.preventDefault();
+                const taskId = draggedTaskId || e.dataTransfer?.getData('text/plain');
+                if (!taskId) return;
+                const task = state.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.dueDate = dateISO;
+                    saveState();
+                    renderTasks();
+                    playFeedback();
+                }
+                draggedTaskId = '';
+            });
+
             container.appendChild(button);
         }
     }
@@ -3647,6 +2586,7 @@
         baseDate.setDate(1);
         state.ui.selectedDate = baseDate.toISOString().slice(0, 10);
         saveState();
+        renderCalendar();
         renderTasks();
     }
 
@@ -3709,7 +2649,6 @@
         forms.debt.elements.customerId.value = customer.id;
         forms.debt.elements.date.value = todayString();
         modals.debt.showModal();
-        modals.debt.style.animation = 'zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
     }
 
     function preparePaymentModal(customer) {
@@ -3717,7 +2656,26 @@
         forms.payment.elements.customerId.value = customer.id;
         forms.payment.elements.date.value = todayString();
         modals.payment.showModal();
-        modals.payment.style.animation = 'zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    }
+
+    function prepareDemandModal(customer) {
+        forms.demand.reset();
+        forms.demand.elements.customerId.value = customer.id;
+        const outstanding = Math.max(1, getCustomerBalance(customer));
+        forms.demand.elements.amount.value = outstanding;
+        const dueInfo = getCustomerDueInfo(customer);
+        forms.demand.elements.dueDate.value = dueInfo.nextDueDate || todayString();
+        if (selectors.demandPreviewImg) selectors.demandPreviewImg.src = '';
+        if (selectors.demandDownloadBtn) selectors.demandDownloadBtn.removeAttribute('href');
+        lastDemandCardUrl = '';
+        selectors.demandShareBtn?.setAttribute('disabled', 'disabled');
+        selectors.demandDownloadBtn?.setAttribute('disabled', 'disabled');
+        selectors.demandPreviewText?.removeAttribute('hidden');
+        modals.demand.showModal();
+    }
+
+    function attachCustomerCardActions(card, customer) {
+        // Placeholder if needed later
     }
 
     function translateStatus(status) {
@@ -3771,12 +2729,17 @@
             const note = entry.description ? ` – ${entry.description}` : '';
             return `${date}: -${amount} ${note}`;
         }
+        if (entry.type === 'demand') {
+            const note = entry.description ? ` – ${entry.description}` : '';
+            return `${date}: ⚡ ${amount}${note}`;
+        }
         return `${date}: ${amount}`;
     }
 
     function applyLanguage(lang, options = {}) {
         state.language = lang;
         document.documentElement.lang = lang;
+        updateLanguageToggleLabel();
 
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.dataset.i18n;
@@ -3803,6 +2766,11 @@
         const langTable = translations[state.language] || translations.en;
         const value = langTable[key];
         return value !== undefined ? value : translations.en[key] || key;
+    }
+
+    function updateLanguageToggleLabel() {
+        if (!selectors.languageToggle) return;
+        selectors.languageToggle.textContent = state.language === 'en' ? 'বাংলা' : 'English';
     }
 
     function localizeFragment(root) {
@@ -3834,6 +2802,41 @@
             default:
                 return state.language === 'en' ? 'Other task' : 'অন্যান্য কাজ';
         }
+    }
+
+    function updateNotificationToggle() {
+        const button = selectors.notificationToggle;
+        if (!button) return;
+        if (!('Notification' in window)) {
+            button.disabled = true;
+            button.textContent = 'N/A';
+            return;
+        }
+        button.classList.toggle('reminder-active', state.notificationsEnabled);
+        button.title = state.notificationsEnabled ? translate('notifications.enabled') : translate('notifications.disabled');
+        button.setAttribute('aria-pressed', state.notificationsEnabled);
+        button.textContent = state.notificationsEnabled ? '🔔' : '🔕';
+    }
+
+    function handleNotificationToggle() {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'granted') {
+            state.notificationsEnabled = !state.notificationsEnabled;
+            saveState();
+            updateNotificationToggle();
+            return;
+        }
+        if (Notification.permission === 'denied') {
+            alert(translate('notifications.permissionDenied'));
+            return;
+        }
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                state.notificationsEnabled = true;
+                saveState();
+            }
+            updateNotificationToggle();
+        });
     }
 
     function startReminderLoop() {
@@ -3884,6 +2887,131 @@
         }
     }
 
+    async function generateDemandCard(customer, options) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 900;
+        canvas.height = 500;
+        const ctx = canvas.getContext('2d');
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, 'rgba(28, 139, 115, 0.9)');
+        gradient.addColorStop(1, 'rgba(16, 101, 82, 0.9)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+        // Shop info
+        ctx.fillStyle = '#1d2b2f';
+        ctx.font = 'bold 28px Inter, sans-serif';
+        ctx.fillText(state.shop?.shopName || 'Shop Name', 70, 90);
+        ctx.font = '20px Inter, sans-serif';
+        ctx.fillText(state.shop?.ownerName || '', 70, 120);
+
+        ctx.font = 'bold 24px Inter, sans-serif';
+        ctx.fillText('Payment Demand', 70, 170);
+
+        ctx.font = '24px Inter, sans-serif';
+        ctx.fillText(customer.name, 70, 210);
+        ctx.fillStyle = '#4c6268';
+        ctx.font = '18px Inter, sans-serif';
+        ctx.fillText(options.paymentMethod || 'Payment method: —', 70, 245);
+
+        ctx.fillStyle = '#1c8b73';
+        ctx.font = 'bold 64px Inter, sans-serif';
+        ctx.fillText(formatCurrency(options.amount), 70, 320);
+
+        ctx.fillStyle = '#1d2b2f';
+        ctx.font = '22px Inter, sans-serif';
+        ctx.fillText(`Due: ${options.dueDate ? formatDisplayDate(options.dueDate) : '—'}`, 70, 370);
+
+        ctx.fillStyle = '#4c6268';
+        ctx.font = '18px Inter, sans-serif';
+        ctx.fillText(options.note ? `Note: ${options.note}` : 'Please settle this payment at the earliest.', 70, 405);
+
+        // Payment numbers
+        if (state.shop?.paymentMethods) {
+            let y = 440;
+            ctx.fillStyle = '#1d2b2f';
+            ctx.font = '16px Inter, sans-serif';
+            if (state.shop.paymentMethods.bkash?.enabled && state.shop.paymentMethods.bkash.number) {
+                ctx.fillText(`bKash: ${state.shop.paymentMethods.bkash.number}`, 70, y);
+                y += 25;
+            }
+            if (state.shop.paymentMethods.nagad?.enabled && state.shop.paymentMethods.nagad.number) {
+                ctx.fillText(`Nagad: ${state.shop.paymentMethods.nagad.number}`, 70, y);
+                y += 25;
+            }
+            if (state.shop.paymentMethods.rocket?.enabled && state.shop.paymentMethods.rocket.number) {
+                ctx.fillText(`Rocket: ${state.shop.paymentMethods.rocket.number}`, 70, y);
+            }
+        }
+
+        // Shop logo or owner photo
+        const logo = state.shop?.shopLogo || state.shop?.ownerPhoto || state.auth.profilePicture;
+        if (logo) {
+            try {
+                const img = await loadImage(logo);
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(canvas.width - 140, 140, 60, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(img, canvas.width - 200, 80, 120, 120);
+                ctx.restore();
+            } catch (error) {
+                console.warn('Logo render failed', error);
+            }
+        }
+
+        ctx.fillStyle = '#106552';
+        ctx.font = '18px Inter, sans-serif';
+        ctx.fillText('Generated via Debtx', 70, canvas.height - 60);
+
+        return canvas.toDataURL('image/png');
+    }
+
+    async function shareDemandCard(dataUrl, text) {
+        if (!dataUrl) return;
+        try {
+            if (navigator.canShare) {
+                const file = await dataUrlToFile(dataUrl, 'demand-card.png');
+                if (navigator.canShare({ files: [file], text })) {
+                    await navigator.share({ files: [file], text });
+                    return;
+                }
+            }
+            if (navigator.share) {
+                await navigator.share({ text, url: dataUrl });
+                return;
+            }
+        } catch (error) {
+            console.warn('Share failed, falling back', error);
+        }
+        try {
+            await navigator.clipboard.writeText(text);
+            alert('Payment request copied. Share it anywhere.');
+        } catch (error) {
+            console.error('Clipboard error', error);
+        }
+    }
+
+    async function dataUrlToFile(dataUrl, filename) {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        return new File([blob], filename, { type: blob.type });
+    }
+
+    function loadImage(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = src;
+        });
+    }
+
     function formatCurrency(amount) {
         const formatted = new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -3932,334 +3060,2709 @@
         return `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
     }
 
-    function updateShopImagePreview() {
-        const preview = selectors.shopImagePreview;
-        if (!preview) return;
-        if (state.shop.image) {
-            preview.innerHTML = `<img src="${state.shop.image}" alt="Shop" />`;
-        } else {
-            preview.innerHTML = '';
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    function applyThemePreset(theme) {
+        const settings = {
+            minimal: {
+                primaryColor: '#1d2b2f',
+                accentColor: '#4a5568',
+                bgColor: '#ffffff',
+                showBorder: false,
+                spacing: 12,
+                fontSize: -2
+            },
+            cozy: {
+                primaryColor: '#1c8b73',
+                accentColor: '#f2a03d',
+                bgColor: '#ffffff',
+                showBorder: true,
+                spacing: 16,
+                fontSize: 0
+            },
+            professional: {
+                primaryColor: '#2563eb',
+                accentColor: '#1e40af',
+                bgColor: '#f8fafc',
+                showBorder: true,
+                spacing: 20,
+                fontSize: 2
+            }
+        };
+
+        const preset = settings[theme] || settings.cozy;
+        const primaryColorEl = document.getElementById('customize-primary-color');
+        const accentColorEl = document.getElementById('customize-accent-color');
+        const bgColorEl = document.getElementById('customize-bg-color');
+        const borderEl = document.getElementById('customize-border');
+        const spacingEl = document.getElementById('customize-spacing');
+        const fontSizeEl = document.getElementById('customize-font-size');
+
+        if (primaryColorEl) primaryColorEl.value = preset.primaryColor;
+        if (accentColorEl) accentColorEl.value = preset.accentColor;
+        if (bgColorEl) bgColorEl.value = preset.bgColor;
+        if (borderEl) borderEl.checked = preset.showBorder;
+        if (spacingEl) {
+            spacingEl.value = preset.spacing;
+            const spacingValue = document.getElementById('spacing-value');
+            if (spacingValue) spacingValue.textContent = preset.spacing + 'px';
+        }
+        if (fontSizeEl) {
+            fontSizeEl.value = preset.fontSize;
+            const fontSizeValue = document.getElementById('font-size-value');
+            if (fontSizeValue) fontSizeValue.textContent = (preset.fontSize >= 0 ? '+' : '') + preset.fontSize + 'px';
         }
     }
 
-    function handleCalculatorInput(value, action, calcState) {
-        const display = selectors.calculatorDisplay;
-        if (!display) return;
+    function attachNewFeatureHandlers() {
+        // Shop Profile
+        document.getElementById('edit-shop-profile-btn')?.addEventListener('click', () => {
+            openShopProfileModal();
+        });
 
-        if (action === 'clear') {
-            calcState.current = '0';
-            calcState.previous = null;
-            calcState.operation = null;
-        } else if (action === 'clear-entry') {
-            calcState.current = '0';
-        } else if (action === 'backspace') {
-            calcState.current = calcState.current.slice(0, -1) || '0';
-        } else if (action === 'equals') {
-            if (calcState.previous && calcState.operation) {
-                const prev = parseFloat(calcState.previous);
-                const curr = parseFloat(calcState.current);
-                let result = 0;
-                switch (calcState.operation) {
-                    case '+': result = prev + curr; break;
-                    case '-': result = prev - curr; break;
-                    case '*': result = prev * curr; break;
-                    case '/': result = prev / curr; break;
-                }
-                calcState.current = result.toString();
-                calcState.previous = null;
-                calcState.operation = null;
-            }
-        } else if (value) {
-            if (['+', '-', '*', '/'].includes(value)) {
-                if (calcState.previous && calcState.operation) {
-                    handleCalculatorInput(null, 'equals', calcState);
-                }
-                calcState.previous = calcState.current;
-                calcState.current = '0';
-                calcState.operation = value;
-                return;
-            } else {
-                if (calcState.current === '0') {
-                    calcState.current = value;
-                } else {
-                    calcState.current += value;
-                }
-            }
-        }
+        // Setup Login
+        document.getElementById('setup-login-btn')?.addEventListener('click', () => {
+            showAuthOverlay();
+        });
 
-        display.textContent = calcState.current;
-    }
+        // Text Size
+        document.querySelectorAll('.text-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const size = parseInt(btn.dataset.size);
+                applyTextSize(size);
+                state.ui.textSize = size;
+                saveState();
+                document.querySelectorAll('.text-size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                playFeedback();
+            });
+        });
 
-    function renderCardGenerator() {
-        const select = selectors.cardCustomerSelect;
-        if (!select) return;
-        select.innerHTML = '<option value="">-- Select Customer --</option>';
-        state.customers.forEach(customer => {
-            const balance = getCustomerBalance(customer);
-            if (balance > 0) {
-                const option = document.createElement('option');
-                option.value = customer.id;
-                option.textContent = `${customer.name} - ${formatCurrency(balance)}`;
-                select.appendChild(option);
+        // Bills
+        document.getElementById('new-bill-btn')?.addEventListener('click', () => {
+            openBillModal();
+        });
+
+        // Bill search
+        document.getElementById('bill-search')?.addEventListener('input', () => {
+            renderBills();
+        });
+
+        // Bill filters
+        document.querySelectorAll('.bill-filters .filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.bill-filters .filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderBills();
+            });
+        });
+
+        // Bill customize modal
+        document.getElementById('apply-customize-btn')?.addEventListener('click', async () => {
+            const bill = window.currentBillForCustomize;
+            if (!bill) return;
+            const cardUrl = await generateBillCard(bill, getCustomizeSettings());
+            shareBillCard(cardUrl, bill);
+            modals.billCustomize?.close();
+        });
+
+        document.getElementById('reset-customize-btn')?.addEventListener('click', () => {
+            resetCustomizeSettings();
+            if (window.currentBillForCustomize) {
+                updateBillPreview(window.currentBillForCustomize);
             }
         });
-        updateCardPreview();
+
+        // Customize controls - Real-time preview updates
+        ['customize-layout-style', 'customize-primary-color', 'customize-accent-color', 
+         'customize-bg-color', 'customize-font', 'customize-spacing', 'customize-border',
+         'customize-border-width', 'customize-font-size', 'customize-show-icons', 'customize-notes'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', debounce(() => {
+                    if (window.currentBillForCustomize) {
+                        updateBillPreview(window.currentBillForCustomize);
+                    }
+                }, 50));
+                el.addEventListener('change', () => {
+                    if (window.currentBillForCustomize) {
+                        updateBillPreview(window.currentBillForCustomize);
+                    }
+                });
+            }
+        });
+
+        // Font size display
+        const fontSizeInput = document.getElementById('customize-font-size');
+        if (fontSizeInput) {
+            fontSizeInput.addEventListener('input', (e) => {
+                const valueDisplay = document.getElementById('font-size-value');
+                if (valueDisplay) {
+                    const val = parseInt(e.target.value);
+                    valueDisplay.textContent = (val >= 0 ? '+' : '') + val + 'px';
+                }
+            });
+        }
+
+        document.getElementById('customize-border')?.addEventListener('change', (e) => {
+            const borderWidth = document.getElementById('customize-border-width');
+            if (borderWidth) borderWidth.disabled = !e.target.checked;
+            if (window.currentBillForCustomize) {
+                updateBillPreview(window.currentBillForCustomize);
+            }
+        });
+
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                applyThemePreset(btn.dataset.theme);
+                if (window.currentBillForCustomize) {
+                    updateBillPreview(window.currentBillForCustomize);
+                }
+            });
+        });
+
+        // Logo upload
+        document.getElementById('customize-logo')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    window.customizeLogoUrl = event.target.result;
+                    if (window.currentBillForCustomize) {
+                        updateBillPreview(window.currentBillForCustomize);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('remove-logo-btn')?.addEventListener('click', () => {
+            window.customizeLogoUrl = null;
+            document.getElementById('customize-logo').value = '';
+            if (window.currentBillForCustomize) {
+                updateBillPreview(window.currentBillForCustomize);
+            }
+        });
+
+        // AI Chat
+        const aiInput = document.getElementById('ai-input');
+        const aiSendBtn = document.getElementById('ai-send-btn');
+        aiSendBtn?.addEventListener('click', handleAIMessage);
+        aiInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleAIMessage();
+        });
+
+        // AI Shortcuts
+        document.querySelectorAll('.ai-shortcut-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const suggestion = btn.dataset.suggestion;
+                if (suggestion) {
+                    const aiInput = document.getElementById('ai-input');
+                    if (aiInput) {
+                        aiInput.value = suggestion;
+                        aiInput.focus();
+                        // Auto-send after a brief delay
+                        setTimeout(() => {
+                            handleAIMessage();
+                        }, 100);
+                    }
+                }
+            });
+        });
+
+        // Monthly Wrap
+        document.getElementById('view-monthly-wrap-btn')?.addEventListener('click', () => {
+            showMonthlyWrap();
+        });
+        
+        // Update monthly wrap preview when panel is shown
+        document.getElementById('nav-settings')?.addEventListener('click', () => {
+            setTimeout(() => {
+                // Monthly wrap preview removed with settings panel
+            }, 100);
+        });
+
+        // Bill form - add product
+        document.getElementById('add-product-btn')?.addEventListener('click', () => {
+            addProductRow();
+        });
+        
+        // Bill form - add product (inline button)
+        document.getElementById('add-product-btn-inline')?.addEventListener('click', () => {
+            addProductRow();
+        });
+
+        // Bill form - calculate total
+        forms.bill?.addEventListener('input', calculateBillTotal);
+
+        // Calculator
+        initCalculator();
+
+        // AI Tools tabs
+        initAITools();
+
+        // Notes/Tasks tabs
+        selectors.notesTabBtn?.addEventListener('click', () => switchNotesTab('notes'));
+        selectors.tasksTabBtn?.addEventListener('click', () => switchNotesTab('tasks'));
+
+        // Subscription
+        selectors.activateProBtn?.addEventListener('click', () => activateSubscription('pro'));
+        selectors.activateMaxBtn?.addEventListener('click', () => activateSubscription('max'));
+        selectors.activateUltraBtn?.addEventListener('click', () => activateSubscription('ultra'));
+        
+        // Subscribe buttons - redirect to Facebook
+        document.getElementById('subscribe-pro-btn')?.addEventListener('click', () => handleSubscribe('pro'));
+        document.getElementById('subscribe-max-btn')?.addEventListener('click', () => handleSubscribe('max'));
+        document.getElementById('subscribe-ultra-btn')?.addEventListener('click', () => handleSubscribe('ultra'));
+        
+        // Coupon validation on input
+        ['pro', 'max', 'ultra'].forEach(plan => {
+            const couponInput = document.getElementById(`coupon-${plan}`);
+            if (couponInput) {
+                couponInput.addEventListener('input', (e) => {
+                    const value = e.target.value.trim();
+                    if (value) {
+                        const isValid = validateCoupon(plan, value);
+                        showCouponFeedback(plan, isValid);
+                        
+                        // Show/hide activate button based on coupon validity
+                        const activateBtn = document.getElementById(`activate-${plan}-btn`);
+                        const subscribeBtn = document.getElementById(`subscribe-${plan}-btn`);
+                        if (isValid && activateBtn && subscribeBtn) {
+                            activateBtn.hidden = false;
+                            subscribeBtn.hidden = true;
+                        } else if (activateBtn && subscribeBtn) {
+                            activateBtn.hidden = true;
+                            subscribeBtn.hidden = false;
+                        }
+                    } else {
+                        showCouponFeedback(plan, false, '');
+                        const activateBtn = document.getElementById(`activate-${plan}-btn`);
+                        const subscribeBtn = document.getElementById(`subscribe-${plan}-btn`);
+                        if (activateBtn) activateBtn.hidden = true;
+                        if (subscribeBtn) subscribeBtn.hidden = false;
+                    }
+                });
+            }
+        });
+
+        // Logo management
+        selectors.addLogoBtn?.addEventListener('click', () => {
+            forms.logo?.reset();
+            forms.logo.elements.logoId.value = '';
+            modals.logo?.showModal();
+        });
+        forms.logo?.addEventListener('submit', handleLogoSubmit);
+
+        // Update subscription display
+        updateSubscriptionDisplay();
+        renderLogoList();
+
+        // Settings Handlers
+        initSettingsHandlers();
     }
 
-    function updateCardPreview() {
-        const shopNameEl = document.getElementById('card-shop-name');
-        const shopImageEl = document.getElementById('card-shop-image');
-        const amountEl = document.getElementById('card-amount');
-        const messageEl = document.getElementById('card-message');
-        const methodsEl = document.getElementById('card-payment-methods');
+    function initSettingsHandlers() {
+        // Language switching
+        document.querySelectorAll('.language-option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lang = btn.dataset.lang;
+                applyLanguage(lang);
+                saveState();
+                updateLanguageButtons();
+                playFeedback();
+            });
+        });
 
-        if (shopNameEl) shopNameEl.textContent = state.shop.name || 'Your Shop';
-        if (shopImageEl) {
-            if (state.shop.image) {
-                shopImageEl.src = state.shop.image;
-                shopImageEl.style.display = 'block';
+        // Shop Profile handlers
+        const shopNameInput = document.getElementById('settings-shop-name-input');
+        const ownerNameInput = document.getElementById('settings-owner-name-input');
+        const phoneInput = document.getElementById('settings-phone-number');
+        const paymentNumberInput = document.getElementById('settings-payment-number');
+        const shopLogoInput = document.getElementById('settings-shop-logo-input');
+        const myPhotoInput = document.getElementById('settings-my-photo-input');
+
+        shopNameInput?.addEventListener('input', (e) => {
+            state.shop.shopName = e.target.value;
+            saveState();
+        });
+
+        ownerNameInput?.addEventListener('input', (e) => {
+            state.shop.ownerName = e.target.value;
+            saveState();
+        });
+
+        phoneInput?.addEventListener('input', (e) => {
+            state.shop.phoneNumber = e.target.value;
+            saveState();
+        });
+
+        paymentNumberInput?.addEventListener('input', (e) => {
+            state.shop.paymentNumber = e.target.value;
+            saveState();
+        });
+
+        shopLogoInput?.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+                const dataUrl = await readFileAsDataURL(file);
+                state.shop.shopLogo = dataUrl;
+                saveState();
+                updateShopLogoPreview();
+                playFeedback();
+            }
+        });
+
+        myPhotoInput?.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+                const dataUrl = await readFileAsDataURL(file);
+                state.shop.ownerPhoto = dataUrl;
+                saveState();
+                updateMyPhotoPreview();
+                playFeedback();
+            }
+        });
+
+        // Photo preview click handlers
+        const myPhotoPreview = document.getElementById('settings-my-photo-preview');
+        myPhotoPreview?.addEventListener('click', () => {
+            myPhotoInput?.click();
+        });
+
+        // Payment toggles
+        document.getElementById('payment-toggle-bkash')?.addEventListener('change', (e) => {
+            state.shop.paymentMethods.bkash.enabled = e.target.checked;
+            saveState();
+            playFeedback();
+        });
+
+        document.getElementById('payment-toggle-nagad')?.addEventListener('change', (e) => {
+            state.shop.paymentMethods.nagad.enabled = e.target.checked;
+            saveState();
+            playFeedback();
+        });
+
+        document.getElementById('payment-toggle-rocket')?.addEventListener('change', (e) => {
+            state.shop.paymentMethods.rocket.enabled = e.target.checked;
+            saveState();
+            playFeedback();
+        });
+
+        // Theme selection
+        document.querySelectorAll('.theme-appearance-tile').forEach(tile => {
+            tile.addEventListener('click', () => {
+                const theme = tile.dataset.theme;
+                if (!theme) return;
+                applyTheme(theme);
+                
+                // Update aria-checked
+                document.querySelectorAll('.theme-appearance-tile').forEach(t => {
+                    t.setAttribute('aria-checked', 'false');
+                });
+                tile.setAttribute('aria-checked', 'true');
+                playFeedback();
+            });
+        });
+
+        // Theme export/import for premium users
+        const exportThemeBtn = document.getElementById('export-theme-btn');
+        const importThemeInput = document.getElementById('import-theme-input');
+        const themeExportSection = document.getElementById('theme-export-section');
+
+        // Show theme export section for premium users
+        if (themeExportSection) {
+            const hasPremium = state.subscription.plan !== 'free';
+            themeExportSection.style.display = hasPremium ? 'block' : 'none';
+        }
+
+        exportThemeBtn?.addEventListener('click', () => {
+            if (state.subscription.plan === 'free') {
+                alert(translate('settings.premiumRequired') || 'Premium subscription required');
+                return;
+            }
+            exportTheme();
+        });
+
+        importThemeInput?.addEventListener('change', (e) => {
+            if (state.subscription.plan === 'free') {
+                alert(translate('settings.premiumRequired') || 'Premium subscription required');
+                return;
+            }
+            const file = e.target.files?.[0];
+            if (file) {
+                importTheme(file);
+            }
+        });
+
+        // Monthly wrap update when settings panel opens
+        selectors.nav.settings?.addEventListener('click', () => {
+            setTimeout(() => {
+                updateMonthlyWrapPreview();
+            }, 100);
+        });
+
+        // Subscription buttons
+        document.querySelectorAll('.plan-subscribe-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const plan = btn.dataset.plan;
+                handleSubscribe(plan);
+            });
+        });
+
+        // Coupon inputs
+        ['pro', 'max'].forEach(plan => {
+            const couponInput = document.getElementById(`coupon-input-${plan}`);
+            const couponFeedback = document.getElementById(`coupon-feedback-${plan}`);
+            
+            if (couponInput) {
+                couponInput.addEventListener('input', (e) => {
+                    const value = e.target.value.trim();
+                    if (value) {
+                        const isValid = validateCoupon(plan, value);
+                        showCouponFeedback(plan, isValid, couponFeedback);
+                    } else {
+                        if (couponFeedback) {
+                            couponFeedback.textContent = '';
+                            couponFeedback.className = 'coupon-feedback';
+                        }
+                    }
+                });
+            }
+        });
+
+        // Initialize settings display
+        updateSettingsDisplay();
+        
+        // Call additional settings handlers
+        initSettingsHandlers2();
+    }
+
+    function updateLanguageButtons() {
+        document.querySelectorAll('.language-option-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === state.language);
+        });
+    }
+
+    function updateTextSizeButtons() {
+        const currentSize = state.ui.textSize || 3;
+        document.querySelectorAll('.text-size-btn').forEach(btn => {
+            const size = parseInt(btn.dataset.size);
+            btn.classList.toggle('active', size === currentSize);
+        });
+    }
+
+    function updateSettingsDisplay() {
+        // Update shop profile fields
+        const shopNameInput = document.getElementById('settings-shop-name-input');
+        const ownerNameInput = document.getElementById('settings-owner-name-input');
+        const phoneInput = document.getElementById('settings-phone-number');
+        const paymentNumberInput = document.getElementById('settings-payment-number');
+
+        if (shopNameInput) shopNameInput.value = state.shop.shopName || '';
+        if (ownerNameInput) ownerNameInput.value = state.shop.ownerName || '';
+        if (phoneInput) phoneInput.value = state.shop.phoneNumber || '';
+        if (paymentNumberInput) paymentNumberInput.value = state.shop.paymentNumber || '';
+
+        // Update payment toggles
+        const bkashToggle = document.getElementById('payment-toggle-bkash');
+        const nagadToggle = document.getElementById('payment-toggle-nagad');
+        const rocketToggle = document.getElementById('payment-toggle-rocket');
+
+        if (bkashToggle) bkashToggle.checked = state.shop.paymentMethods?.bkash?.enabled || false;
+        if (nagadToggle) nagadToggle.checked = state.shop.paymentMethods?.nagad?.enabled || false;
+        if (rocketToggle) rocketToggle.checked = state.shop.paymentMethods?.rocket?.enabled || false;
+
+        // Update theme selection
+        document.querySelectorAll('.theme-appearance-tile').forEach(tile => {
+            const isActive = tile.dataset.theme === state.ui.theme;
+            tile.setAttribute('aria-checked', isActive ? 'true' : 'false');
+        });
+
+        // Update language buttons
+        updateLanguageButtons();
+
+        // Update text size buttons
+        updateTextSizeButtons();
+
+        // Update shop logo and photo previews
+        updateShopLogoPreview();
+        updateMyPhotoPreview();
+
+        // Update subscription display
+        updateSubscriptionDisplay();
+
+        // Update monthly wrap
+        updateMonthlyWrapPreview();
+    }
+
+    function updateShopLogoPreview() {
+        const preview = document.getElementById('settings-shop-logo-preview');
+        const placeholder = document.getElementById('settings-shop-logo-placeholder');
+        if (!preview) return;
+
+        if (state.shop.shopLogo) {
+            if (placeholder) placeholder.hidden = true;
+            preview.innerHTML = `<img src="${state.shop.shopLogo}" alt="Shop Logo">`;
+        } else {
+            if (placeholder) placeholder.hidden = false;
+            preview.innerHTML = '<span id="settings-shop-logo-placeholder">🏪</span>';
+        }
+    }
+
+    function updateMyPhotoPreview() {
+        const preview = document.getElementById('settings-my-photo-preview');
+        const img = document.getElementById('settings-my-photo-img');
+        const placeholder = preview?.querySelector('.photo-placeholder');
+        
+        if (!preview || !img) return;
+
+        if (state.shop.ownerPhoto) {
+            img.src = state.shop.ownerPhoto;
+            img.hidden = false;
+            if (placeholder) placeholder.hidden = true;
+        } else {
+            img.hidden = true;
+            if (placeholder) placeholder.hidden = false;
+        }
+    }
+
+    function updateMonthlyWrapPreview() {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        // Calculate monthly stats
+        let totalRevenue = 0;
+        let paymentsReceived = 0;
+        let billsGenerated = 0;
+        let pendingAmount = 0;
+
+        // Calculate from customers
+        state.customers.forEach(customer => {
+            customer.debts?.forEach(debt => {
+                const debtDate = new Date(debt.date);
+                if (debtDate.getMonth() === currentMonth && debtDate.getFullYear() === currentYear) {
+                    totalRevenue += debt.amount || 0;
+                }
+                const outstanding = getDebtOutstanding(debt);
+                if (outstanding > 0) {
+                    pendingAmount += outstanding;
+                }
+            });
+
+            customer.payments?.forEach(payment => {
+                const paymentDate = new Date(payment.date);
+                if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+                    paymentsReceived += payment.amount || 0;
+                }
+            });
+        });
+
+        // Count bills
+        state.bills?.forEach(bill => {
+            const billDate = new Date(bill.date);
+            if (billDate.getMonth() === currentMonth && billDate.getFullYear() === currentYear) {
+                billsGenerated++;
+            }
+        });
+
+        // Update UI
+        const totalRevenueEl = document.getElementById('monthly-total-revenue');
+        const paymentsReceivedEl = document.getElementById('monthly-payments-received');
+        const billsGeneratedEl = document.getElementById('monthly-bills-generated');
+        const pendingAmountEl = document.getElementById('monthly-pending-amount');
+
+        if (totalRevenueEl) totalRevenueEl.textContent = formatCurrency(totalRevenue);
+        if (paymentsReceivedEl) paymentsReceivedEl.textContent = formatCurrency(paymentsReceived);
+        if (billsGeneratedEl) billsGeneratedEl.textContent = billsGenerated.toString();
+        if (pendingAmountEl) pendingAmountEl.textContent = formatCurrency(pendingAmount);
+    }
+
+    function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showCouponFeedback(plan, isValid, feedbackEl) {
+        if (!feedbackEl) {
+            feedbackEl = document.getElementById(`coupon-feedback-${plan}`);
+        }
+        if (!feedbackEl) return;
+
+        if (isValid) {
+            feedbackEl.textContent = translate('settings.couponValid') || 'Coupon valid!';
+            feedbackEl.className = 'coupon-feedback success';
+        } else if (feedbackEl.textContent) {
+            feedbackEl.textContent = translate('settings.couponInvalid') || 'Invalid coupon';
+            feedbackEl.className = 'coupon-feedback error';
+        } else {
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'coupon-feedback';
+        }
+    }
+
+    function validateCoupon(plan, code) {
+        // Simple validation - in production, this would check against a server
+        // For now, accept any non-empty code for demo purposes
+        // You can add specific coupon codes here
+        const validCoupons = {
+            pro: ['PRO2024', 'PRO50'],
+            max: ['MAX2024', 'MAX50']
+        };
+        
+        return validCoupons[plan]?.includes(code.toUpperCase()) || false;
+    }
+
+    function handleSubscribe(plan) {
+        // Redirect to Facebook page
+        const facebookUrl = 'https://www.facebook.com/profile.php?id=61560074175677';
+        window.open(facebookUrl, '_blank');
+    }
+
+    function updateSubscriptionDisplay() {
+        const currentPlanEl = document.getElementById('current-plan-display');
+        if (currentPlanEl) {
+            const planNames = {
+                free: translate('subscription.free') || 'Free',
+                pro: translate('subscription.pro') || 'Pro',
+                max: translate('subscription.max') || 'Max',
+                ultra: translate('subscription.ultra') || 'Ultra Pro'
+            };
+            currentPlanEl.textContent = planNames[state.subscription.plan] || 'Free';
+        }
+
+        // Show/hide theme export section based on subscription
+        const themeExportSection = document.getElementById('theme-export-section');
+        if (themeExportSection) {
+            themeExportSection.style.display = canImportExport() ? 'block' : 'none';
+        }
+    }
+
+    function exportTheme() {
+        const themeData = {
+            theme: state.ui.theme,
+            exportedAt: new Date().toISOString(),
+            version: '1.0'
+        };
+        const blob = new Blob([JSON.stringify(themeData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `debtx-theme-${state.ui.theme}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        playFeedback();
+    }
+
+    function importTheme(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const themeData = JSON.parse(e.target.result);
+                if (themeData.theme) {
+                    applyTheme(themeData.theme);
+                    saveState();
+                    updateSettingsDisplay();
+                    playFeedback();
+                    alert(translate('settings.themeImported') || 'Theme imported successfully!');
+                } else {
+                    alert(translate('settings.themeImportError') || 'Invalid theme file');
+                }
+            } catch (error) {
+                alert(translate('settings.themeImportError') || 'Failed to import theme');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function openShopProfileModal() {
+        if (!forms.shopProfile || !modals.shopProfile) return;
+        forms.shopProfile.reset();
+        const shop = state.shop || {};
+        forms.shopProfile.elements.ownerName.value = shop.ownerName || '';
+        forms.shopProfile.elements.shopName.value = shop.shopName || '';
+        forms.shopProfile.elements.phoneNumber.value = shop.phoneNumber || '';
+        forms.shopProfile.elements.useBkash.checked = shop.paymentMethods?.bkash?.enabled || false;
+        forms.shopProfile.elements.useNagad.checked = shop.paymentMethods?.nagad?.enabled || false;
+        forms.shopProfile.elements.useRocket.checked = shop.paymentMethods?.rocket?.enabled || false;
+        forms.shopProfile.elements.bkashNumber.value = shop.paymentMethods?.bkash?.number || '';
+        forms.shopProfile.elements.nagadNumber.value = shop.paymentMethods?.nagad?.number || '';
+        forms.shopProfile.elements.rocketNumber.value = shop.paymentMethods?.rocket?.number || '';
+        modals.shopProfile.showModal();
+    }
+
+    async function handleShopProfileSubmit(event) {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        state.shop = {
+            ownerName: data.get('ownerName') || '',
+            shopName: data.get('shopName') || '',
+            phoneNumber: data.get('phoneNumber') || '',
+            shopLogo: await readFileAsDataUrl(data.get('shopLogo')) || state.shop?.shopLogo || '',
+            ownerPhoto: await readFileAsDataUrl(data.get('ownerPhoto')) || state.shop?.ownerPhoto || '',
+            paymentMethods: {
+                bkash: {
+                    enabled: data.get('useBkash') === 'on',
+                    number: data.get('bkashNumber') || ''
+                },
+                nagad: {
+                    enabled: data.get('useNagad') === 'on',
+                    number: data.get('nagadNumber') || ''
+                },
+                rocket: {
+                    enabled: data.get('useRocket') === 'on',
+                    number: data.get('rocketNumber') || ''
+                }
+            }
+        };
+        saveState();
+        // Shop profile display removed with settings panel
+        // Settings fields update removed with settings panel
+        modals.shopProfile?.close();
+        playFeedback();
+    }
+
+    function updateShopProfileDisplay() {
+        // Update shop name input
+        const shopNameInput = document.getElementById('settings-shop-name-input');
+        if (shopNameInput) {
+            shopNameInput.value = state.shop?.shopName || '';
+        }
+        
+        // Update owner name input
+        const ownerNameInput = document.getElementById('settings-owner-name-input');
+        if (ownerNameInput) {
+            ownerNameInput.value = state.shop?.ownerName || '';
+        }
+        
+        // Update shop logo preview
+        const shopLogoEl = document.getElementById('settings-shop-logo');
+        if (shopLogoEl && state.shop?.shopLogo) {
+            shopLogoEl.innerHTML = `<img src="${state.shop.shopLogo}" alt="">`;
+        } else if (shopLogoEl) {
+            shopLogoEl.textContent = (state.shop?.shopName || 'S').slice(0, 1).toUpperCase();
+        }
+        
+        // Legacy display elements (if they exist)
+        const shopNameEl = document.getElementById('settings-shop-name');
+        const shopOwnerEl = document.getElementById('settings-shop-owner');
+        if (shopNameEl) shopNameEl.textContent = state.shop?.shopName || '—';
+        if (shopOwnerEl) shopOwnerEl.textContent = state.shop?.ownerName || '—';
+    }
+
+    function initSettingsHandlers2() {
+        // Language switching - Using buttons
+        document.querySelectorAll('.language-option-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lang = btn.dataset.lang;
+                if (lang) {
+                    applyLanguage(lang);
+                    saveState();
+                    updateLanguageButtons();
+                    playFeedback();
+                }
+            });
+        });
+
+        // Text size buttons
+        document.querySelectorAll('.text-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const size = parseInt(btn.dataset.size);
+                if (size >= 1 && size <= 5) {
+                    state.ui.textSize = size;
+                    applyTextSize(size);
+                    document.querySelectorAll('.text-size-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    saveState();
+                    playFeedback();
+                }
+            });
+        });
+
+        // Shop name input
+        const shopNameInput = document.getElementById('settings-shop-name-input');
+        if (shopNameInput) {
+            shopNameInput.value = state.shop?.shopName || '';
+            shopNameInput.addEventListener('change', () => {
+                state.shop = state.shop || {};
+                state.shop.shopName = shopNameInput.value.trim();
+                saveState();
+                // Shop profile display removed with settings panel
+            });
+        }
+        
+        // Owner name input
+        const ownerNameInput = document.getElementById('settings-owner-name-input');
+        if (ownerNameInput) {
+            ownerNameInput.value = state.shop?.ownerName || '';
+            ownerNameInput.addEventListener('change', () => {
+                state.shop = state.shop || {};
+                state.shop.ownerName = ownerNameInput.value.trim();
+                saveState();
+                // Shop profile display removed with settings panel
+            });
+        }
+        
+        // Shop logo upload
+        const shopLogoInput = document.getElementById('settings-shop-logo-input');
+        const uploadShopLogoBtn = document.getElementById('upload-shop-logo-btn');
+        if (shopLogoInput && uploadShopLogoBtn) {
+            uploadShopLogoBtn.addEventListener('click', () => shopLogoInput.click());
+            shopLogoInput.addEventListener('change', async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    const dataUrl = await readFileAsDataUrl(file);
+                    state.shop = state.shop || {};
+                    state.shop.shopLogo = dataUrl;
+                    saveState();
+                    // Shop profile display removed with settings panel
+                    playFeedback();
+                }
+            });
+        }
+        
+        // Phone number
+        const phoneInput = document.getElementById('settings-phone-number');
+        if (phoneInput) {
+            phoneInput.value = state.shop?.phoneNumber || '';
+            phoneInput.addEventListener('change', () => {
+                state.shop = state.shop || {};
+                state.shop.phoneNumber = phoneInput.value.trim();
+                saveState();
+            });
+        }
+
+        // Payment number
+        const paymentNumberInput = document.getElementById('settings-payment-number');
+        if (paymentNumberInput) {
+            paymentNumberInput.value = state.shop?.paymentNumber || '';
+            paymentNumberInput.addEventListener('change', () => {
+                state.shop = state.shop || {};
+                state.shop.paymentNumber = paymentNumberInput.value.trim();
+                saveState();
+            });
+        }
+        
+        // Payment toggles
+        ['bkash', 'nagad', 'rocket'].forEach(method => {
+            const toggle = document.getElementById(`toggle-payment-${method}`);
+            if (toggle) {
+                toggle.checked = state.shop?.paymentMethods?.[method]?.enabled || false;
+                toggle.addEventListener('change', () => {
+                    state.shop = state.shop || {};
+                    state.shop.paymentMethods = state.shop.paymentMethods || {};
+                    state.shop.paymentMethods[method] = state.shop.paymentMethods[method] || {};
+                    state.shop.paymentMethods[method].enabled = toggle.checked;
+                    saveState();
+                    playFeedback();
+                });
+            }
+        });
+        
+        // Theme appearance tiles
+        ['light', 'dark', 'custom', 'cozy'].forEach(theme => {
+            const tile = document.querySelector(`.theme-appearance-tile[data-theme="${theme}"]`);
+            if (tile) {
+                tile.addEventListener('click', () => {
+                    // Update aria-checked
+                    document.querySelectorAll('.theme-appearance-tile').forEach(t => {
+                        t.setAttribute('aria-checked', 'false');
+                    });
+                    tile.setAttribute('aria-checked', 'true');
+                    
+                    // Show advanced options for custom theme
+                    const advancedOptions = document.getElementById('theme-advanced-options');
+                    if (advancedOptions) {
+                        advancedOptions.hidden = theme !== 'custom';
+                    }
+                    
+                    // Apply theme preview (for now, just visual feedback)
+                    playFeedback();
+                });
+            }
+        });
+
+        // My photo upload
+        const myPhotoInput = document.getElementById('settings-my-photo-input');
+        const myPhotoPreview = document.getElementById('settings-my-photo-preview');
+        const myPhotoImg = document.getElementById('settings-my-photo-img');
+        if (myPhotoInput && myPhotoPreview) {
+            myPhotoPreview.addEventListener('click', () => myPhotoInput.click());
+            myPhotoInput.addEventListener('change', async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    const dataUrl = await readFileAsDataUrl(file);
+                    state.shop = state.shop || {};
+                    state.shop.ownerPhoto = dataUrl;
+                    if (myPhotoImg) {
+                        myPhotoImg.src = dataUrl;
+                        myPhotoImg.hidden = false;
+                        myPhotoPreview.querySelector('.photo-placeholder').hidden = true;
+                    }
+                    saveState();
+                    playFeedback();
+                }
+            });
+        }
+
+        // Subscription chat
+        const subscriptionChatInput = document.getElementById('subscription-chat-input');
+        const subscriptionChatSendBtn = document.getElementById('subscription-chat-send-btn');
+        if (subscriptionChatSendBtn) {
+            subscriptionChatSendBtn.addEventListener('click', handleSubscriptionChat);
+        }
+        if (subscriptionChatInput) {
+            subscriptionChatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSubscriptionChat();
+            });
+        }
+    }
+
+    function updateSettingsFields() {
+        // Update phone number
+        const phoneInput = document.getElementById('settings-phone-number');
+        if (phoneInput) phoneInput.value = state.shop?.phoneNumber || '';
+
+        // Update payment number
+        const paymentNumberInput = document.getElementById('settings-payment-number');
+        if (paymentNumberInput) paymentNumberInput.value = state.shop?.paymentNumber || '';
+
+        // Update payment option
+        const paymentOptionSelect = document.getElementById('settings-payment-option');
+        if (paymentOptionSelect) paymentOptionSelect.value = state.shop?.paymentOption || 'bkash';
+
+        // Update my photo
+        const myPhotoImg = document.getElementById('settings-my-photo-img');
+        const myPhotoPlaceholder = document.querySelector('#settings-my-photo-preview .photo-placeholder');
+        if (state.shop?.ownerPhoto) {
+            if (myPhotoImg) {
+                myPhotoImg.src = state.shop.ownerPhoto;
+                myPhotoImg.hidden = false;
+            }
+            if (myPhotoPlaceholder) myPhotoPlaceholder.hidden = true;
+        } else {
+            if (myPhotoImg) myPhotoImg.hidden = true;
+            if (myPhotoPlaceholder) myPhotoPlaceholder.hidden = false;
+        }
+    }
+
+    function updateMonthlyWrapPreview() {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const monthBills = (state.bills || []).filter(b => {
+            const billDate = new Date(b.date);
+            return billDate >= monthStart && billDate <= monthEnd;
+        });
+
+        const monthPayments = state.customers.flatMap(c => 
+            c.payments.filter(p => {
+                const payDate = new Date(p.date);
+                return payDate >= monthStart && payDate <= monthEnd;
+            })
+        );
+        
+        // Calculate pending amounts (total debts - payments)
+        const totalDebts = state.customers.reduce((sum, c) => {
+            return sum + (c.debts || []).reduce((debtSum, d) => debtSum + d.amount, 0);
+        }, 0);
+        const totalPaid = state.customers.reduce((sum, c) => {
+            return sum + (c.payments || []).reduce((paySum, p) => paySum + p.amount, 0);
+        }, 0);
+        const pendingAmount = Math.max(0, totalDebts - totalPaid);
+
+        const totalRevenue = monthBills.reduce((sum, b) => sum + b.total, 0);
+        const totalPayments = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+        const totalCustomers = new Set(monthBills.map(b => b.customerName)).size;
+        
+        // Calculate performance (simple percentage of payments vs revenue)
+        const performance = totalRevenue > 0 ? Math.round((totalPayments / totalRevenue) * 100) : 0;
+        const performanceText = performance >= 80 ? 'Excellent' : performance >= 60 ? 'Good' : performance >= 40 ? 'Fair' : 'Needs Improvement';
+
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat(state.language === 'bn' ? 'bn-BD' : 'en-GB', {
+                style: 'currency',
+                currency: 'BDT',
+                minimumFractionDigits: 0
+            }).format(amount).replace('BDT', '৳');
+        };
+
+        const revenueEl = document.getElementById('preview-total-revenue');
+        const paymentsEl = document.getElementById('preview-total-payments');
+        const pendingEl = document.getElementById('preview-pending-amount');
+        const performanceEl = document.getElementById('preview-performance');
+        
+        // Legacy elements (if they exist)
+        const billsEl = document.getElementById('preview-bills-count');
+        const customersEl = document.getElementById('preview-customers-count');
+
+        if (revenueEl) revenueEl.textContent = formatCurrency(totalRevenue);
+        if (paymentsEl) paymentsEl.textContent = formatCurrency(totalPayments);
+        if (pendingEl) pendingEl.textContent = formatCurrency(pendingAmount);
+        if (performanceEl) performanceEl.textContent = performanceText;
+        if (billsEl) billsEl.textContent = monthBills.length;
+        if (customersEl) customersEl.textContent = totalCustomers;
+    }
+
+    function handleSubscriptionChat() {
+        const input = document.getElementById('subscription-chat-input');
+        const messagesContainer = document.getElementById('subscription-chat-messages');
+        if (!input || !messagesContainer) return;
+
+        const message = input.value.trim();
+        if (!message) return;
+
+        // Add user message
+        const userMessage = document.createElement('div');
+        userMessage.className = 'subscription-chat-message subscription-chat-user';
+        userMessage.innerHTML = `
+            <div class="subscription-chat-avatar">👤</div>
+            <div class="subscription-chat-content">
+                <p>${escapeHtml(message)}</p>
+            </div>
+        `;
+        messagesContainer.appendChild(userMessage);
+
+        // Clear input
+        input.value = '';
+
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // Generate response
+        setTimeout(() => {
+            const response = generateSubscriptionChatResponse(message);
+            const assistantMessage = document.createElement('div');
+            assistantMessage.className = 'subscription-chat-message subscription-chat-assistant';
+            assistantMessage.innerHTML = `
+                <div class="subscription-chat-avatar">💬</div>
+                <div class="subscription-chat-content">
+                    <p>${response}</p>
+                </div>
+            `;
+            messagesContainer.appendChild(assistantMessage);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 500);
+    }
+
+    function generateSubscriptionChatResponse(message) {
+        const lowerMessage = message.toLowerCase();
+        const lang = state.language === 'bn' ? 'bn' : 'en';
+
+        if (lowerMessage.includes('pro') || lowerMessage.includes('প্রো')) {
+            return lang === 'bn' 
+                ? 'প্রো প্ল্যান ৩৫ ৳/মাসে। সীমাহীন ক্রেতা, এআই সহায়ক, এবং ডেটা ইমপোর্ট/এক্সপোর্ট সুবিধা পাবেন।'
+                : 'Pro plan is 35 ৳/month. You get unlimited customers, AI Assistant, and data import/export features.';
+        } else if (lowerMessage.includes('max') || lowerMessage.includes('ম্যাক্স')) {
+            return lang === 'bn'
+                ? 'ম্যাক্স প্ল্যান ২৮০ ৳/বছরে। সব প্রো ফিচার, ১ বছর অ্যাক্সেস, এবং অগ্রাধিকার সহায়তা পাবেন।'
+                : 'Max plan is 280 ৳/year. You get all Pro features, 1 year access, and priority support.';
+        } else if (lowerMessage.includes('ultra') || lowerMessage.includes('আল্ট্রা')) {
+            return lang === 'bn'
+                ? 'আল্ট্রা প্ল্যান ৫০০ ৳/বছরে। সব ম্যাক্স ফিচার, প্রিমিয়াম ফিচার, এবং বর্ধিত সহায়তা পাবেন।'
+                : 'Ultra plan is 500 ৳/year. You get all Max features, premium features, and extended support.';
+        } else if (lowerMessage.includes('price') || lowerMessage.includes('কত') || lowerMessage.includes('দাম')) {
+            return lang === 'bn'
+                ? 'প্রো: ৩৫ ৳/মাস, ম্যাক্স: ২৮০ ৳/বছর, আল্ট্রা: ৫০০ ৳/বছর। কুপন কোড দিয়ে সক্রিয় করতে পারেন।'
+                : 'Pro: 35 ৳/month, Max: 280 ৳/year, Ultra: 500 ৳/year. You can activate with a coupon code.';
+        } else if (lowerMessage.includes('coupon') || lowerMessage.includes('কুপন')) {
+            return lang === 'bn'
+                ? 'কুপন কোড দিয়ে প্ল্যান সক্রিয় করতে পারেন। কুপন কিনতে আমাদের Facebook পেজে যান।'
+                : 'You can activate plans with coupon codes. Visit our Facebook page to buy coupons.';
+        } else if (lowerMessage.includes('feature') || lowerMessage.includes('সুবিধা')) {
+            return lang === 'bn'
+                ? 'প্রো: সীমাহীন ক্রেতা, এআই সহায়ক, ডেটা ইমপোর্ট/এক্সপোর্ট। ম্যাক্স: সব প্রো + ১ বছর + অগ্রাধিকার সহায়তা। আল্ট্রা: সব ম্যাক্স + প্রিমিয়াম ফিচার।'
+                : 'Pro: Unlimited customers, AI Assistant, data import/export. Max: All Pro + 1 year + priority support. Ultra: All Max + premium features.';
+        } else {
+            return lang === 'bn'
+                ? 'আমি আপনাকে সাবস্ক্রিপশন প্ল্যান সম্পর্কে সাহায্য করতে পারি। প্রো, ম্যাক্স, বা আল্ট্রা প্ল্যান সম্পর্কে জানতে চান?'
+                : 'I can help you with subscription plans. Would you like to know about Pro, Max, or Ultra plans?';
+        }
+    }
+
+    function showAuthOverlay() {
+        const overlay = document.getElementById('auth-overlay');
+        if (overlay) {
+            overlay.hidden = false;
+            overlay.removeAttribute('hidden');
+            document.body.classList.add('locked');
+            setAuthMode(state.auth.passwordHash ? 'login' : 'setup');
+        }
+    }
+
+    function openBillModal(billToEdit = null) {
+        if (!forms.bill || !modals.bill) return;
+        forms.bill.reset();
+        
+        // Populate customer select
+        const customerSelect = document.getElementById('bill-customer-select');
+        if (customerSelect) {
+            customerSelect.innerHTML = '<option value="">-- Select Customer or Enter New --</option>';
+            state.customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = customer.name;
+                customerSelect.appendChild(option);
+            });
+        }
+
+        // Set default due date to 7 days from now
+        const dueDateInput = document.getElementById('bill-due-date');
+        if (dueDateInput && !billToEdit) {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 7);
+            dueDateInput.value = futureDate.toISOString().slice(0, 10);
+        }
+
+        // Generate invoice number if not editing
+        if (!billToEdit) {
+            const invoiceInput = document.querySelector('[name="invoiceNumber"]');
+            if (invoiceInput && !invoiceInput.value) {
+                invoiceInput.value = generateInvoiceNumber();
+            }
+        }
+
+        // If editing, populate form
+        if (billToEdit) {
+            document.getElementById('bill-id-input').value = billToEdit.id;
+            document.getElementById('bill-customer-name').value = billToEdit.customerName || '';
+            if (billToEdit.customerId) {
+                customerSelect.value = billToEdit.customerId;
+            }
+            if (billToEdit.invoiceNumber) {
+                document.querySelector('[name="invoiceNumber"]').value = billToEdit.invoiceNumber;
+            }
+            if (billToEdit.dueDate) {
+                dueDateInput.value = billToEdit.dueDate;
+            }
+            if (billToEdit.paymentStatus) {
+                document.getElementById('bill-payment-status').value = billToEdit.paymentStatus;
+            }
+            if (billToEdit.notes) {
+                document.querySelector('[name="notes"]').value = billToEdit.notes;
+            }
+            if (billToEdit.totalDiscount) {
+                document.getElementById('bill-total-discount').value = billToEdit.totalDiscount;
+            }
+            if (billToEdit.tax) {
+                document.getElementById('bill-tax').value = billToEdit.tax;
+            }
+            
+            // Populate products
+            const productsContainer = document.getElementById('bill-products');
+            productsContainer.innerHTML = '';
+            billToEdit.products.forEach(product => {
+                addProductRow(product);
+            });
+        } else {
+            document.getElementById('bill-id-input').value = '';
+            document.getElementById('bill-products').innerHTML = `
+                <div class="bill-product-row">
+                    <input type="text" name="productName[]" placeholder="Item/Service name" required />
+                    <input type="number" name="productPrice[]" placeholder="Price" min="0" step="0.01" required />
+                    <input type="number" name="productQuantity[]" placeholder="Qty" min="1" value="1" required />
+                    <input type="number" name="productDiscount[]" placeholder="Discount %" min="0" max="100" step="0.01" value="0" />
+                    <button type="button" class="remove-product-btn" aria-label="Remove product">×</button>
+                </div>
+            `;
+        }
+        
+        attachBillProductHandlers();
+        calculateBillTotal();
+        
+        // Handle customer select change
+        if (customerSelect) {
+            customerSelect.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    const customer = state.customers.find(c => c.id === e.target.value);
+                    if (customer) {
+                        document.getElementById('bill-customer-name').value = customer.name;
+                    }
+                }
+            });
+        }
+        
+        modals.bill.showModal();
+    }
+
+    function generateInvoiceNumber() {
+        const year = new Date().getFullYear();
+        const month = String(new Date().getMonth() + 1).padStart(2, '0');
+        const bills = state.bills || [];
+        const thisMonthBills = bills.filter(b => {
+            const billDate = new Date(b.date || b.createdAt);
+            return billDate.getFullYear() === year && String(billDate.getMonth() + 1).padStart(2, '0') === month;
+        });
+        const nextNum = (thisMonthBills.length + 1).toString().padStart(3, '0');
+        return `INV-${year}${month}-${nextNum}`;
+    }
+
+    function addProductRow(product = null) {
+        const container = document.getElementById('bill-products');
+        const row = document.createElement('div');
+        row.className = 'bill-product-row';
+        row.innerHTML = `
+            <input type="text" name="productName[]" placeholder="Item/Service name" value="${product?.name || ''}" required />
+            <input type="number" name="productPrice[]" placeholder="Price" min="0" step="0.01" value="${product?.price || ''}" required />
+            <input type="number" name="productQuantity[]" placeholder="Qty" min="1" value="${product?.quantity || 1}" required />
+            <input type="number" name="productDiscount[]" placeholder="Discount %" min="0" max="100" step="0.01" value="${product?.discount || 0}" />
+            <button type="button" class="remove-product-btn" aria-label="Remove product">×</button>
+        `;
+        container.appendChild(row);
+        attachBillProductHandlers();
+        if (!product) playFeedback();
+    }
+
+    function attachBillProductHandlers() {
+        document.querySelectorAll('.remove-product-btn').forEach(btn => {
+            btn.replaceWith(btn.cloneNode(true)); // Remove old listeners
+        });
+        document.querySelectorAll('.remove-product-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.bill-product-row').remove();
+                calculateBillTotal();
+                playFeedback();
+            });
+        });
+        
+        // Add input listeners for real-time calculation
+        document.querySelectorAll('.bill-product-row input').forEach(input => {
+            input.replaceWith(input.cloneNode(true)); // Remove old listeners
+        });
+        document.querySelectorAll('.bill-product-row input').forEach(input => {
+            input.addEventListener('input', calculateBillTotal);
+        });
+        
+        // Add listeners for discount and tax
+        const totalDiscountInput = document.getElementById('bill-total-discount');
+        const taxInput = document.getElementById('bill-tax');
+        if (totalDiscountInput) {
+            totalDiscountInput.replaceWith(totalDiscountInput.cloneNode(true));
+            document.getElementById('bill-total-discount').addEventListener('input', calculateBillTotal);
+        }
+        if (taxInput) {
+            taxInput.replaceWith(taxInput.cloneNode(true));
+            document.getElementById('bill-tax').addEventListener('input', calculateBillTotal);
+        }
+        
+        // Update spacing value display
+        const spacingInput = document.getElementById('customize-spacing');
+        if (spacingInput) {
+            spacingInput.addEventListener('input', (e) => {
+                const valueDisplay = document.getElementById('spacing-value');
+                if (valueDisplay) valueDisplay.textContent = e.target.value + 'px';
+            });
+        }
+    }
+
+    function calculateBillTotal() {
+        const totalEl = document.getElementById('bill-total-amount');
+        const subtotalEl = document.getElementById('bill-subtotal');
+        const discountAmountEl = document.getElementById('bill-discount-amount');
+        const taxAmountEl = document.getElementById('bill-tax-amount');
+        
+        if (!totalEl) return;
+        
+        let subtotal = 0;
+        document.querySelectorAll('.bill-product-row').forEach(row => {
+            const price = parseFloat(row.querySelector('input[name="productPrice[]"]').value) || 0;
+            const qty = parseFloat(row.querySelector('input[name="productQuantity[]"]').value) || 0;
+            const itemDiscount = parseFloat(row.querySelector('input[name="productDiscount[]"]').value) || 0;
+            const itemTotal = price * qty;
+            const itemDiscountAmount = itemTotal * (itemDiscount / 100);
+            subtotal += itemTotal - itemDiscountAmount;
+        });
+        
+        if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
+        
+        const totalDiscount = parseFloat(document.getElementById('bill-total-discount')?.value || 0);
+        const discountAmount = subtotal * (totalDiscount / 100);
+        const afterDiscount = subtotal - discountAmount;
+        
+        if (discountAmountEl) discountAmountEl.textContent = formatCurrency(discountAmount);
+        
+        const tax = parseFloat(document.getElementById('bill-tax')?.value || 0);
+        const taxAmount = afterDiscount * (tax / 100);
+        const total = afterDiscount + taxAmount;
+        
+        if (taxAmountEl) taxAmountEl.textContent = formatCurrency(taxAmount);
+        totalEl.textContent = formatCurrency(total);
+    }
+
+    async function handleBillSubmit(event) {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        const products = [];
+        const productNames = data.getAll('productName[]');
+        const productPrices = data.getAll('productPrice[]');
+        const productQuantities = data.getAll('productQuantity[]');
+        const productDiscounts = data.getAll('productDiscount[]');
+        
+        productNames.forEach((name, i) => {
+            const price = parseFloat(productPrices[i]) || 0;
+            const qty = parseFloat(productQuantities[i]) || 1;
+            const discount = parseFloat(productDiscounts[i]) || 0;
+            const itemTotal = price * qty;
+            const discountAmount = itemTotal * (discount / 100);
+            
+            products.push({
+                name: name.trim(),
+                price: price,
+                quantity: qty,
+                discount: discount,
+                subtotal: itemTotal - discountAmount
+            });
+        });
+
+        // Calculate totals
+        let subtotal = products.reduce((sum, p) => sum + p.subtotal, 0);
+        const totalDiscount = parseFloat(data.get('totalDiscount') || 0);
+        const discountAmount = subtotal * (totalDiscount / 100);
+        const afterDiscount = subtotal - discountAmount;
+        const tax = parseFloat(data.get('tax') || 0);
+        const taxAmount = afterDiscount * (tax / 100);
+        const total = afterDiscount + taxAmount;
+
+        const customerId = data.get('customerId');
+        const customerName = data.get('customerName') || 
+            (customerId ? state.customers.find(c => c.id === customerId)?.name : '') || '';
+
+        const bill = {
+            id: data.get('billId') || generateId('bill'),
+            customerId: customerId || null,
+            customerName: customerName,
+            invoiceNumber: data.get('invoiceNumber') || generateInvoiceNumber(),
+            products: products,
+            subtotal: subtotal,
+            totalDiscount: totalDiscount,
+            discountAmount: discountAmount,
+            tax: tax,
+            taxAmount: taxAmount,
+            total: total,
+            dueDate: data.get('dueDate') || null,
+            paymentStatus: data.get('paymentStatus') || 'pending',
+            notes: data.get('notes') || '',
+            date: todayString(),
+            createdAt: data.get('billId') ? (state.bills.find(b => b.id === data.get('billId'))?.createdAt || Date.now()) : Date.now(),
+            updatedAt: Date.now()
+        };
+
+        state.bills = state.bills || [];
+        const existingIndex = state.bills.findIndex(b => b.id === bill.id);
+        if (existingIndex >= 0) {
+            state.bills[existingIndex] = bill;
+        } else {
+            state.bills.unshift(bill);
+        }
+        saveState();
+        renderBills();
+        modals.bill.close();
+        
+        // Generate bill card
+        const billCardUrl = await generateBillCard(bill);
+        shareBillCard(billCardUrl, bill);
+        playFeedback();
+    }
+
+
+    async function generateBillCard(bill, customizeSettings = null) {
+        const settings = customizeSettings || getCustomizeSettings();
+        const canvas = document.createElement('canvas');
+        const baseWidth = 1200;
+        const baseHeight = 2000; // Increased for more content
+        const scale = 3; // Higher scale for better quality
+        canvas.width = baseWidth * scale;
+        canvas.height = baseHeight * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+
+        // Background
+        ctx.fillStyle = settings.bgColor || '#ffffff';
+        ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+        // Border
+        if (settings.showBorder) {
+            ctx.strokeStyle = settings.primaryColor || '#1c8b73';
+            ctx.lineWidth = (settings.borderWidth || 2);
+            ctx.strokeRect(settings.borderWidth / 2, settings.borderWidth / 2, 
+                          baseWidth - settings.borderWidth, baseHeight - settings.borderWidth);
+        }
+
+        const spacing = settings.spacing || 16;
+        const baseFontSize = 14 + (settings.fontSize || 0);
+        let y = spacing * 2;
+        
+        // Helper function to draw text with word wrap - fixed to handle text bugs
+        const drawText = (text, x, yPos, maxWidth, fontSize, color = '#1d2b2f', align = 'left', bold = false) => {
+            ctx.fillStyle = color;
+            ctx.font = `${bold ? 'bold ' : ''}${fontSize}px ${settings.font || 'Inter'}, sans-serif`;
+            ctx.textAlign = align;
+            // Ensure text is a string and handle newlines
+            const textStr = String(text || '').replace(/\n/g, ' ');
+            const words = textStr.split(' ');
+            let line = '';
+            let currentY = yPos;
+            
+            words.forEach((word) => {
+                if (!word) return;
+                const testLine = line + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth && line) {
+                    ctx.fillText(line.trim(), x, currentY);
+                    line = word + ' ';
+                    currentY += fontSize * 1.4;
+                } else {
+                    line = testLine;
+                }
+            });
+            if (line) {
+                ctx.fillText(line.trim(), x, currentY);
+            }
+            return currentY + fontSize * 0.5;
+        };
+
+        const leftMargin = spacing * 2;
+        const rightMargin = baseWidth - spacing * 2;
+        const contentWidth = rightMargin - leftMargin;
+
+        // Shop logo
+        if (settings.logoUrl) {
+            try {
+                const logo = await loadImage(settings.logoUrl);
+                const logoSize = 80;
+                ctx.drawImage(logo, leftMargin, y, logoSize, logoSize);
+                y += logoSize + spacing;
+            } catch (e) {
+                console.warn('Logo load failed', e);
+            }
+        }
+
+        // Shop info
+        const shopName = String(state.shop?.shopName || 'Shop Name');
+        y = drawText(shopName, leftMargin, y, contentWidth, baseFontSize + 8, settings.primaryColor, 'left', true);
+        y += spacing / 2;
+        
+        if (state.shop?.ownerName) {
+            y = drawText(String(state.shop.ownerName), leftMargin, y, contentWidth, baseFontSize - 2, '#4a5568', 'left', false);
+        }
+        y += spacing * 1.5;
+
+        // Divider
+        ctx.strokeStyle = settings.primaryColor + '40';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, y);
+        ctx.lineTo(rightMargin, y);
+        ctx.stroke();
+        y += spacing;
+
+        // Invoice header
+        const invoiceText = `Invoice: ${bill.invoiceNumber || generateInvoiceNumber()}`;
+        y = drawText(invoiceText, leftMargin, y, contentWidth, baseFontSize + 2, '#1d2b2f', 'left', true);
+        y += spacing / 2;
+        
+        const dateText = `Date: ${formatDisplayDate(bill.date)}`;
+        y = drawText(dateText, leftMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'left', false);
+        y += spacing / 2;
+        
+        const customerText = `Customer: ${bill.customerName || 'Customer'}`;
+        y = drawText(customerText, leftMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'left', false);
+        
+        if (bill.dueDate) {
+            y += spacing / 2;
+            const dueDateText = `Due Date: ${formatDisplayDate(bill.dueDate)}`;
+            const dueColor = bill.dueDate < todayString() ? '#dc2626' : '#4a5568';
+            y = drawText(dueDateText, leftMargin, y, contentWidth, baseFontSize, dueColor, 'left', false);
+        }
+        y += spacing * 1.5;
+
+        // Divider
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, y);
+        ctx.lineTo(rightMargin, y);
+        ctx.stroke();
+        y += spacing;
+
+        // Items header
+        y = drawText('Items:', leftMargin, y, contentWidth, baseFontSize + 2, settings.primaryColor, 'left', true);
+        y += spacing / 2;
+
+        // Products
+        if (bill.products && bill.products.length > 0) {
+            bill.products.forEach(product => {
+                const itemName = String(product.name || 'Item');
+                const qty = product.quantity || 1;
+                const price = product.price || 0;
+                const discount = product.discount || 0;
+                const itemTotal = product.subtotal || (price * qty * (1 - discount / 100));
+                
+                let itemText = `${itemName} × ${qty}`;
+                if (discount > 0) {
+                    itemText += ` (${discount}% off)`;
+                }
+                
+                // Draw item name and quantity on left
+                const itemY = drawText(itemText, leftMargin, y, contentWidth * 0.7, baseFontSize, '#1d2b2f', 'left', false);
+                
+                // Draw price on right
+                ctx.fillStyle = '#1d2b2f';
+                ctx.font = `bold ${baseFontSize}px ${settings.font || 'Inter'}, sans-serif`;
+                ctx.textAlign = 'right';
+                ctx.fillText(formatCurrency(itemTotal), rightMargin, y);
+                ctx.textAlign = 'left';
+                
+                y = itemY + spacing / 3;
+            });
+        } else {
+            y = drawText('No items', leftMargin, y, contentWidth, baseFontSize, '#9ca3af', 'left', false);
+        }
+        y += spacing;
+
+        // Divider
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, y);
+        ctx.lineTo(rightMargin, y);
+        ctx.stroke();
+        y += spacing;
+
+        // Totals
+        ctx.textAlign = 'right';
+        const subtotalText = `Subtotal: ${formatCurrency(bill.subtotal || bill.total)}`;
+        y = drawText(subtotalText, rightMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'right', false);
+        
+        if (bill.discountAmount > 0) {
+            y += spacing / 2;
+            const discountText = `Discount: -${formatCurrency(bill.discountAmount)}`;
+            y = drawText(discountText, rightMargin, y, contentWidth, baseFontSize, '#16a34a', 'right', false);
+        }
+        
+        if (bill.taxAmount > 0) {
+            y += spacing / 2;
+            const taxText = `Tax: ${formatCurrency(bill.taxAmount)}`;
+            y = drawText(taxText, rightMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'right', false);
+        }
+        
+        y += spacing / 2;
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, y);
+        ctx.lineTo(rightMargin, y);
+        ctx.stroke();
+        y += spacing / 2;
+        
+        // Total
+        const totalText = `Total: ${formatCurrency(bill.total || 0)}`;
+        y = drawText(totalText, rightMargin, y, contentWidth, baseFontSize + 4, settings.primaryColor, 'right', true);
+        ctx.textAlign = 'left';
+        y += spacing * 1.5;
+
+        // Notes
+        const notesText = (bill.notes || '') + (settings.customNotes ? '\n' + settings.customNotes : '');
+        if (notesText.trim()) {
+            y = drawText('Notes: ' + notesText, leftMargin, y, contentWidth, baseFontSize - 2, '#4a5568', 'left', false);
+            y += spacing;
+        }
+
+        // Payment info
+        if (state.shop?.paymentMethods) {
+            const methods = [];
+            if (state.shop.paymentMethods.bkash?.enabled && state.shop.paymentMethods.bkash.number) {
+                methods.push(`bKash: ${state.shop.paymentMethods.bkash.number}`);
+            }
+            if (state.shop.paymentMethods.nagad?.enabled && state.shop.paymentMethods.nagad.number) {
+                methods.push(`Nagad: ${state.shop.paymentMethods.nagad.number}`);
+            }
+            if (state.shop.paymentMethods.rocket?.enabled && state.shop.paymentMethods.rocket.number) {
+                methods.push(`Rocket: ${state.shop.paymentMethods.rocket.number}`);
+            }
+            if (methods.length > 0) {
+                y += spacing / 2;
+                methods.forEach((method) => {
+                    y = drawText(method, leftMargin, y, contentWidth, baseFontSize - 1, '#4a5568', 'left', false);
+                });
+            }
+        }
+
+        // Payment status
+        if (bill.paymentStatus) {
+            y += spacing;
+            const statusText = `Status: ${bill.paymentStatus.charAt(0).toUpperCase() + bill.paymentStatus.slice(1)}`;
+            const statusColor = bill.paymentStatus === 'paid' ? '#16a34a' : 
+                              bill.paymentStatus === 'partial' ? '#2563eb' : '#d97706';
+            y = drawText(statusText, leftMargin, y, contentWidth, baseFontSize, statusColor, 'left', false);
+        }
+
+        return canvas.toDataURL('image/png', 1.0);
+    }
+
+    function loadImage(url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = url;
+        });
+    }
+
+    function openBillCustomizeModal(bill) {
+        window.currentBillForCustomize = bill;
+        updateBillPreview(bill);
+        modals.billCustomize?.showModal();
+    }
+
+    function getCustomizeSettings() {
+        return {
+            theme: document.querySelector('.theme-option.active')?.dataset.theme || 'cozy',
+            layoutStyle: document.getElementById('customize-layout-style')?.value || 'modern',
+            primaryColor: document.getElementById('customize-primary-color')?.value || '#1c8b73',
+            accentColor: document.getElementById('customize-accent-color')?.value || '#f2a03d',
+            bgColor: document.getElementById('customize-bg-color')?.value || '#ffffff',
+            font: document.getElementById('customize-font')?.value || 'inter',
+            spacing: parseInt(document.getElementById('customize-spacing')?.value || 16),
+            showBorder: document.getElementById('customize-border')?.checked !== false,
+            borderWidth: parseInt(document.getElementById('customize-border-width')?.value || 2),
+            logoUrl: window.customizeLogoUrl || null,
+            fontSize: parseInt(document.getElementById('customize-font-size')?.value || 0),
+            showIcons: document.getElementById('customize-show-icons')?.checked !== false,
+            customNotes: document.getElementById('customize-notes')?.value || ''
+        };
+    }
+
+    function resetCustomizeSettings() {
+        document.getElementById('customize-primary-color').value = '#1c8b73';
+        document.getElementById('customize-accent-color').value = '#f2a03d';
+        document.getElementById('customize-bg-color').value = '#ffffff';
+        document.getElementById('customize-font').value = 'inter';
+        document.getElementById('customize-spacing').value = 16;
+        document.getElementById('customize-border').checked = true;
+        document.getElementById('customize-border-width').value = 2;
+        document.getElementById('customize-font-size').value = 0;
+        document.getElementById('customize-show-icons').checked = true;
+        document.getElementById('customize-notes').value = '';
+        document.querySelector('.theme-option[data-theme="cozy"]')?.classList.add('active');
+        document.querySelectorAll('.theme-option').forEach(btn => {
+            if (btn.dataset.theme !== 'cozy') btn.classList.remove('active');
+        });
+        window.customizeLogoUrl = null;
+        const spacingValue = document.getElementById('spacing-value');
+        if (spacingValue) spacingValue.textContent = '16px';
+        const fontSizeValue = document.getElementById('font-size-value');
+        if (fontSizeValue) fontSizeValue.textContent = '0px';
+    }
+
+    function updateBillPreview(bill) {
+        const previewContainer = document.getElementById('bill-card-preview');
+        if (!previewContainer || !bill) return;
+
+        const settings = getCustomizeSettings();
+        const baseFontSize = 14 + settings.fontSize;
+        const headingSize = baseFontSize + 6;
+        const iconSize = settings.showIcons ? '1.2em' : '0';
+        
+        // Escape HTML to prevent text bugs
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+
+        const shopName = escapeHtml(state.shop?.shopName || 'Shop Name');
+        const invoiceNum = escapeHtml(bill.invoiceNumber || generateInvoiceNumber());
+        const customerName = escapeHtml(bill.customerName || 'Customer');
+        const dateStr = formatDisplayDate(bill.date);
+        
+        const previewHTML = `
+            <div class="bill-preview-card" style="
+                background: ${settings.bgColor};
+                border: ${settings.showBorder ? `${settings.borderWidth}px solid ${settings.primaryColor}` : 'none'};
+                border-radius: 8px;
+                padding: ${settings.spacing}px;
+                font-family: '${settings.font}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                font-size: ${baseFontSize}px;
+                color: #1d2b2f;
+                max-width: 100%;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            ">
+                ${settings.logoUrl ? `<img src="${settings.logoUrl}" style="width: 60px; height: 60px; margin-bottom: ${settings.spacing}px; border-radius: 4px; object-fit: contain;" alt="Logo" />` : ''}
+                <h3 style="color: ${settings.primaryColor}; margin: 0 0 ${settings.spacing / 2}px 0; font-size: ${headingSize}px; font-weight: 700;">
+                    ${shopName}
+                </h3>
+                ${state.shop?.ownerName ? `<p style="margin: 0 0 ${settings.spacing}px 0; font-size: ${baseFontSize - 2}px; color: #4a5568;">${escapeHtml(state.shop.ownerName)}</p>` : ''}
+                <div style="margin: ${settings.spacing}px 0; padding: ${settings.spacing / 2}px 0; border-top: 1px solid ${settings.primaryColor}20; border-bottom: 1px solid ${settings.primaryColor}20;">
+                    <p style="margin: ${settings.spacing / 2}px 0; font-weight: 600; color: ${settings.primaryColor};">
+                        ${settings.showIcons ? '📄 ' : ''}Invoice: ${invoiceNum}
+                    </p>
+                    <p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px;">
+                        ${settings.showIcons ? '📅 ' : ''}Date: ${dateStr}
+                    </p>
+                    <p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px;">
+                        ${settings.showIcons ? '👤 ' : ''}Customer: ${customerName}
+                    </p>
+                    ${bill.dueDate ? `<p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px; color: ${bill.dueDate < todayString() ? '#dc2626' : '#4a5568'};">
+                        ${settings.showIcons ? '⏰ ' : ''}Due: ${formatDisplayDate(bill.dueDate)}
+                    </p>` : ''}
+                </div>
+                <div style="margin: ${settings.spacing}px 0;">
+                    <p style="margin: 0 0 ${settings.spacing / 2}px 0; font-weight: 600; color: ${settings.primaryColor};">
+                        ${settings.showIcons ? '📦 ' : ''}Items:
+                    </p>
+                    ${bill.products && bill.products.length > 0 ? bill.products.map(p => {
+                        const itemName = escapeHtml(p.name || 'Item');
+                        const qty = p.quantity || 1;
+                        const price = p.price || 0;
+                        const discount = p.discount || 0;
+                        const itemTotal = p.subtotal || (price * qty * (1 - discount / 100));
+                        return `
+                            <p style="margin: ${settings.spacing / 3}px 0; font-size: ${baseFontSize - 1}px; display: flex; justify-content: space-between;">
+                                <span>${itemName} × ${qty}${discount > 0 ? ` (${discount}% off)` : ''}</span>
+                                <strong>${formatCurrency(itemTotal)}</strong>
+                            </p>
+                        `;
+                    }).join('') : '<p style="margin: 4px 0; color: #9ca3af;">No items</p>'}
+                </div>
+                <div style="margin: ${settings.spacing}px 0; padding-top: ${settings.spacing}px; border-top: 2px solid ${settings.primaryColor};">
+                    <p style="margin: ${settings.spacing / 2}px 0; display: flex; justify-content: space-between; font-size: ${baseFontSize - 1}px;">
+                        <span>Subtotal:</span>
+                        <strong>${formatCurrency(bill.subtotal || bill.total)}</strong>
+                    </p>
+                    ${bill.discountAmount > 0 ? `<p style="margin: ${settings.spacing / 2}px 0; display: flex; justify-content: space-between; font-size: ${baseFontSize - 1}px; color: #16a34a;">
+                        <span>Discount:</span>
+                        <strong>-${formatCurrency(bill.discountAmount)}</strong>
+                    </p>` : ''}
+                    ${bill.taxAmount > 0 ? `<p style="margin: ${settings.spacing / 2}px 0; display: flex; justify-content: space-between; font-size: ${baseFontSize - 1}px;">
+                        <span>Tax:</span>
+                        <strong>${formatCurrency(bill.taxAmount)}</strong>
+                    </p>` : ''}
+                    <p style="margin: ${settings.spacing}px 0 0 0; padding-top: ${settings.spacing / 2}px; border-top: 1px solid ${settings.primaryColor}40; display: flex; justify-content: space-between; font-size: ${baseFontSize + 2}px; font-weight: 700; color: ${settings.primaryColor};">
+                        <span>Total:</span>
+                        <strong>${formatCurrency(bill.total || 0)}</strong>
+                    </p>
+                </div>
+                ${bill.notes || settings.customNotes ? `<div style="margin: ${settings.spacing}px 0; padding: ${settings.spacing / 2}px; background: ${settings.bgColor === '#ffffff' ? '#f8fafc' : settings.bgColor}; border-radius: 4px; font-size: ${baseFontSize - 2}px; color: #4a5568;">
+                    <strong>Notes:</strong> ${escapeHtml(bill.notes || '')} ${escapeHtml(settings.customNotes || '')}
+                </div>` : ''}
+                ${bill.paymentStatus ? `<p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px; color: ${bill.paymentStatus === 'paid' ? '#16a34a' : bill.paymentStatus === 'partial' ? '#2563eb' : '#d97706'};">
+                    Status: ${bill.paymentStatus.charAt(0).toUpperCase() + bill.paymentStatus.slice(1)}
+                </p>` : ''}
+            </div>
+        `;
+        previewContainer.innerHTML = previewHTML;
+    }
+
+    async function shareBillCard(dataUrl, bill) {
+        try {
+            if (navigator.share) {
+                const file = await dataUrlToFile(dataUrl, `bill-${bill.invoiceNumber || bill.id}.png`);
+                await navigator.share({ files: [file], text: `Bill for ${bill.customerName} - ${formatCurrency(bill.total)}` });
             } else {
-                shopImageEl.style.display = 'none';
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `bill-${bill.invoiceNumber || bill.id}.png`;
+                link.click();
             }
-        }
-
-        const customerId = selectors.cardCustomerSelect?.value;
-        if (customerId && amountEl) {
-            const customer = state.customers.find(c => c.id === customerId);
-            if (customer) {
-                amountEl.textContent = formatCurrency(getCustomerBalance(customer));
-            }
-        } else if (amountEl) {
-            amountEl.textContent = '৳0';
-        }
-
-        const message = selectors.cardMessageInput?.value || (state.language === 'bn' ? 'অনুগ্রহ করে আপনার বাকি পরিশোধ করুন।' : 'Please pay your outstanding balance.');
-        if (messageEl) messageEl.textContent = message;
-
-        if (methodsEl) {
-            const phone = selectors.cardPhoneInput?.value || state.shop.phone;
-            const bank = selectors.cardBankInput?.value || state.shop.bank;
-            methodsEl.innerHTML = '';
-            if (phone) {
-                const method = document.createElement('div');
-                method.className = 'payment-method';
-                method.innerHTML = `<span>📱</span><span>${phone}</span>`;
-                methodsEl.appendChild(method);
-            }
-            if (bank) {
-                const method = document.createElement('div');
-                method.className = 'payment-method';
-                method.innerHTML = `<span>🏦</span><span>${bank}</span>`;
-                methodsEl.appendChild(method);
-            }
+        } catch (error) {
+            console.error('Share failed', error);
         }
     }
 
-    function generatePaymentCard() {
-        // Check premium access
-        if (!isPremium()) {
-            alert(state.language === 'bn' 
-                ? 'পেমেন্ট কার্ড তৈরি করতে প্রিমিয়াম প্রয়োজন। সেটিংস থেকে কিনুন।' 
-                : 'Premium required to generate payment cards. Purchase from Settings.');
-            setActivePanel('settings');
+    function renderBills() {
+        const billsList = document.getElementById('bills-list');
+        const billsEmpty = document.getElementById('bills-empty');
+        if (!billsList) return;
+
+        billsList.innerHTML = '';
+        let bills = state.bills || [];
+
+        // Apply search filter
+        const searchInput = document.getElementById('bill-search');
+        const searchQuery = searchInput?.value.toLowerCase().trim() || '';
+        if (searchQuery) {
+            bills = bills.filter(bill => 
+                bill.customerName?.toLowerCase().includes(searchQuery) ||
+                bill.invoiceNumber?.toLowerCase().includes(searchQuery) ||
+                bill.notes?.toLowerCase().includes(searchQuery)
+            );
+        }
+
+        // Apply status filter
+        const activeFilter = document.querySelector('.bill-filters .filter-btn.active')?.dataset.filter;
+        if (activeFilter && activeFilter !== 'all') {
+            const today = todayString();
+            bills = bills.filter(bill => {
+                if (activeFilter === 'paid') return bill.paymentStatus === 'paid';
+                if (activeFilter === 'pending') return bill.paymentStatus === 'pending' || !bill.paymentStatus;
+                if (activeFilter === 'overdue') {
+                    return (bill.paymentStatus === 'pending' || !bill.paymentStatus) && 
+                           bill.dueDate && bill.dueDate < today;
+                }
+                return true;
+            });
+        }
+
+        if (bills.length === 0) {
+            billsEmpty?.removeAttribute('hidden');
+            return;
+        }
+
+        billsEmpty?.setAttribute('hidden', 'hidden');
+        bills.forEach(bill => {
+            const card = document.createElement('article');
+            card.className = 'customer-card bill-card';
+            card.dataset.billId = bill.id;
+            
+            const isOverdue = bill.dueDate && bill.dueDate < todayString() && 
+                            (bill.paymentStatus === 'pending' || !bill.paymentStatus);
+            const statusClass = bill.paymentStatus === 'paid' ? 'status-paid' : 
+                              bill.paymentStatus === 'partial' ? 'status-partial' :
+                              isOverdue ? 'status-overdue' : 'status-pending';
+            
+            const statusText = bill.paymentStatus === 'paid' ? translate('bills.filterPaid') : 
+                              bill.paymentStatus === 'partial' ? translate('modals.bill.statusPartial') : 
+                              isOverdue ? translate('bills.filterOverdue') : translate('bills.filterPending');
+            
+            const unknownCustomer = translate('modals.bill.customerName') || 'Unknown Customer';
+            const noInvoice = translate('bills.invoiceNumber') || 'No Invoice #';
+            const dueLabel = translate('bills.dueDate') || 'Due';
+            const totalLabel = translate('bills.totalAmount') || 'Total';
+            const itemsLabel = translate('bills.items') || 'Items';
+            const discountLabel = translate('modals.bill.discount') || 'Discount';
+            const taxLabel = translate('modals.bill.tax') || 'Tax';
+            
+            card.innerHTML = `
+                <header class="customer-card__header">
+                    <div>
+                        <h2>${bill.customerName || unknownCustomer}</h2>
+                        <p>${bill.invoiceNumber || noInvoice} • ${formatDisplayDate(bill.date)}</p>
+                        ${bill.dueDate ? `<p class="due-date">${dueLabel}: ${formatDisplayDate(bill.dueDate)}</p>` : ''}
+                    </div>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </header>
+                <div class="customer-card__body">
+                    <div class="balance-row">
+                        <span>${totalLabel}</span>
+                        <strong>${formatCurrency(bill.total || 0)}</strong>
+                    </div>
+                    <div class="bill-meta">
+                        <span>${itemsLabel}: ${bill.products?.length || 0}</span>
+                        ${bill.discountAmount > 0 ? `<span>${discountLabel}: ${formatCurrency(bill.discountAmount)}</span>` : ''}
+                        ${bill.taxAmount > 0 ? `<span>${taxLabel}: ${formatCurrency(bill.taxAmount)}</span>` : ''}
+                    </div>
+                    ${bill.notes ? `<p class="bill-notes">${bill.notes}</p>` : ''}
+                </div>
+                <footer class="customer-card__footer">
+                    <button class="secondary-btn" data-action="edit">${translate('actions.edit')}</button>
+                    <button class="secondary-btn" data-action="duplicate">${translate('bills.duplicate')}</button>
+                    <button class="secondary-btn" data-action="view">${translate('bills.view')}</button>
+                    <button class="primary-btn" data-action="share">${translate('bills.share')}</button>
+                </footer>
+            `;
+            
+            // Attach event handlers
+            card.querySelector('[data-action="edit"]')?.addEventListener('click', () => {
+                openBillModal(bill);
+            });
+            card.querySelector('[data-action="duplicate"]')?.addEventListener('click', () => {
+                const duplicate = { ...bill, id: generateId('bill'), invoiceNumber: generateInvoiceNumber(), date: todayString(), createdAt: Date.now() };
+                state.bills.unshift(duplicate);
+                saveState();
+                renderBills();
+                playFeedback();
+            });
+            card.querySelector('[data-action="view"]')?.addEventListener('click', () => {
+                openBillCustomizeModal(bill);
+            });
+            card.querySelector('[data-action="share"]')?.addEventListener('click', async () => {
+                const cardUrl = await generateBillCard(bill);
+                shareBillCard(cardUrl, bill);
+            });
+            
+            billsList.appendChild(card);
+        });
+    }
+
+    async function handleAIMessage() {
+        if (!canUseAI()) {
+            alert(state.language === 'bn' ? 'এআই সহায়ক (অপ্টিচেইন) ব্যবহার করতে সাবস্ক্রিপশন প্রয়োজন।' : 'Subscription required to use AI Assistant (Optichain).');
             return;
         }
         
-        const customerId = selectors.cardCustomerSelect?.value;
-        if (!customerId) {
-            alert(state.language === 'bn' ? 'অনুগ্রহ করে একটি ক্রেতা নির্বাচন করুন।' : 'Please select a customer.');
-            return;
-        }
-        updateCardPreview();
-        setActivePanel('ai');
-        document.querySelector('[data-tab="cards"]')?.click();
+        const input = document.getElementById('ai-input');
+        const messagesContainer = document.getElementById('ai-messages');
+        if (!input || !messagesContainer) return;
+
+        const userMessage = input.value.trim();
+        if (!userMessage) return;
+
+        // Add user message
+        const userMsgEl = document.createElement('div');
+        userMsgEl.className = 'ai-message ai-message-user';
+        userMsgEl.innerHTML = `
+            <div class="ai-avatar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+            <div class="ai-content"><p>${userMessage}</p></div>
+        `;
+        messagesContainer.appendChild(userMsgEl);
+        input.value = '';
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        playFeedback();
+
+        // Generate AI response
+        const aiResponse = await generateAIResponse(userMessage);
+        
+        // Add AI response
+        const aiMsgEl = document.createElement('div');
+        aiMsgEl.className = 'ai-message ai-message-assistant';
+        aiMsgEl.innerHTML = `
+            <div class="ai-avatar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="ai-content"><p style="white-space: pre-line;">${aiResponse}</p></div>
+        `;
+        messagesContainer.appendChild(aiMsgEl);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        playFeedback();
     }
 
-    function downloadPaymentCard() {
-        const customerId = selectors.cardCustomerSelect?.value;
-        if (!customerId) {
-            alert(state.language === 'bn' ? 'অনুগ্রহ করে একটি ক্রেতা নির্বাচন করুন।' : 'Please select a customer first.');
-            return;
-        }
-        const customer = state.customers.find(c => c.id === customerId);
-        if (!customer) return;
-
-        const amount = formatCurrency(getCustomerBalance(customer));
-        const message = selectors.cardMessageInput?.value || (state.language === 'bn'
-            ? 'অনুগ্রহ করে আপনার বাকি পরিশোধ করুন।'
-            : 'Please pay your outstanding balance.');
-        const phone = selectors.cardPhoneInput?.value || state.shop.phone;
-        const bank = selectors.cardBankInput?.value || state.shop.bank;
-        const colors = getDefaultCardColors();
-
-        createPaymentCardBlob({
-            title: customer.name,
-            amount,
-            message,
-            phone,
-            bank,
-            colors
-        }).then(blob => {
-            downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`);
-        }).catch(() => {
-            alert(state.language === 'bn' ? 'ডাউনলোড ব্যর্থ হয়েছে।' : 'Download failed.');
-        });
-    }
-
-    function sharePaymentCard() {
-        const customerId = selectors.cardCustomerSelect?.value;
-        if (!customerId) {
-            alert(state.language === 'bn' ? 'অধিকতর তথ্যের জন্য একজন ক্রেতা নির্বাচন করুন।' : 'Select a customer to share.');
-            return;
-        }
-        const customer = state.customers.find(c => c.id === customerId);
-        if (!customer) return;
-
-        const amount = formatCurrency(getCustomerBalance(customer));
-        const message = selectors.cardMessageInput?.value || (state.language === 'bn'
-            ? 'অনুগ্রহ করে আপনার বাকি পরিশোধ করুন।'
-            : 'Please pay your outstanding balance.');
-        const phone = selectors.cardPhoneInput?.value || state.shop.phone;
-        const bank = selectors.cardBankInput?.value || state.shop.bank;
-        const colors = getDefaultCardColors();
-
-        createPaymentCardBlob({
-            title: customer.name,
-            amount,
-            message,
-            phone,
-            bank,
-            colors
-        }).then(blob => {
-            const file = new File([blob], `payment-card-${customer.name}.png`, { type: 'image/png' });
-            if (navigator.share && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    files: [file],
-                    title: 'Payment Request'
-                }).catch(() => downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`));
-            } else {
-                downloadBlobAsImage(blob, `payment-card-${customer.name}-${Date.now()}.png`);
+    async function generateAIResponse(userMessage) {
+        const lower = userMessage.toLowerCase();
+        
+        // Task management queries
+        if (lower.includes('show') && (lower.includes('task') || lower.includes('tasks'))) {
+            const incompleteTasks = state.tasks.filter(t => !t.completed);
+            if (incompleteTasks.length === 0) {
+                return 'You have no pending tasks Great job staying organized';
             }
-        }).catch(() => {
-            alert(state.language === 'bn' ? 'শেয়ার ব্যর্থ হয়েছে।' : 'Share failed.');
-        });
-    }
+            let taskList = `You have ${incompleteTasks.length} pending task(s):\n\n`;
+            incompleteTasks.forEach((task, i) => {
+                const dueDate = new Date(task.dueDate).toLocaleDateString();
+                taskList += `${i + 1}. ${task.name} (Due: ${dueDate})\n`;
+            });
+            return taskList;
+        }
 
-    function downloadBlobAsImage(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-        URL.revokeObjectURL(url);
-    }
+        if (lower.includes('add task') || (lower.includes('create') && lower.includes('task'))) {
+            return 'To add a task click the "+ Task" button in the Notes & Tasks section or tell me what task you want to add and when its due';
+        }
 
-    function getDefaultCardColors() {
-        return ['#1c8b73', '#12644f'];
-    }
-
-    function createPaymentCardBlob({ title, amount, message, phone, bank, colors }) {
-        return new Promise((resolve, reject) => {
-            const canvas = document.createElement('canvas');
-            const width = 900;
-            const height = 520;
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-
-            const gradient = ctx.createLinearGradient(0, 0, width, height);
-            gradient.addColorStop(0, colors[0]);
-            gradient.addColorStop(1, colors[1]);
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.fillStyle = '#fff';
-            ctx.textBaseline = 'top';
-            ctx.font = '700 48px Inter, Arial';
-            ctx.fillText(title, 60, 80);
-
-            ctx.font = '700 76px Inter, Arial';
-            ctx.fillText(amount, 60, 170);
-
-        ctx.font = '500 28px Inter, Arial';
-        ctx.fillText(translate('card.paymentRequest') || (state.language === 'bn' ? 'পেমেন্ট অনুরোধ' : 'Payment Request'), 60, 260);
-
-            ctx.font = '400 22px Inter, Arial';
-            drawMultilineText(ctx, message, 60, 320, width - 120, 28);
-
-            let methodY = 420;
-            ctx.font = '500 24px Inter, Arial';
-            if (phone) {
-                ctx.fillText(`📱 ${phone}`, 60, methodY);
-                methodY += 32;
+        if (lower.includes('remaining') || lower.includes('left') || lower.includes('pending')) {
+            const incompleteTasks = state.tasks.filter(t => !t.completed);
+            const today = new Date().toISOString().slice(0, 10);
+            const todayTasks = incompleteTasks.filter(t => t.dueDate === today);
+            const overdueTasks = incompleteTasks.filter(t => t.dueDate < today);
+            
+            let response = `Task Summary:\n`;
+            response += `• Total pending: ${incompleteTasks.length}\n`;
+            response += `• Due today: ${todayTasks.length}\n`;
+            response += `• Overdue: ${overdueTasks.length}\n`;
+            
+            if (todayTasks.length > 0) {
+                response += `\nTodays tasks:\n`;
+                todayTasks.forEach((task, i) => {
+                    response += `${i + 1}. ${task.name}\n`;
+                });
             }
-            if (bank) {
-                ctx.fillText(`🏦 ${bank}`, 60, methodY);
-            }
-
-            canvas.toBlob(blob => {
-                if (blob) {
-                    resolve(blob);
-                } else {
-                    reject(new Error('Could not create image'));
+            
+            return response;
+        }
+        
+        // Trust ratio query
+        if (lower.includes('trust') || lower.includes('ratio')) {
+            const customerName = extractCustomerName(userMessage);
+            if (customerName) {
+                const customer = state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()));
+                if (customer) {
+                    const trustRatio = calculateTrustRatio(customer);
+                    return `[AI Analysis] The trust ratio for ${customer.name} is ${trustRatio}% ${getTrustRatioExplanation(trustRatio)} This is calculated based on payment history and timeliness`;
                 }
+            }
+            return 'I can calculate trust ratios for your customers using AI analysis Try asking "What is the trust ratio for [customer name]" or "Calculate trust ratio for [customer name]"';
+        }
+
+        // Generate card query
+        if (lower.includes('card') || lower.includes('generate')) {
+            const customerName = extractCustomerName(userMessage);
+            if (customerName) {
+                const customer = state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()));
+                if (customer) {
+                    const balance = getCustomerBalance(customer);
+                    return `I can generate a payment card for ${customer.name} with a balance of ${formatCurrency(balance)} Would you like me to create it?`;
+                }
+            }
+            return 'I can generate payment cards for your customers Tell me which customer you want a card for';
+        }
+
+        // General stats
+        if (lower.includes('summary') || lower.includes('stats') || lower.includes('overview')) {
+            return buildAISummary();
+        }
+
+        // Default response
+        return `I understand youre asking about "${userMessage}" I can help you with:\n- Show your tasks and whats remaining\n- Add new tasks\n- Calculate customer trust ratios\n- Generate payment cards\n- View monthly summaries\n\nWhat would you like to know?`;
+    }
+
+    function extractCustomerName(message) {
+        const patterns = [
+            /(?:for|of|about)\s+([A-Za-z\s]+?)(?:\s|$|\.|,)/i,
+            /"([^"]+)"/,
+            /'([^']+)'/
+        ];
+        for (const pattern of patterns) {
+            const match = message.match(pattern);
+            if (match) return match[1].trim();
+        }
+        return null;
+    }
+
+    function calculateTrustRatio(customer) {
+        if (!customer || customer.debts.length === 0) return 100;
+        
+        const totalDebts = customer.debts.length;
+        const paidDebts = customer.debts.filter(d => getDebtOutstanding(d) <= 0).length;
+        const onTimePayments = customer.payments.filter(p => {
+            const debt = customer.debts.find(d => d.dueDate && new Date(p.date) <= new Date(d.dueDate));
+            return debt;
+        }).length;
+        
+        const paymentRatio = totalDebts > 0 ? (paidDebts / totalDebts) * 50 : 0;
+        const timelinessRatio = totalDebts > 0 ? (onTimePayments / totalDebts) * 50 : 0;
+        
+        return Math.round(paymentRatio + timelinessRatio);
+    }
+
+    function getTrustRatioExplanation(ratio) {
+        if (ratio >= 90) return 'Excellent! This customer is very reliable.';
+        if (ratio >= 70) return 'Good. This customer is generally reliable.';
+        if (ratio >= 50) return 'Fair. Keep an eye on payments.';
+        return 'Low. Consider being cautious with this customer.';
+    }
+
+    function showMonthlyWrap() {
+        const modal = modals.monthlyWrap;
+        const content = document.getElementById('monthly-wrap-content');
+        if (!modal || !content) return;
+
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const monthBills = (state.bills || []).filter(b => {
+            const billDate = new Date(b.date);
+            return billDate >= monthStart && billDate <= monthEnd;
+        });
+
+        const monthPayments = state.customers.flatMap(c => 
+            c.payments.filter(p => {
+                const payDate = new Date(p.date);
+                return payDate >= monthStart && payDate <= monthEnd;
+            })
+        );
+
+        const totalRevenue = monthBills.reduce((sum, b) => sum + b.total, 0);
+        const totalPayments = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+        const totalCustomers = new Set(monthBills.map(b => b.customerName)).size;
+
+        content.innerHTML = `
+            <div class="monthly-wrap-card">
+                <h3>${now.toLocaleString('default', { month: 'long', year: 'numeric' })} Summary</h3>
+                <div class="monthly-wrap-stats">
+                    <div class="monthly-wrap-stat">
+                        <div class="monthly-wrap-stat-value">${formatCurrency(totalRevenue)}</div>
+                        <div class="monthly-wrap-stat-label">Total Revenue</div>
+                    </div>
+                    <div class="monthly-wrap-stat">
+                        <div class="monthly-wrap-stat-value">${formatCurrency(totalPayments)}</div>
+                        <div class="monthly-wrap-stat-label">Payments Received</div>
+                    </div>
+                    <div class="monthly-wrap-stat">
+                        <div class="monthly-wrap-stat-value">${monthBills.length}</div>
+                        <div class="monthly-wrap-stat-label">Bills Generated</div>
+                    </div>
+                    <div class="monthly-wrap-stat">
+                        <div class="monthly-wrap-stat-value">${totalCustomers}</div>
+                        <div class="monthly-wrap-stat-label">Active Customers</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        modal.showModal();
+    }
+
+    function applyTextSize(size) {
+        document.documentElement.dataset.textSize = size;
+    }
+
+    // Calculator Functions
+    function initCalculator() {
+        if (!selectors.calculatorButtons) return;
+        
+        selectors.calculatorButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const value = btn.dataset.value;
+                const action = btn.dataset.action;
+                
+                if (action) {
+                    handleCalculatorAction(action);
+                } else if (value) {
+                    handleCalculatorInput(value);
+                }
+            });
+        });
+        
+        updateCalculatorDisplay();
+    }
+
+    function handleCalculatorInput(value) {
+        if (!state.calculator.expression) {
+            state.calculator.expression = value;
+        } else {
+            state.calculator.expression += value;
+        }
+        calculateResult();
+        updateCalculatorDisplay();
+    }
+
+    function handleCalculatorAction(action) {
+        switch(action) {
+            case 'clear':
+                state.calculator.expression = state.calculator.expression.slice(0, -1);
+                break;
+            case 'clear-all':
+                state.calculator.expression = '';
+                state.calculator.result = '0';
+                break;
+            case 'backspace':
+                state.calculator.expression = state.calculator.expression.slice(0, -1);
+                break;
+            case 'equals':
+                state.calculator.expression = state.calculator.result;
+                break;
+        }
+        calculateResult();
+        updateCalculatorDisplay();
+    }
+
+    function calculateResult() {
+        try {
+            if (!state.calculator.expression) {
+                state.calculator.result = '0';
+                return;
+            }
+            const expr = state.calculator.expression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+            const result = Function('"use strict"; return (' + expr + ')')();
+            state.calculator.result = result.toString();
+        } catch (e) {
+            state.calculator.result = 'Error';
+        }
+    }
+
+    function updateCalculatorDisplay() {
+        if (selectors.calcExpression) {
+            selectors.calcExpression.textContent = state.calculator.expression || '';
+        }
+        if (selectors.calcResult) {
+            selectors.calcResult.textContent = state.calculator.result || '0';
+        }
+    }
+
+    // AI Tools Functions
+    function initAITools() {
+        // AI tools tab switching
+        const aiTabBtns = document.querySelectorAll('.ai-tab-btn');
+        const aiToolPanels = document.querySelectorAll('.ai-tool-panel');
+        
+        aiTabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.dataset.aiTab;
+                
+                // Update active tab button
+                aiTabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Update active panel
+                aiToolPanels.forEach(panel => {
+                    panel.classList.remove('active');
+                    if (panel.id === `ai-${targetTab}-panel`) {
+                        panel.classList.add('active');
+                    }
+                });
+            });
+        });
+        
+        // Populate customer and logo dropdowns
+        populateCardCustomerSelect();
+        populateCardLogoSelect();
+        
+        // Customer selection change handler
+        const customerSelect = document.getElementById('card-customer-select');
+        if (customerSelect) {
+            customerSelect.addEventListener('change', (e) => {
+                const customerId = e.target.value;
+                if (customerId) {
+                    const customer = state.customers.find(c => c.id === customerId);
+                    if (customer) {
+                        const customerNameInput = document.querySelector('input[name="customerName"]');
+                        const debtAmountInput = document.querySelector('input[name="debtAmount"]');
+                        
+                        if (customerNameInput) customerNameInput.value = customer.name;
+                        if (debtAmountInput) {
+                            const totalDebt = customer.debts.reduce((sum, d) => sum + d.amount, 0);
+                            const totalPaid = customer.payments.reduce((sum, p) => sum + p.amount, 0);
+                            debtAmountInput.value = totalDebt - totalPaid;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Debt card generator
+        const debtCardForm = document.getElementById('debt-card-form');
+        if (debtCardForm) {
+            debtCardForm.addEventListener('submit', generateDebtCard);
+        }
+        
+        // Download and share buttons
+        const downloadBtn = document.getElementById('download-debt-card-btn');
+        const shareBtn = document.getElementById('share-debt-card-btn');
+        
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', downloadDebtCard);
+        }
+        if (shareBtn) {
+            shareBtn.addEventListener('click', shareDebtCard);
+        }
+    }
+    
+    function populateCardCustomerSelect() {
+        const customerSelect = document.getElementById('card-customer-select');
+        if (!customerSelect) return;
+        
+        // Clear existing options except the first one
+        while (customerSelect.options.length > 1) {
+            customerSelect.remove(1);
+        }
+        
+        // Add customers
+        state.customers.forEach(customer => {
+            const option = document.createElement('option');
+            option.value = customer.id;
+            option.textContent = customer.name;
+            customerSelect.appendChild(option);
+        });
+    }
+    
+    function populateCardLogoSelect() {
+        const logoSelect = document.getElementById('card-logo-select');
+        if (!logoSelect) return;
+        
+        // Clear existing options except the first one
+        while (logoSelect.options.length > 1) {
+            logoSelect.remove(1);
+        }
+        
+        // Add logos
+        if (state.shopLogos && state.shopLogos.length > 0) {
+            state.shopLogos.forEach(logo => {
+                const option = document.createElement('option');
+                option.value = logo.id;
+                option.textContent = logo.name;
+                logoSelect.appendChild(option);
+            });
+        }
+    }
+
+    function generateDebtCard(event) {
+        event.preventDefault();
+        
+        // Check if user has premium subscription
+        if (state.subscription.plan === 'free') {
+            alert(translate('ai.requiresPremium') || 'Card Generator requires a premium subscription. Please upgrade to Pro, Max, or Ultra to use this feature.');
+            // Scroll to settings subscription section
+            setTimeout(() => {
+                document.getElementById('nav-settings').click();
+                setTimeout(() => {
+                    const subscriptionSection = document.querySelector('.settings-card:has(#subscription-status)');
+                    if (subscriptionSection) {
+                        subscriptionSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }, 500);
+            return;
+        }
+        
+        const formData = new FormData(event.target);
+        
+        const selectedCustomerId = formData.get('selectedCustomer');
+        const selectedLogoId = formData.get('selectedLogo');
+        const customerName = formData.get('customerName');
+        const debtAmount = formData.get('debtAmount');
+        const shopName = formData.get('shopName') || state.shop.shopName || 'Your Shop';
+        const paymentMethod = formData.get('paymentMethod');
+        const paymentNumber = formData.get('paymentNumber') || '';
+        const dueDate = formData.get('dueDate');
+        const cardColor = formData.get('cardColor');
+        const customMessage = formData.get('customMessage') || '';
+        
+        // Get selected logo
+        let logoHTML = '<div class="card-logo">💳</div>';
+        if (selectedLogoId) {
+            const selectedLogo = state.shopLogos.find(l => l.id === selectedLogoId);
+            if (selectedLogo && selectedLogo.image) {
+                logoHTML = `<img src="${selectedLogo.image}" alt="Shop Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">`;
+            }
+        } else if (state.shop.shopLogo) {
+            logoHTML = `<img src="${state.shop.shopLogo}" alt="Shop Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">`;
+        }
+        
+        // Format date
+        let dueDateFormatted = '';
+        if (dueDate) {
+            const date = new Date(dueDate);
+            dueDateFormatted = date.toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+        
+        // Generate card HTML
+        const cardHTML = `
+            <div class="card-header">
+                <div>
+                    <p class="card-shop-name">${escapeHtml(shopName)}</p>
+                </div>
+                ${logoHTML}
+            </div>
+            <div class="card-body">
+                <p class="card-customer-name">${translate('ai.customerName')}: ${escapeHtml(customerName)}</p>
+                <p class="card-debt-amount">৳${escapeHtml(debtAmount)}</p>
+                <div class="card-details">
+                    <div class="card-detail-row">
+                        <span>${translate('ai.paymentMethod')}:</span>
+                        <strong>${escapeHtml(paymentMethod)}</strong>
+                    </div>
+                    ${paymentNumber ? `
+                    <div class="card-detail-row">
+                        <span>${translate('ai.paymentNumber')}:</span>
+                        <strong>${escapeHtml(paymentNumber)}</strong>
+                    </div>
+                    ` : ''}
+                    ${dueDateFormatted ? `
+                    <div class="card-detail-row">
+                        <span>${translate('ai.dueDate')}:</span>
+                        <strong>${dueDateFormatted}</strong>
+                    </div>
+                    ` : ''}
+                </div>
+                ${customMessage ? `<p class="card-message">"${escapeHtml(customMessage)}"</p>` : ''}
+            </div>
+        `;
+        
+        // Update card content and apply color
+        const cardContent = document.getElementById('generated-card-content');
+        const cardPreview = document.getElementById('debt-card-preview');
+        
+        if (cardContent && cardPreview) {
+            cardContent.innerHTML = cardHTML;
+            cardContent.style.background = `linear-gradient(135deg, ${cardColor}, ${adjustColor(cardColor, -20)})`;
+            cardPreview.hidden = false;
+            
+            // Scroll to preview
+            cardPreview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function adjustColor(color, percent) {
+        // Convert hex to RGB
+        const num = parseInt(color.replace('#', ''), 16);
+        const r = Math.max(0, Math.min(255, (num >> 16) + percent));
+        const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + percent));
+        const b = Math.max(0, Math.min(255, (num & 0x0000FF) + percent));
+        return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+    }
+
+    function downloadDebtCard() {
+        const cardContent = document.getElementById('generated-card-content');
+        if (!cardContent) return;
+        
+        // Use html2canvas if available, otherwise show message
+        if (typeof html2canvas !== 'undefined') {
+            html2canvas(cardContent).then(canvas => {
+                canvas.toBlob(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `debt-card-${Date.now()}.png`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+            });
+        } else {
+            alert('Download feature requires additional library. Please take a screenshot of the card instead.');
+        }
+    }
+
+    async function shareDebtCard() {
+        const cardContent = document.getElementById('generated-card-content');
+        if (!cardContent) return;
+        
+        try {
+            if (navigator.share) {
+                // For browsers that support Web Share API
+                await navigator.share({
+                    title: 'Debt Reminder Card',
+                    text: 'Payment reminder from ' + (state.shop?.shopName || 'my shop')
+                });
+            } else {
+                alert('Sharing is not supported on this browser. Please take a screenshot to share.');
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Subscription Functions
+    function checkSubscription() {
+        const sub = state.subscription || { plan: 'free', expiresAt: null };
+        if (sub.plan === 'free') return false;
+        if (sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
+            state.subscription.plan = 'free';
+            state.subscription.expiresAt = null;
+            saveState();
+            return false;
+        }
+        return true;
+    }
+
+    function getSubscriptionPlan() {
+        checkSubscription();
+        return state.subscription?.plan || 'free';
+    }
+
+    function validateCoupon(plan, couponCode) {
+        const coupons = {
+            pro: 'terencepro',
+            max: 'terencemaxo',
+            ultra: 'teultra'
+        };
+        
+        const enteredCoupon = couponCode.trim().toLowerCase();
+        const validCoupon = coupons[plan]?.toLowerCase();
+        
+        return enteredCoupon === validCoupon;
+    }
+    
+    function showCouponFeedback(plan, isValid, message) {
+        const feedbackEl = document.getElementById(`coupon-feedback-${plan}`);
+        if (!feedbackEl) return;
+        
+        feedbackEl.textContent = message || '';
+        feedbackEl.className = 'coupon-feedback';
+        
+        if (isValid) {
+            feedbackEl.classList.add('success');
+            feedbackEl.textContent = translate('subscription.couponValid') || '✓ Valid coupon code';
+        } else if (message) {
+            feedbackEl.classList.add('error');
+        }
+    }
+    
+    function activateSubscription(plan) {
+        const couponInput = document.getElementById(`coupon-${plan}`);
+        const enteredCoupon = couponInput?.value.trim() || '';
+        
+        if (!enteredCoupon) {
+            alert(translate('subscription.couponRequired') || 'Please enter a coupon code');
+            return;
+        }
+        
+        if (!validateCoupon(plan, enteredCoupon)) {
+            showCouponFeedback(plan, false, translate('subscription.invalidCoupon'));
+            playFeedback('error');
+            return;
+        }
+        
+        const now = new Date();
+        state.subscription.plan = plan;
+        state.subscription.activatedAt = now.toISOString();
+        
+        if (plan === 'pro') {
+            const expiresAt = new Date(now);
+            expiresAt.setMonth(expiresAt.getMonth() + 1);
+            state.subscription.expiresAt = expiresAt.toISOString();
+        } else if (plan === 'max' || plan === 'ultra') {
+            const expiresAt = new Date(now);
+            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+            state.subscription.expiresAt = expiresAt.toISOString();
+        }
+        
+        saveState();
+        updateSubscriptionDisplay();
+        renderAll();
+        showCouponFeedback(plan, true, translate('subscription.activated'));
+        couponInput.value = '';
+        playFeedback();
+        
+        // Hide activate button, show subscribe button
+        const activateBtn = document.getElementById(`activate-${plan}-btn`);
+        const subscribeBtn = document.getElementById(`subscribe-${plan}-btn`);
+        if (activateBtn) activateBtn.hidden = true;
+        if (subscribeBtn) subscribeBtn.hidden = false;
+    }
+    
+    function handleSubscribe(plan) {
+        // Redirect to Facebook page for payment
+        window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank');
+    }
+
+    function updateSubscriptionDisplay() {
+        const plan = getSubscriptionPlan();
+        if (selectors.currentPlan) {
+            selectors.currentPlan.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+        }
+        
+        if (selectors.subscriptionExpiry && state.subscription?.expiresAt) {
+            const expiry = new Date(state.subscription.expiresAt);
+            const expiryStr = expiry.toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-GB');
+            selectors.subscriptionExpiry.textContent = `Expires: ${expiryStr}`;
+            selectors.subscriptionExpiry.hidden = false;
+        } else if (selectors.subscriptionExpiry) {
+            selectors.subscriptionExpiry.hidden = true;
+        }
+    }
+
+    function canUseAI() {
+        return checkSubscription() && getSubscriptionPlan() !== 'free';
+    }
+
+    function canImportExport() {
+        const plan = getSubscriptionPlan();
+        return plan === 'pro' || plan === 'max' || plan === 'ultra';
+    }
+
+    function canAddCustomer() {
+        const plan = getSubscriptionPlan();
+        if (plan !== 'free') return true;
+        return state.customers.length < 5;
+    }
+
+    // Notes/Tasks Tab Switching
+    function switchNotesTab(tab) {
+        state.ui.activeNotesTab = tab;
+        saveState();
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        
+        if (selectors.notesSection) {
+            selectors.notesSection.hidden = tab !== 'notes';
+        }
+        if (selectors.tasksSection) {
+            selectors.tasksSection.hidden = tab !== 'tasks';
+        }
+        
+        if (tab === 'tasks') {
+            renderCalendar();
+            renderTaskCards();
+        }
+    }
+
+    // Logo Management
+    async function handleLogoSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const logoId = formData.get('logoId');
+        const logoName = formData.get('logoName');
+        const logoFile = formData.get('logoImage');
+        
+        if (!logoFile || !logoFile.size) {
+            alert('Please select an image');
+            return;
+        }
+        
+        const logoDataUrl = await readFileAsDataUrl(logoFile);
+        
+        if (logoId) {
+            const idx = state.shopLogos.findIndex(l => l.id === logoId);
+            if (idx >= 0) {
+                state.shopLogos[idx] = { ...state.shopLogos[idx], name: logoName, image: logoDataUrl };
+            }
+        } else {
+            state.shopLogos.push({
+                id: generateId('logo'),
+                name: logoName,
+                image: logoDataUrl,
+                createdAt: Date.now()
+            });
+        }
+        
+        saveState();
+        renderLogoList();
+        populateCardLogoSelect();
+        modals.logo?.close();
+        playFeedback();
+    }
+
+    function renderLogoList() {
+        if (!selectors.logoListContainer) return;
+        
+        if (!state.shopLogos || state.shopLogos.length === 0) {
+            selectors.logoListContainer.innerHTML = '<p class="data-empty">No logos added yet.</p>';
+            return;
+        }
+        
+        selectors.logoListContainer.innerHTML = state.shopLogos.map(logo => `
+            <div class="logo-item">
+                <img src="${logo.image}" alt="${logo.name}">
+                <button class="logo-item-remove" data-logo-id="${logo.id}">×</button>
+            </div>
+        `).join('');
+        
+        selectors.logoListContainer.querySelectorAll('.logo-item-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const logoId = btn.dataset.logoId;
+                state.shopLogos = state.shopLogos.filter(l => l.id !== logoId);
+                saveState();
+                renderLogoList();
+                playFeedback();
             });
         });
     }
 
-    function drawMultilineText(ctx, text, x, y, maxWidth, lineHeight) {
-        const words = text.split(' ');
-        let line = '';
-        let currentY = y;
-        words.forEach(word => {
-            const testLine = line + word + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && line) {
-                ctx.fillText(line.trim(), x, currentY);
-                line = word + ' ';
-                currentY += lineHeight;
-            } else {
-                line = testLine;
-            }
-        });
-        if (line) {
-            ctx.fillText(line.trim(), x, currentY);
-        }
-    }
-
-    function generateBusinessSummary(lang) {
-        const totalCustomers = state.customers.length;
-        const totalBalance = state.customers.reduce((sum, c) => sum + getCustomerBalance(c), 0);
-        const totalTasks = state.tasks.filter(t => !t.done).length;
-        const overdueCount = state.customers.filter(c => {
-            const dueInfo = getCustomerDueInfo(c);
-            return dueInfo.status === 'overdue';
-        }).length;
-
-        let summary = lang === 'bn' ? 'ব্যবসায়িক সারাংশ:\n\n' : 'Business Summary:\n\n';
-        summary += lang === 'bn' 
-            ? `• মোট ক্রেতা: ${totalCustomers}\n`
-            : `• Total Customers: ${totalCustomers}\n`;
-        summary += lang === 'bn'
-            ? `• মোট বাকি: ${formatCurrency(totalBalance)}\n`
-            : `• Total Outstanding: ${formatCurrency(totalBalance)}\n`;
-        summary += lang === 'bn'
-            ? `• মুলতুবি কাজ: ${totalTasks}\n`
-            : `• Pending Tasks: ${totalTasks}\n`;
-        summary += lang === 'bn'
-            ? `• বাকি পড়েছে: ${overdueCount}`
-            : `• Overdue: ${overdueCount}`;
-
-        if (totalBalance > 0) {
-            summary += '\n\n' + (lang === 'bn' 
-                ? '💡 পরামর্শ: বাকি টাকা সংগ্রহে মনোযোগ দিন।'
-                : '💡 Tip: Focus on collecting outstanding amounts.');
-        }
-
-        return summary;
-    }
-
+    // Update form handlers
+    forms.shopProfile?.addEventListener('submit', handleShopProfileSubmit);
+    forms.bill?.addEventListener('submit', handleBillSubmit);
 })();
