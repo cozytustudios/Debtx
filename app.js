@@ -4,7 +4,13 @@
     const STORAGE_KEY = 'debtx-data-v1';
     const LS_VERSION = 2;
 
-    const todayString = () => new Date().toISOString().slice(0, 10);
+    const todayString = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
 
         const defaultState = () => ({
         version: LS_VERSION,
@@ -214,6 +220,8 @@
             'settings.couponPlaceholder': 'Enter coupon code (optional)',
             'settings.couponValid': 'Coupon valid!',
             'settings.couponInvalid': 'Invalid coupon',
+            'settings.redeemCoupon': 'Redeem',
+            'settings.readMore': 'Read More',
             'language.english': 'English',
             'language.bengali': 'বাংলা',
             'subscription.pro': 'Pro',
@@ -589,6 +597,8 @@
             'settings.couponPlaceholder': 'কুপন কোড লিখুন (ঐচ্ছিক)',
             'settings.couponValid': 'কুপন বৈধ!',
             'settings.couponInvalid': 'অবৈধ কুপন',
+            'settings.redeemCoupon': 'রিডিম করুন',
+            'settings.readMore': 'আরও পড়ুন',
             'language.english': 'English',
             'language.bengali': 'বাংলা',
             'subscription.pro': 'প্রো',
@@ -918,6 +928,7 @@
         shopProfile: document.getElementById('shop-profile-modal'),
         bill: document.getElementById('bill-modal'),
         monthlyWrap: document.getElementById('monthly-wrap-modal'),
+        trialPopup: document.getElementById('trial-popup-modal'),
         cardCustomize: document.getElementById('card-customize-modal'),
         logo: document.getElementById('logo-modal')
     };
@@ -1038,6 +1049,11 @@
                 customers: state.customers,
                 notes: state.notes,
                 tasks: state.tasks,
+                subscription: {
+                    plan: state.subscription.plan,
+                    activatedAt: state.subscription.activatedAt,
+                    expiresAt: state.subscription.expiresAt
+                },
                 ui: {
                     theme: state.ui.theme,
                     haptics: state.ui.haptics,
@@ -1126,6 +1142,13 @@
                 state.language = imported.language;
                 applyLanguage(state.language);
             }
+            // Import premium subscription if available
+            if (imported.subscription && imported.subscription.plan && imported.subscription.plan !== 'free') {
+                state.subscription.plan = imported.subscription.plan;
+                state.subscription.activatedAt = imported.subscription.activatedAt || state.subscription.activatedAt;
+                state.subscription.expiresAt = imported.subscription.expiresAt || state.subscription.expiresAt;
+                updateSubscriptionDisplay();
+            }
             saveState();
             renderAll();
             updateUserBadge();
@@ -1210,9 +1233,36 @@
 
         selectors.addTaskBtn?.addEventListener('click', () => {
             forms.task.reset();
+            setModalMode(forms.task, 'create');
             forms.task.elements.dueDate.value = todayString();
+            forms.task.elements.priority.value = 'medium';
+            forms.task.elements.recurring.checked = false;
+            const recurringOptions = document.getElementById('recurring-options');
+            if (recurringOptions) recurringOptions.style.display = 'none';
             modals.task.showModal();
         });
+        
+        // Recurring task toggle
+        const recurringCheckbox = forms.task?.elements.recurring;
+        const recurringOptions = document.getElementById('recurring-options');
+        if (recurringCheckbox && recurringOptions) {
+            recurringCheckbox.addEventListener('change', () => {
+                recurringOptions.style.display = recurringCheckbox.checked ? 'block' : 'none';
+            });
+        }
+        
+        // Subscription read more button
+        const readMoreBtn = document.getElementById('subscription-read-more-btn');
+        const subscriptionDetails = document.getElementById('subscription-details');
+        if (readMoreBtn && subscriptionDetails) {
+            readMoreBtn.addEventListener('click', () => {
+                const isHidden = subscriptionDetails.style.display === 'none';
+                subscriptionDetails.style.display = isHidden ? 'block' : 'none';
+                readMoreBtn.innerHTML = isHidden 
+                    ? '<span class="title-en">Read Less</span><span class="title-bn">কম পড়ুন</span>'
+                    : '<span class="title-en">Read More</span><span class="title-bn">আরও পড়ুন</span>';
+            });
+        }
     }
 
     function attachFormHandlers() {
@@ -1875,9 +1925,28 @@
         event.preventDefault();
         
         if (!canAddCustomer()) {
-            alert(state.language === 'bn' ? 'ফ্রি ভার্সনে সর্বোচ্চ ৫ জন ক্রেতা যোগ করা যাবে। সাবস্ক্রিপশন নিন।' : 'Free version allows maximum 5 customers. Please subscribe.');
-            modals.customer?.close();
-            return;
+            const message = state.language === 'bn' 
+                ? 'ফ্রি ভার্সনে সর্বোচ্চ ৫ জন ক্রেতা যোগ করা যাবে। প্রো প্ল্যান নিন অথবা ৩ দিনের ফ্রি ট্রায়াল নিন।' 
+                : 'Free version allows maximum 5 customers. Buy Pro plan or take a free 3-day trial.';
+            
+            const action = confirm(message + (state.language === 'bn' ? '\n\nফ্রি ট্রায়াল নিতে চান?' : '\n\nWould you like to start a free trial?'));
+            if (action) {
+                // Start free trial
+                const now = new Date();
+                state.subscription.plan = 'trial';
+                state.subscription.activatedAt = now.toISOString();
+                const expiresAt = new Date(now);
+                expiresAt.setDate(expiresAt.getDate() + 3); // 3 days trial
+                state.subscription.expiresAt = expiresAt.toISOString();
+                saveState();
+                updateSubscriptionDisplay();
+                // Show trial popup
+                showTrialPopup();
+                // Allow customer to be added now - canAddCustomer will return true for trial
+            } else {
+                modals.customer?.close();
+                return;
+            }
         }
         
         const form = event.target;
@@ -2015,20 +2084,42 @@
         event.preventDefault();
         const form = event.target;
         const data = new FormData(form);
-        const task = {
-            id: generateId('task'),
+        const taskId = data.get('taskId');
+        
+        const taskData = {
             name: data.get('name').trim(),
             type: data.get('type'),
+            priority: data.get('priority') || 'medium',
             dueDate: data.get('dueDate') || todayString(),
+            dueTime: data.get('dueTime') || '',
             note: (data.get('note') || '').trim(),
+            recurring: data.get('recurring') === 'on',
+            recurringType: data.get('recurringType') || 'daily',
             done: false,
-            reminderSent: false,
-            createdAt: Date.now()
+            reminderSent: false
         };
-        state.tasks.push(task);
+        
+        if (taskId) {
+            // Edit existing task
+            const existing = state.tasks.find(t => t.id === taskId);
+            if (existing) {
+                Object.assign(existing, taskData);
+                existing.updatedAt = Date.now();
+            }
+        } else {
+            // Create new task
+            const task = {
+                id: generateId('task'),
+                ...taskData,
+                createdAt: Date.now()
+            };
+            state.tasks.push(task);
+        }
+        
         saveState();
         renderTasks();
         modals.task.close();
+        playFeedback();
     }
 
     async function handleDemandSubmit(event) {
@@ -2430,11 +2521,49 @@
                 localizeFragment(fragment);
                 const card = fragment.querySelector('.task-card');
                 card.dataset.taskId = item.id;
+                card.dataset.priority = item.priority || 'medium';
+                
+                // Add priority class for styling
+                if (item.priority) {
+                    card.classList.add(`priority-${item.priority}`);
+                }
+                
                 card.querySelector('.task-name').textContent = item.name;
+                
+                // Priority badge
+                const priorityEl = card.querySelector('.task-priority');
+                if (priorityEl && item.priority) {
+                    const priorityLabels = {
+                        low: '🟢 Low',
+                        medium: '🟡 Medium',
+                        high: '🔴 High',
+                        urgent: '⚡ Urgent'
+                    };
+                    priorityEl.textContent = priorityLabels[item.priority] || '';
+                    priorityEl.className = `task-priority priority-${item.priority}`;
+                }
+                
                 card.querySelector('.task-type').textContent = translateTaskType(item.type);
-                card.querySelector('.task-date').textContent = formatDisplayDate(item.dueDate);
+                
+                // Format date with time if available
+                let dateText = formatDisplayDate(item.dueDate);
+                if (item.dueTime) {
+                    dateText += ` at ${item.dueTime}`;
+                }
+                card.querySelector('.task-date').textContent = dateText;
+                
                 card.querySelector('.task-note').textContent = item.note;
                 card.querySelector('.task-note').hidden = !item.note;
+                
+                // Recurring indicator
+                if (item.recurring) {
+                    const recurringBadge = document.createElement('span');
+                    recurringBadge.className = 'task-recurring-badge';
+                    recurringBadge.textContent = '🔄';
+                    recurringBadge.title = `Repeats ${item.recurringType || 'daily'}`;
+                    card.querySelector('.task-header-top')?.appendChild(recurringBadge);
+                }
+                
                 const checkbox = card.querySelector('input[type="checkbox"]');
                 checkbox.checked = item.done;
                 const doneLabel = card.querySelector('.task-status span');
@@ -2449,11 +2578,32 @@
                     playFeedback();
                 });
 
+                // Edit button
+                const editBtn = card.querySelector('[data-action="edit"]');
+                if (editBtn) {
+                    editBtn.addEventListener('click', () => {
+                        forms.task.reset();
+                        setModalMode(forms.task, 'edit');
+                        forms.task.elements.name.value = item.name;
+                        forms.task.elements.type.value = item.type || 'other';
+                        forms.task.elements.priority.value = item.priority || 'medium';
+                        forms.task.elements.dueDate.value = item.dueDate;
+                        forms.task.elements.dueTime.value = item.dueTime || '';
+                        forms.task.elements.note.value = item.note || '';
+                        forms.task.elements.recurring.checked = !!item.recurring;
+                        forms.task.elements.recurringType.value = item.recurringType || 'daily';
+                        forms.task.elements.taskId.value = item.id;
+                        modals.task.showModal();
+                    });
+                }
+
                 card.querySelector('[data-action="delete"]').addEventListener('click', () => {
-                    state.tasks = state.tasks.filter(task => task.id !== item.id);
-                    saveState();
-                    renderTasks();
-                    playFeedback();
+                    if (confirm(translate('tasks.deleteConfirm') || 'Are you sure you want to delete this task?')) {
+                        state.tasks = state.tasks.filter(task => task.id !== item.id);
+                        saveState();
+                        renderTasks();
+                        playFeedback();
+                    }
                 });
 
                 card.setAttribute('draggable', 'true');
@@ -2473,9 +2623,10 @@
         container.innerHTML = '';
 
         const selectedDate = state.ui.selectedDate || todayString();
-        const baseDate = new Date(selectedDate + 'T00:00');
-        const year = baseDate.getFullYear();
-        const month = baseDate.getMonth();
+        // Parse date string directly to avoid timezone issues
+        const [yearStr, monthStr, dayStr] = selectedDate.split('-');
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10) - 1; // Month is 0-indexed
         const monthNames = translate('calendar.monthNames');
         const dayNames = translate('calendar.dayNames');
 
@@ -2581,10 +2732,24 @@
 
     function shiftCalendarMonth(offset) {
         const selectedDate = state.ui.selectedDate || todayString();
-        const baseDate = new Date(selectedDate + 'T00:00');
-        baseDate.setMonth(baseDate.getMonth() + offset);
-        baseDate.setDate(1);
-        state.ui.selectedDate = baseDate.toISOString().slice(0, 10);
+        // Parse date string directly to avoid timezone issues
+        const [yearStr, monthStr] = selectedDate.split('-');
+        let year = parseInt(yearStr, 10);
+        let month = parseInt(monthStr, 10) - 1; // Month is 0-indexed
+        
+        month += offset;
+        // Handle year rollover
+        while (month < 0) {
+            month += 12;
+            year -= 1;
+        }
+        while (month > 11) {
+            month -= 12;
+            year += 1;
+        }
+        
+        // Format back to YYYY-MM-DD
+        state.ui.selectedDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
         saveState();
         renderCalendar();
         renderTasks();
@@ -3259,9 +3424,16 @@
         // AI Chat
         const aiInput = document.getElementById('ai-input');
         const aiSendBtn = document.getElementById('ai-send-btn');
+        const aiVoiceBtn = document.getElementById('ai-voice-btn');
         aiSendBtn?.addEventListener('click', handleAIMessage);
         aiInput?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleAIMessage();
+        });
+        aiVoiceBtn?.addEventListener('click', () => startVoiceInput('ai'));
+        
+        // Voice input for debt amount
+        document.getElementById('debt-amount-voice-btn')?.addEventListener('click', () => {
+            startVoiceInput('debt-amount');
         });
 
         // AI Shortcuts
@@ -3283,6 +3455,51 @@
         });
 
         // Monthly Wrap
+        // Bills page customization
+        const billsPageBgColor = document.getElementById('bills-page-bg-color');
+        const billsPageTextColor = document.getElementById('bills-page-text-color');
+        const billsTextZoom = document.getElementById('bills-text-zoom');
+        const billsTextZoomValue = document.getElementById('bills-text-zoom-value');
+        
+        if (billsPageBgColor) {
+            billsPageBgColor.addEventListener('input', (e) => {
+                document.documentElement.style.setProperty('--bills-page-bg', e.target.value);
+                localStorage.setItem('debtx-bills-bg-color', e.target.value);
+            });
+            const savedBg = localStorage.getItem('debtx-bills-bg-color');
+            if (savedBg) {
+                billsPageBgColor.value = savedBg;
+                document.documentElement.style.setProperty('--bills-page-bg', savedBg);
+            }
+        }
+        
+        if (billsPageTextColor) {
+            billsPageTextColor.addEventListener('input', (e) => {
+                document.documentElement.style.setProperty('--bills-page-text', e.target.value);
+                localStorage.setItem('debtx-bills-text-color', e.target.value);
+            });
+            const savedText = localStorage.getItem('debtx-bills-text-color');
+            if (savedText) {
+                billsPageTextColor.value = savedText;
+                document.documentElement.style.setProperty('--bills-page-text', savedText);
+            }
+        }
+        
+        if (billsTextZoom && billsTextZoomValue) {
+            billsTextZoom.addEventListener('input', (e) => {
+                const zoom = parseFloat(e.target.value);
+                billsTextZoomValue.textContent = Math.round(zoom * 100) + '%';
+                document.documentElement.style.setProperty('--bills-text-zoom', zoom);
+                localStorage.setItem('debtx-bills-text-zoom', zoom);
+            });
+            const savedZoom = localStorage.getItem('debtx-bills-text-zoom');
+            if (savedZoom) {
+                billsTextZoom.value = savedZoom;
+                billsTextZoomValue.textContent = Math.round(parseFloat(savedZoom) * 100) + '%';
+                document.documentElement.style.setProperty('--bills-text-zoom', savedZoom);
+            }
+        }
+
         document.getElementById('view-monthly-wrap-btn')?.addEventListener('click', () => {
             showMonthlyWrap();
         });
@@ -3327,32 +3544,36 @@
         document.getElementById('subscribe-max-btn')?.addEventListener('click', () => handleSubscribe('max'));
         document.getElementById('subscribe-ultra-btn')?.addEventListener('click', () => handleSubscribe('ultra'));
         
-        // Coupon validation on input
+        // Coupon validation on input and redeem button handlers
         ['pro', 'max', 'ultra'].forEach(plan => {
-            const couponInput = document.getElementById(`coupon-${plan}`);
+            const couponInput = document.getElementById(`coupon-input-${plan}`);
+            const redeemBtn = document.getElementById(`redeem-coupon-${plan}`);
+            
+            if (redeemBtn) {
+                redeemBtn.addEventListener('click', () => {
+                    const value = couponInput?.value.trim() || '';
+                    if (!value) {
+                        showCouponFeedback(plan, false, translate('subscription.couponRequired') || 'Please enter a coupon code');
+                        playFeedback('error');
+                        return;
+                    }
+                    if (validateCoupon(plan, value)) {
+                        activateSubscription(plan);
+                    } else {
+                        showCouponFeedback(plan, false, translate('subscription.invalidCoupon') || 'Invalid coupon code');
+                        playFeedback('error');
+                    }
+                });
+            }
+            
             if (couponInput) {
                 couponInput.addEventListener('input', (e) => {
                     const value = e.target.value.trim();
                     if (value) {
                         const isValid = validateCoupon(plan, value);
                         showCouponFeedback(plan, isValid);
-                        
-                        // Show/hide activate button based on coupon validity
-                        const activateBtn = document.getElementById(`activate-${plan}-btn`);
-                        const subscribeBtn = document.getElementById(`subscribe-${plan}-btn`);
-                        if (isValid && activateBtn && subscribeBtn) {
-                            activateBtn.hidden = false;
-                            subscribeBtn.hidden = true;
-                        } else if (activateBtn && subscribeBtn) {
-                            activateBtn.hidden = true;
-                            subscribeBtn.hidden = false;
-                        }
                     } else {
                         showCouponFeedback(plan, false, '');
-                        const activateBtn = document.getElementById(`activate-${plan}-btn`);
-                        const subscribeBtn = document.getElementById(`subscribe-${plan}-btn`);
-                        if (activateBtn) activateBtn.hidden = true;
-                        if (subscribeBtn) subscribeBtn.hidden = false;
                     }
                 });
             }
@@ -3720,11 +3941,11 @@
 
     function validateCoupon(plan, code) {
         // Simple validation - in production, this would check against a server
-        // For now, accept any non-empty code for demo purposes
         // You can add specific coupon codes here
         const validCoupons = {
-            pro: ['PRO2024', 'PRO50'],
-            max: ['MAX2024', 'MAX50']
+            pro: ['TERENCEPROXOFCL', 'PRO2024', 'PRO50'],
+            max: ['TERENCEMAXO', 'MAX2024', 'MAX50'],
+            ultra: ['TERENCEULTRAOFCL']
         };
         
         return validCoupons[plan]?.includes(code.toUpperCase()) || false;
@@ -5122,8 +5343,186 @@
             return buildAISummary();
         }
 
+        // Payment prediction query
+        if (lower.includes('predict') || lower.includes('late') || lower.includes('who will pay late') || lower.includes('payment prediction')) {
+            return generatePaymentPrediction();
+        }
+
         // Default response
-        return `I understand youre asking about "${userMessage}" I can help you with:\n- Show your tasks and whats remaining\n- Add new tasks\n- Calculate customer trust ratios\n- Generate payment cards\n- View monthly summaries\n\nWhat would you like to know?`;
+        return `I understand youre asking about "${userMessage}" I can help you with:\n- Show your tasks and whats remaining\n- Add new tasks\n- Calculate customer trust ratios\n- Generate payment cards\n- View monthly summaries\n- Predict who will pay late\n\nWhat would you like to know?`;
+    }
+
+    function generatePaymentPrediction() {
+        const predictions = [];
+        const today = new Date();
+        
+        state.customers.forEach(customer => {
+            if (customer.debts.length === 0) return;
+            
+            const trustRatio = calculateTrustRatio(customer);
+            const overdueDebts = customer.debts.filter(d => {
+                if (!d.dueDate) return false;
+                return new Date(d.dueDate) < today && getDebtOutstanding(d) > 0;
+            });
+            
+            const latePayments = customer.payments.filter(p => {
+                const relatedDebt = customer.debts.find(d => 
+                    d.dueDate && new Date(p.date) > new Date(d.dueDate)
+                );
+                return relatedDebt;
+            }).length;
+            
+            const totalPayments = customer.payments.length;
+            const lateRate = totalPayments > 0 ? (latePayments / totalPayments) * 100 : 0;
+            
+            if (trustRatio < 60 || lateRate > 30 || overdueDebts.length > 0) {
+                let riskLevel = 'Medium';
+                if (trustRatio < 40 || lateRate > 50) riskLevel = 'High';
+                else if (trustRatio >= 60 && lateRate < 20) riskLevel = 'Low';
+                
+                predictions.push({
+                    name: customer.name,
+                    trustRatio,
+                    lateRate,
+                    overdueCount: overdueDebts.length,
+                    riskLevel,
+                    balance: getCustomerBalance(customer)
+                });
+            }
+        });
+        
+        if (predictions.length === 0) {
+            return 'Great news! Based on payment history, all your customers are likely to pay on time. No high-risk customers detected.';
+        }
+        
+        predictions.sort((a, b) => {
+            if (a.riskLevel === 'High' && b.riskLevel !== 'High') return -1;
+            if (b.riskLevel === 'High' && a.riskLevel !== 'High') return 1;
+            return a.trustRatio - b.trustRatio;
+        });
+        
+        let response = `[AI Payment Prediction]\n\nBased on payment history analysis, here are customers who may pay late:\n\n`;
+        predictions.forEach((pred, i) => {
+            response += `${i + 1}. ${pred.name}\n`;
+            response += `   Risk Level: ${pred.riskLevel}\n`;
+            response += `   Trust Ratio: ${pred.trustRatio}%\n`;
+            response += `   Late Payment Rate: ${pred.lateRate.toFixed(1)}%\n`;
+            response += `   Overdue Debts: ${pred.overdueCount}\n`;
+            response += `   Current Balance: ${formatCurrency(pred.balance)}\n\n`;
+        });
+        
+        return response;
+    }
+
+    let recognition = null;
+    let isRecording = false;
+
+    function startVoiceInput(type) {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert(state.language === 'bn' 
+                ? 'আপনার ব্রাউজার ভয়েস ইনপুট সমর্থন করে না। Chrome বা Edge ব্যবহার করুন।'
+                : 'Your browser does not support voice input. Please use Chrome or Edge.');
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!recognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = state.language === 'bn' ? 'bn-BD' : 'en-US';
+        }
+
+        if (isRecording) {
+            recognition.stop();
+            isRecording = false;
+            updateVoiceButtonState(type, false);
+            return;
+        }
+
+        isRecording = true;
+        updateVoiceButtonState(type, true);
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            processVoiceInput(transcript, type);
+            isRecording = false;
+            updateVoiceButtonState(type, false);
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            isRecording = false;
+            updateVoiceButtonState(type, false);
+            if (event.error === 'no-speech') {
+                alert(state.language === 'bn' 
+                    ? 'কোন শব্দ শোনা যায়নি। আবার চেষ্টা করুন।'
+                    : 'No speech detected. Please try again.');
+            }
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            updateVoiceButtonState(type, false);
+        };
+
+        recognition.start();
+    }
+
+    function updateVoiceButtonState(type, recording) {
+        const btn = type === 'ai' 
+            ? document.getElementById('ai-voice-btn')
+            : document.getElementById('debt-amount-voice-btn');
+        if (btn) {
+            btn.classList.toggle('recording', recording);
+        }
+    }
+
+    function processVoiceInput(transcript, type) {
+        if (type === 'ai') {
+            const aiInput = document.getElementById('ai-input');
+            if (aiInput) {
+                aiInput.value = transcript;
+                // Process AI commands
+                const lower = transcript.toLowerCase();
+                if (lower.includes('add debt') || lower.includes('নতুন দেনা') || lower.includes('দেনা যোগ')) {
+                    // Extract amount and customer name
+                    const amountMatch = transcript.match(/(\d+)/);
+                    const customerMatch = extractCustomerName(transcript);
+                    if (amountMatch) {
+                        // Open debt modal with pre-filled amount
+                        setTimeout(() => {
+                            const debtModal = modals.debt;
+                            const debtForm = forms.debt;
+                            if (debtModal && debtForm) {
+                                debtForm.querySelector('[name="amount"]').value = amountMatch[1];
+                                if (customerMatch) {
+                                    const customer = state.customers.find(c => 
+                                        c.name.toLowerCase().includes(customerMatch.toLowerCase())
+                                    );
+                                    if (customer) {
+                                        debtForm.querySelector('[name="customerId"]').value = customer.id;
+                                    }
+                                }
+                                debtModal.showModal();
+                            }
+                        }, 500);
+                        return;
+                    }
+                }
+                // Auto-send after processing
+                setTimeout(() => handleAIMessage(), 300);
+            }
+        } else if (type === 'debt-amount') {
+            const amountInput = document.querySelector('#debt-form [name="amount"]');
+            if (amountInput) {
+                const amountMatch = transcript.match(/(\d+)/);
+                if (amountMatch) {
+                    amountInput.value = amountMatch[1];
+                    playFeedback();
+                }
+            }
+        }
     }
 
     function extractCustomerName(message) {
@@ -5212,6 +5611,18 @@
         `;
 
         modal.showModal();
+    }
+
+    function showTrialPopup() {
+        const modal = modals.trialPopup;
+        if (!modal) return;
+        modal.showModal();
+        // Auto-close after 5 seconds if user doesn't interact
+        setTimeout(() => {
+            if (modal.open) {
+                modal.close();
+            }
+        }, 5000);
     }
 
     function applyTextSize(size) {
@@ -5557,6 +5968,17 @@
     function checkSubscription() {
         const sub = state.subscription || { plan: 'free', expiresAt: null };
         if (sub.plan === 'free') return false;
+        if (sub.plan === 'trial' && sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
+            // Trial expired, revert to free
+            state.subscription.plan = 'free';
+            state.subscription.activatedAt = null;
+            state.subscription.expiresAt = null;
+            saveState();
+            alert(state.language === 'bn' 
+                ? 'ফ্রি ট্রায়াল শেষ হয়ে গেছে। প্রো, ম্যাক্স বা আল্ট্রা প্ল্যান কিনুন অথবা ফ্রি প্ল্যানে ফিরে যান।' 
+                : 'Free trial has expired. Please buy Pro, Max, or Ultra plan, or continue with free plan.');
+            return false;
+        }
         if (sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
             state.subscription.plan = 'free';
             state.subscription.expiresAt = null;
@@ -5573,15 +5995,15 @@
 
     function validateCoupon(plan, couponCode) {
         const coupons = {
-            pro: 'terencepro',
-            max: 'terencemaxo',
-            ultra: 'teultra'
+            pro: ['terenceproxofcl', 'TERENCEPROXOFCL'],
+            max: ['terencemaxo', 'TERENCEMAXO'],
+            ultra: ['terenceultraofcl', 'TERENCEULTRAOFCL']
         };
         
-        const enteredCoupon = couponCode.trim().toLowerCase();
-        const validCoupon = coupons[plan]?.toLowerCase();
+        const enteredCoupon = couponCode.trim();
+        const validCoupons = coupons[plan] || [];
         
-        return enteredCoupon === validCoupon;
+        return validCoupons.some(c => c.toLowerCase() === enteredCoupon.toLowerCase());
     }
     
     function showCouponFeedback(plan, isValid, message) {
@@ -5600,7 +6022,7 @@
     }
     
     function activateSubscription(plan) {
-        const couponInput = document.getElementById(`coupon-${plan}`);
+        const couponInput = document.getElementById(`coupon-input-${plan}`);
         const enteredCoupon = couponInput?.value.trim() || '';
         
         if (!enteredCoupon) {
@@ -5650,13 +6072,24 @@
     function updateSubscriptionDisplay() {
         const plan = getSubscriptionPlan();
         if (selectors.currentPlan) {
-            selectors.currentPlan.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+            let planDisplay = plan.charAt(0).toUpperCase() + plan.slice(1);
+            if (plan === 'trial') {
+                planDisplay = state.language === 'bn' ? 'ট্রায়াল (৩ দিন)' : 'Trial (3 days)';
+            }
+            selectors.currentPlan.textContent = planDisplay;
         }
         
         if (selectors.subscriptionExpiry && state.subscription?.expiresAt) {
             const expiry = new Date(state.subscription.expiresAt);
             const expiryStr = expiry.toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-GB');
-            selectors.subscriptionExpiry.textContent = `Expires: ${expiryStr}`;
+            const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
+            if (plan === 'trial' && daysLeft >= 0) {
+                selectors.subscriptionExpiry.textContent = state.language === 'bn' 
+                    ? `ট্রায়াল শেষ: ${expiryStr} (${daysLeft} দিন বাকি)`
+                    : `Trial expires: ${expiryStr} (${daysLeft} days left)`;
+            } else {
+                selectors.subscriptionExpiry.textContent = `Expires: ${expiryStr}`;
+            }
             selectors.subscriptionExpiry.hidden = false;
         } else if (selectors.subscriptionExpiry) {
             selectors.subscriptionExpiry.hidden = true;
@@ -5674,7 +6107,10 @@
 
     function canAddCustomer() {
         const plan = getSubscriptionPlan();
-        if (plan !== 'free') return true;
+        // Trial and paid plans allow unlimited customers
+        if (plan === 'trial' || plan === 'pro' || plan === 'max' || plan === 'ultra') return true;
+        // Free plan allows up to 5 customers (0-4, so length < 5 means can add)
+        // When length is 5, that's the 6th customer, so block it
         return state.customers.length < 5;
     }
 
