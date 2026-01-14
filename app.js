@@ -167,6 +167,7 @@
             'settings.textSizeTitle': 'Text Size',
             'settings.textSizeHint': 'Make text bigger or smaller',
             'settings.shopProfileTitle': 'Shop Information',
+            'settings.shopProfileHint': 'Manage your shop details and contact information',
             'settings.editShopProfile': 'Edit Shop Details',
             'settings.personalInfoTitle': 'Personal Information',
             'settings.phoneNumber': 'Phone Number',
@@ -387,6 +388,11 @@
             'bills.totalAmount': 'Total',
             'bills.status': 'Status',
             'bills.dueDate': 'Due Date',
+            'bills.date': 'Date',
+            'bills.totalBills': 'Total Bills',
+            'bills.paidBills': 'Paid',
+            'bills.pendingBills': 'Pending',
+            'bills.overdueBills': 'Overdue',
             'modals.bill.title': 'Create Bill / Invoice',
             'modals.bill.subtitle': 'Generate professional bills for your customers',
             'modals.bill.customerName': 'Customer Name',
@@ -546,7 +552,8 @@
             'settings.textSizeTitle': 'লেখার আকার',
             'settings.textSizeHint': 'লেখা বড় বা ছোট করুন',
             'settings.languageHint': 'আপনার পছন্দের ভাষা নির্বাচন করুন',
-            'settings.shopProfileTitle': 'দোকানের প্রোফাইল',
+            'settings.shopProfileTitle': 'দোকানের তথ্য',
+            'settings.shopProfileHint': 'আপনার দোকানের বিবরণ এবং যোগাযোগের তথ্য পরিচালনা করুন',
             'settings.editShopProfile': 'এডিট',
             'settings.personalInfoTitle': 'ব্যক্তিগত তথ্য',
             'settings.phoneNumber': 'ফোন নম্বর',
@@ -750,6 +757,13 @@
             'bills.title': 'বিলিং ও ইনভয়েস',
             'bills.subtitle': 'বিল তৈরি করুন এবং পেমেন্ট ট্র্যাক করুন',
             'bills.newBill': '+ নতুন বিল',
+            'bills.balance': 'ব্যালেন্স',
+            'bills.inflow': 'আয়',
+            'bills.outflow': 'খরচ',
+            'bills.history': 'ইতিহাস',
+            'bills.thisMonth': 'এই মাস',
+            'bills.lastMonth': 'গত মাস',
+            'bills.thisYear': 'এই বছর',
             'bills.searchPlaceholder': 'ক্রেতা বা ইনভয়েস নম্বর দিয়ে খুঁজুন...',
             'bills.filterAll': 'সব',
             'bills.filterPaid': 'পরিশোধিত',
@@ -764,6 +778,11 @@
             'bills.totalAmount': 'মোট',
             'bills.status': 'অবস্থা',
             'bills.dueDate': 'শেষ তারিখ',
+            'bills.date': 'তারিখ',
+            'bills.totalBills': 'মোট বিল',
+            'bills.paidBills': 'পরিশোধিত',
+            'bills.pendingBills': 'বাকি',
+            'bills.overdueBills': 'মেয়াদ উত্তীর্ণ',
             'modals.bill.title': 'বিল / ইনভয়েস তৈরি',
             'modals.bill.subtitle': 'আপনার ক্রেতাদের জন্য পেশাদার বিল তৈরি করুন',
             'modals.bill.customerName': 'ক্রেতার নাম',
@@ -980,6 +999,7 @@
         
         // No initial auth overlay - login moved to settings
         renderAll();
+        updateSubscriptionDisplay();
         
         startReminderLoop();
         refreshAISummary();
@@ -3558,7 +3578,16 @@
                         return;
                     }
                     if (validateCoupon(plan, value)) {
+                        // Show success feedback immediately
+                        showCouponFeedback(plan, true);
+                        // Activate subscription
                         activateSubscription(plan);
+                        // Show success message
+                        setTimeout(() => {
+                            alert(state.language === 'bn' 
+                                ? `সফলভাবে ${plan.toUpperCase()} প্ল্যান সক্রিয় করা হয়েছে!` 
+                                : `Successfully activated ${plan.toUpperCase()} plan!`);
+                        }, 100);
                     } else {
                         showCouponFeedback(plan, false, translate('subscription.invalidCoupon') || 'Invalid coupon code');
                         playFeedback('error');
@@ -3593,6 +3622,14 @@
 
         // Settings Handlers
         initSettingsHandlers();
+        
+        // Empty state new bill button
+        const emptyNewBillBtn = document.getElementById('empty-new-bill-btn');
+        if (emptyNewBillBtn) {
+            emptyNewBillBtn.addEventListener('click', () => {
+                openBillModal();
+            });
+        }
     }
 
     function initSettingsHandlers() {
@@ -3735,9 +3772,11 @@
             }, 100);
         });
 
-        // Subscription buttons
+        // Subscription buttons - check for coupon code first
         document.querySelectorAll('.plan-subscribe-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const plan = btn.dataset.plan;
                 handleSubscribe(plan);
             });
@@ -5112,6 +5151,19 @@
         billsList.innerHTML = '';
         let bills = state.bills || [];
 
+        // Calculate stats
+        const totalBills = bills.length;
+        const paidBills = bills.filter(b => b.paymentStatus === 'paid').length;
+        const pendingBills = bills.filter(b => (b.paymentStatus === 'pending' || !b.paymentStatus) && (!b.dueDate || b.dueDate >= todayString())).length;
+        const overdueBills = bills.filter(b => {
+            const isPending = b.paymentStatus === 'pending' || !b.paymentStatus;
+            const isOverdue = b.dueDate && b.dueDate < todayString();
+            return isPending && isOverdue;
+        }).length;
+
+        // Update stats
+        updateBillsStats(totalBills, paidBills, pendingBills, overdueBills);
+
         // Apply search filter
         const searchInput = document.getElementById('bill-search');
         const searchQuery = searchInput?.value.toLowerCase().trim() || '';
@@ -5129,14 +5181,24 @@
             const today = todayString();
             bills = bills.filter(bill => {
                 if (activeFilter === 'paid') return bill.paymentStatus === 'paid';
-                if (activeFilter === 'pending') return bill.paymentStatus === 'pending' || !bill.paymentStatus;
+                if (activeFilter === 'pending') {
+                    const isPending = bill.paymentStatus === 'pending' || !bill.paymentStatus;
+                    return isPending && (!bill.dueDate || bill.dueDate >= today);
+                }
                 if (activeFilter === 'overdue') {
-                    return (bill.paymentStatus === 'pending' || !bill.paymentStatus) && 
-                           bill.dueDate && bill.dueDate < today;
+                    const isPending = bill.paymentStatus === 'pending' || !bill.paymentStatus;
+                    return isPending && bill.dueDate && bill.dueDate < today;
                 }
                 return true;
             });
         }
+
+        // Sort by date (newest first)
+        bills.sort((a, b) => {
+            const dateA = new Date(a.date || a.createdAt || 0);
+            const dateB = new Date(b.date || b.createdAt || 0);
+            return dateB - dateA;
+        });
 
         if (bills.length === 0) {
             billsEmpty?.removeAttribute('hidden');
@@ -5144,9 +5206,11 @@
         }
 
         billsEmpty?.setAttribute('hidden', 'hidden');
+
+        // Render bill cards
         bills.forEach(bill => {
             const card = document.createElement('article');
-            card.className = 'customer-card bill-card';
+            card.className = 'customer-card bill-card-enhanced';
             card.dataset.billId = bill.id;
             
             const isOverdue = bill.dueDate && bill.dueDate < todayString() && 
@@ -5166,57 +5230,180 @@
             const itemsLabel = translate('bills.items') || 'Items';
             const discountLabel = translate('modals.bill.discount') || 'Discount';
             const taxLabel = translate('modals.bill.tax') || 'Tax';
+            const dateLabel = translate('bills.date') || 'Date';
+            
+            // Get customer initial for icon
+            const customerName = bill.customerName || unknownCustomer;
+            const iconLetter = customerName.charAt(0).toUpperCase();
+            const iconColor = getColorForLetter(iconLetter);
             
             card.innerHTML = `
-                <header class="customer-card__header">
-                    <div>
-                        <h2>${bill.customerName || unknownCustomer}</h2>
-                        <p>${bill.invoiceNumber || noInvoice} • ${formatDisplayDate(bill.date)}</p>
-                        ${bill.dueDate ? `<p class="due-date">${dueLabel}: ${formatDisplayDate(bill.dueDate)}</p>` : ''}
+                <header class="bill-card-header-enhanced">
+                    <div class="bill-customer-info">
+                        <div class="bill-customer-icon" style="background: ${iconColor};">
+                            ${iconLetter}
+                        </div>
+                        <div class="bill-customer-details">
+                            <h2 class="bill-customer-name">${customerName}</h2>
+                            <p class="bill-invoice-info">${bill.invoiceNumber || noInvoice} • ${formatDisplayDate(bill.date)}</p>
+                        </div>
                     </div>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
+                    <span class="status-badge-enhanced ${statusClass}">${statusText}</span>
                 </header>
-                <div class="customer-card__body">
-                    <div class="balance-row">
-                        <span>${totalLabel}</span>
-                        <strong>${formatCurrency(bill.total || 0)}</strong>
+                <div class="bill-card-body-enhanced">
+                    <div class="bill-amount-section">
+                        <div class="bill-amount-main">
+                            <span class="bill-amount-label">${totalLabel}</span>
+                            <strong class="bill-amount-value">${formatCurrency(bill.total || 0)}</strong>
+                        </div>
+                        ${bill.dueDate ? `
+                            <div class="bill-due-info ${isOverdue ? 'overdue' : ''}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 6v6l4 2"></path>
+                                </svg>
+                                <span>${dueLabel}: ${formatDisplayDate(bill.dueDate)}</span>
+                            </div>
+                        ` : ''}
                     </div>
-                    <div class="bill-meta">
-                        <span>${itemsLabel}: ${bill.products?.length || 0}</span>
-                        ${bill.discountAmount > 0 ? `<span>${discountLabel}: ${formatCurrency(bill.discountAmount)}</span>` : ''}
-                        ${bill.taxAmount > 0 ? `<span>${taxLabel}: ${formatCurrency(bill.taxAmount)}</span>` : ''}
+                    <div class="bill-meta-enhanced">
+                        <div class="bill-meta-item">
+                            <span class="meta-label">${itemsLabel}</span>
+                            <span class="meta-value">${bill.products?.length || 0}</span>
+                        </div>
+                        ${bill.discountAmount > 0 ? `
+                            <div class="bill-meta-item">
+                                <span class="meta-label">${discountLabel}</span>
+                                <span class="meta-value discount">-${formatCurrency(bill.discountAmount)}</span>
+                            </div>
+                        ` : ''}
+                        ${bill.taxAmount > 0 ? `
+                            <div class="bill-meta-item">
+                                <span class="meta-label">${taxLabel}</span>
+                                <span class="meta-value">${formatCurrency(bill.taxAmount)}</span>
+                            </div>
+                        ` : ''}
                     </div>
-                    ${bill.notes ? `<p class="bill-notes">${bill.notes}</p>` : ''}
+                    ${bill.notes ? `<p class="bill-notes-enhanced">${escapeHtml(bill.notes)}</p>` : ''}
                 </div>
-                <footer class="customer-card__footer">
-                    <button class="secondary-btn" data-action="edit">${translate('actions.edit')}</button>
-                    <button class="secondary-btn" data-action="duplicate">${translate('bills.duplicate')}</button>
-                    <button class="secondary-btn" data-action="view">${translate('bills.view')}</button>
-                    <button class="primary-btn" data-action="share">${translate('bills.share')}</button>
+                <footer class="bill-card-footer-enhanced">
+                    <button class="bill-action-btn secondary" data-action="edit" title="${translate('actions.edit')}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span>${translate('actions.edit')}</span>
+                    </button>
+                    <button class="bill-action-btn secondary" data-action="duplicate" title="${translate('bills.duplicate')}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>${translate('bills.duplicate')}</span>
+                    </button>
+                    <button class="bill-action-btn secondary" data-action="view" title="${translate('bills.view')}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <span>${translate('bills.view')}</span>
+                    </button>
+                    <button class="bill-action-btn primary" data-action="share" title="${translate('bills.share')}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                        <span>${translate('bills.share')}</span>
+                    </button>
                 </footer>
             `;
             
             // Attach event handlers
-            card.querySelector('[data-action="edit"]')?.addEventListener('click', () => {
+            card.querySelector('[data-action="edit"]')?.addEventListener('click', (e) => {
+                e.stopPropagation();
                 openBillModal(bill);
             });
-            card.querySelector('[data-action="duplicate"]')?.addEventListener('click', () => {
+            card.querySelector('[data-action="duplicate"]')?.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const duplicate = { ...bill, id: generateId('bill'), invoiceNumber: generateInvoiceNumber(), date: todayString(), createdAt: Date.now() };
                 state.bills.unshift(duplicate);
                 saveState();
                 renderBills();
                 playFeedback();
             });
-            card.querySelector('[data-action="view"]')?.addEventListener('click', () => {
+            card.querySelector('[data-action="view"]')?.addEventListener('click', (e) => {
+                e.stopPropagation();
                 openBillCustomizeModal(bill);
             });
-            card.querySelector('[data-action="share"]')?.addEventListener('click', async () => {
+            card.querySelector('[data-action="share"]')?.addEventListener('click', async (e) => {
+                e.stopPropagation();
                 const cardUrl = await generateBillCard(bill);
                 shareBillCard(cardUrl, bill);
             });
             
             billsList.appendChild(card);
         });
+    }
+
+    function updateBillsStats(total, paid, pending, overdue) {
+        const totalEl = document.getElementById('bills-total-count');
+        const paidEl = document.getElementById('bills-paid-count');
+        const pendingEl = document.getElementById('bills-pending-count');
+        const overdueEl = document.getElementById('bills-overdue-count');
+        
+        if (totalEl) totalEl.textContent = total;
+        if (paidEl) paidEl.textContent = paid;
+        if (pendingEl) pendingEl.textContent = pending;
+        if (overdueEl) overdueEl.textContent = overdue;
+    }
+
+    function updateBillsSummary(inflow, outflow, balance) {
+        const balanceEl = document.getElementById('bills-balance-amount');
+        const inflowEl = document.getElementById('bills-inflow-amount');
+        const outflowEl = document.getElementById('bills-outflow-amount');
+        
+        if (balanceEl) balanceEl.textContent = formatCurrency(balance);
+        if (inflowEl) inflowEl.textContent = `+${formatCurrency(inflow)}`;
+        if (outflowEl) outflowEl.textContent = `-${formatCurrency(outflow)}`;
+
+        // Update donut chart
+        const total = inflow + outflow;
+        if (total > 0) {
+            const outflowPercent = (outflow / total) * 100;
+            const inflowPercent = (inflow / total) * 100;
+            const circumference = 2 * Math.PI * 80; // radius = 80
+            
+            const outflowDash = (outflowPercent / 100) * circumference;
+            const inflowDash = (inflowPercent / 100) * circumference;
+            
+            const outflowCircle = document.getElementById('donut-outflow');
+            const inflowCircle = document.getElementById('donut-inflow');
+            
+            if (outflowCircle) {
+                outflowCircle.style.strokeDasharray = `${outflowDash} ${circumference}`;
+            }
+            if (inflowCircle) {
+                inflowCircle.style.strokeDasharray = `${inflowDash} ${circumference}`;
+                inflowCircle.style.strokeDashoffset = `-${outflowDash}`;
+            }
+        } else {
+            const outflowCircle = document.getElementById('donut-outflow');
+            const inflowCircle = document.getElementById('donut-inflow');
+            if (outflowCircle) outflowCircle.style.strokeDasharray = '0 502.65';
+            if (inflowCircle) inflowCircle.style.strokeDasharray = '0 502.65';
+        }
+    }
+
+    function getColorForLetter(letter) {
+        const colors = [
+            '#EF4444', '#F59E0B', '#10B981', '#3B82F6', 
+            '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'
+        ];
+        const index = letter.charCodeAt(0) % colors.length;
+        return colors[index];
     }
 
     async function handleAIMessage() {
@@ -5967,13 +6154,17 @@
     // Subscription Functions
     function checkSubscription() {
         const sub = state.subscription || { plan: 'free', expiresAt: null };
-        if (sub.plan === 'free') return false;
+        if (sub.plan === 'free') {
+            updateSubscriptionDisplay();
+            return false;
+        }
         if (sub.plan === 'trial' && sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
             // Trial expired, revert to free
             state.subscription.plan = 'free';
             state.subscription.activatedAt = null;
             state.subscription.expiresAt = null;
             saveState();
+            updateSubscriptionDisplay();
             alert(state.language === 'bn' 
                 ? 'ফ্রি ট্রায়াল শেষ হয়ে গেছে। প্রো, ম্যাক্স বা আল্ট্রা প্ল্যান কিনুন অথবা ফ্রি প্ল্যানে ফিরে যান।' 
                 : 'Free trial has expired. Please buy Pro, Max, or Ultra plan, or continue with free plan.');
@@ -5983,8 +6174,10 @@
             state.subscription.plan = 'free';
             state.subscription.expiresAt = null;
             saveState();
+            updateSubscriptionDisplay();
             return false;
         }
+        updateSubscriptionDisplay();
         return true;
     }
 
@@ -6022,15 +6215,28 @@
     }
     
     function activateSubscription(plan) {
+        activateSubscriptionWithCongratulations(plan);
+    }
+    
+    function handleSubscribe(plan) {
+        // Check if there's a valid coupon code first
         const couponInput = document.getElementById(`coupon-input-${plan}`);
         const enteredCoupon = couponInput?.value.trim() || '';
         
-        if (!enteredCoupon) {
-            alert(translate('subscription.couponRequired') || 'Please enter a coupon code');
-            return;
+        // If coupon code is entered and valid, activate subscription
+        if (enteredCoupon && validateCoupon(plan, enteredCoupon)) {
+            activateSubscriptionWithCongratulations(plan);
+        } else {
+            // No coupon or invalid coupon - redirect to Facebook page for payment
+            window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank');
         }
+    }
+    
+    function activateSubscriptionWithCongratulations(plan) {
+        const couponInput = document.getElementById(`coupon-input-${plan}`);
+        const enteredCoupon = couponInput?.value.trim() || '';
         
-        if (!validateCoupon(plan, enteredCoupon)) {
+        if (!enteredCoupon || !validateCoupon(plan, enteredCoupon)) {
             showCouponFeedback(plan, false, translate('subscription.invalidCoupon'));
             playFeedback('error');
             return;
@@ -6057,16 +6263,61 @@
         couponInput.value = '';
         playFeedback();
         
-        // Hide activate button, show subscribe button
-        const activateBtn = document.getElementById(`activate-${plan}-btn`);
-        const subscribeBtn = document.getElementById(`subscribe-${plan}-btn`);
-        if (activateBtn) activateBtn.hidden = true;
-        if (subscribeBtn) subscribeBtn.hidden = false;
+        // Show congratulations message
+        showCongratulationsMessage(plan);
     }
     
-    function handleSubscribe(plan) {
-        // Redirect to Facebook page for payment
-        window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank');
+    function showCongratulationsMessage(plan) {
+        const planNames = {
+            pro: translate('subscription.pro') || 'Pro',
+            max: translate('subscription.max') || 'Max',
+            ultra: translate('subscription.ultra') || 'Ultra Pro'
+        };
+        
+        const planName = planNames[plan] || plan.toUpperCase();
+        const isBangla = state.language === 'bn';
+        
+        const message = isBangla 
+            ? `🎉 অভিনন্দন! 🎉\n\nআপনার ${planName} প্ল্যান সফলভাবে সক্রিয় করা হয়েছে!\n\nআপনি এখন সমস্ত প্রিমিয়াম ফিচার ব্যবহার করতে পারবেন।`
+            : `🎉 Congratulations! 🎉\n\nYour ${planName} plan has been successfully activated!\n\nYou can now enjoy all premium features.`;
+        
+        // Create a nice modal-style alert
+        const congratsModal = document.createElement('div');
+        congratsModal.className = 'congratulations-modal';
+        congratsModal.innerHTML = `
+            <div class="congratulations-content">
+                <div class="congratulations-icon">🎉</div>
+                <h2 class="congratulations-title">${isBangla ? 'অভিনন্দন!' : 'Congratulations!'}</h2>
+                <p class="congratulations-message">${isBangla 
+                    ? `আপনার ${planName} প্ল্যান সফলভাবে সক্রিয় করা হয়েছে!` 
+                    : `Your ${planName} plan has been successfully activated!`}</p>
+                <p class="congratulations-submessage">${isBangla 
+                    ? 'আপনি এখন সমস্ত প্রিমিয়াম ফিচার ব্যবহার করতে পারবেন।' 
+                    : 'You can now enjoy all premium features.'}</p>
+                <button class="primary-btn congratulations-close-btn">${isBangla ? 'ঠিক আছে' : 'Got it!'}</button>
+            </div>
+        `;
+        
+        document.body.appendChild(congratsModal);
+        
+        // Animate in
+        setTimeout(() => {
+            congratsModal.classList.add('show');
+        }, 10);
+        
+        // Close button handler
+        const closeBtn = congratsModal.querySelector('.congratulations-close-btn');
+        const closeModal = () => {
+            congratsModal.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(congratsModal);
+            }, 300);
+        };
+        
+        closeBtn.addEventListener('click', closeModal);
+        congratsModal.addEventListener('click', (e) => {
+            if (e.target === congratsModal) closeModal();
+        });
     }
 
     function updateSubscriptionDisplay() {
