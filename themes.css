@@ -30,10 +30,10 @@ html[data-theme="cozy-ledger"] {
     --accent-soft: rgba(201, 168, 108, 0.15);
     --secondary: #a8927a;
     
-    /* Text Colors */
-    --text: #4a3f35;
-    --text-soft: #7a6d60;
-    --text-muted: #a09488;
+    /* Text Colors - improved contrast for readability */
+    --text: #3d342c;
+    --text-soft: #6b5f54;
+    --text-muted: #8f8378;
     --text-on-primary: #ffffff;
     
     /* Status Colors */
@@ -180,8 +180,8 @@ html[data-theme="night-shop"] {
     --surface: #151921;
     --surface-soft: #1c222d;
     --surface-elevated: #232a38;
-    --border: #2a3341;
-    --border-subtle: #1f2631;
+    --border: #323d4d;
+    --border-subtle: #252d3a;
     
     /* Brand Colors */
     --primary: #10b981;
@@ -276,10 +276,10 @@ html[data-theme="zen-finance"] {
     --accent-soft: rgba(139, 181, 171, 0.15);
     --secondary: #7a8f8c;
     
-    /* Text Colors */
-    --text: #2d3e3c;
-    --text-soft: #5a6b69;
-    --text-muted: #8a9997;
+    /* Text Colors - clearer hierarchy */
+    --text: #24302e;
+    --text-soft: #4d5f5d;
+    --text-muted: #7a8886;
     --text-on-primary: #ffffff;
     
     /* Status Colors - Soft pastels */
@@ -466,11 +466,11 @@ html[data-theme="classic-paper"] {
     --debt-reminder: #1e4d6b;
     --debt-reminder-bg: linear-gradient(135deg, rgba(30, 77, 107, 0.06), rgba(30, 77, 107, 0.02));
     
-    /* Shadows & Effects */
-    --shadow-sm: 0 1px 4px rgba(44, 36, 22, 0.06);
-    --shadow: 0 4px 16px rgba(44, 36, 22, 0.08);
-    --shadow-lg: 0 10px 36px rgba(44, 36, 22, 0.1);
-    --shadow-glow: 0 3px 14px rgba(44, 85, 48, 0.1);
+    /* Shadows & Effects - warmer, paper-like depth */
+    --shadow-sm: 0 1px 5px rgba(44, 36, 22, 0.07);
+    --shadow: 0 6px 20px rgba(44, 36, 22, 0.09);
+    --shadow-lg: 0 14px 40px rgba(44, 36, 22, 0.12);
+    --shadow-glow: 0 4px 18px rgba(44, 85, 48, 0.14);
     
     /* Borders & Radius */
     --radius-sm: 6px;
