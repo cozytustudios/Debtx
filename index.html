@@ -37,6 +37,15 @@
     </script>
 </head>
 <body>
+    <!-- SVG Gradients for Icons -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
+        <defs>
+            <linearGradient id="premiumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#ffd700;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#ff6b35;stop-opacity:1" />
+            </linearGradient>
+        </defs>
+    </svg>
     <div class="auth-overlay" id="auth-overlay" hidden style="display: none;">
         <div class="auth-card">
             <header class="auth-card__header">
@@ -131,75 +140,75 @@
             </div>
         </header>
 
-        <!-- Brand New Floating Dock - Premium Design -->
-        <nav class="dock dock-animated" id="dock" aria-label="Main sections">
+        <!-- Dock: text + icons, always visible labels -->
+        <nav class="dock dock-animated dock-v2 dock-v3" id="dock" aria-label="Main sections">
             <div class="dock-inner dock-glass">
                 <button class="dock-item dock-item-animated active" data-target="customers" id="nav-customers" aria-label="Customers">
-                    <span class="dock-icon-wrapper">
-                        <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="8" r="4"></circle>
-                            <path d="M4 20c0-4 16-4 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <span class="dock-icon-box">
+                        <svg class="dock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
                     </span>
-                    <span class="dock-label">
-                        <span class="title-en">Debts</span>
-                        <span class="title-bn">ঋণ</span>
-                    </span>
-                    <span class="dock-indicator"></span>
+                    <span class="dock-label" data-i18n="nav.customers">Customers</span>
                 </button>
-                <button class="dock-item dock-item-animated" data-target="bills" id="nav-bills" aria-label="Bills & Invoices">
-                    <span class="dock-icon-wrapper">
-                        <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="6" y="3" width="12" height="18" rx="2"></rect>
-                            <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <button class="dock-item dock-item-animated" data-target="bills" id="nav-bills" aria-label="Bills">
+                    <span class="dock-icon-box">
+                        <svg class="dock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
                     </span>
-                    <span class="dock-label">
-                        <span class="title-en">Bills</span>
-                        <span class="title-bn">বিল</span>
-                    </span>
-                    <span class="dock-indicator"></span>
+                    <span class="dock-label" data-i18n="nav.bills">Bills</span>
                 </button>
                 <button class="dock-item dock-item-animated" data-target="ai" id="nav-ai" aria-label="AI Tools">
-                    <span class="dock-icon-wrapper">
-                        <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="6" y="6" width="12" height="12" rx="3"></rect>
-                            <circle cx="10" cy="11" r="1" fill="currentColor"/>
-                            <circle cx="14" cy="11" r="1" fill="currentColor"/>
-                            <path d="M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <span class="dock-icon-box">
+                        <svg class="dock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                            <rect x="9" y="9" width="6" height="6"></rect>
+                            <line x1="9" y1="1" x2="9" y2="4"></line>
+                            <line x1="15" y1="1" x2="15" y2="4"></line>
+                            <line x1="9" y1="20" x2="9" y2="23"></line>
+                            <line x1="15" y1="20" x2="15" y2="23"></line>
+                            <line x1="20" y1="9" x2="23" y2="9"></line>
+                            <line x1="20" y1="14" x2="23" y2="14"></line>
+                            <line x1="1" y1="9" x2="4" y2="9"></line>
+                            <line x1="1" y1="14" x2="4" y2="14"></line>
                         </svg>
                     </span>
-                    <span class="dock-label">
-                        <span class="title-en">Tools</span>
-                        <span class="title-bn">টুলস</span>
-                    </span>
-                    <span class="dock-indicator"></span>
+                    <span class="dock-label" data-i18n="nav.ai">AI</span>
                 </button>
-                <button class="dock-item dock-item-animated" data-target="notes" id="nav-notes" aria-label="Notes & Tasks">
-                    <span class="dock-icon-wrapper">
-                        <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M6 4h9l3 3v13H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                            <path d="M9 11h6M9 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <button class="dock-item dock-item-animated" data-target="notes" id="nav-notes" aria-label="Notes">
+                    <span class="dock-icon-box">
+                        <svg class="dock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                         </svg>
                     </span>
-                    <span class="dock-label">
-                        <span class="title-en">Notes</span>
-                        <span class="title-bn">নোট</span>
-                    </span>
-                    <span class="dock-indicator"></span>
+                    <span class="dock-label" data-i18n="nav.notes">Notes</span>
                 </button>
                 <button class="dock-item dock-item-animated" data-target="settings" id="nav-settings" aria-label="Settings">
-                    <span class="dock-icon-wrapper">
-                        <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <span class="dock-icon-box">
+                        <svg class="dock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M19 12a7 7 0 0 0-.1-1l2-1-2-4-2 1a7 7 0 0 0-1.7-1l-.3-2h-4l-.3 2a7 7 0 0 0-1.7 1l-2-1-2 4 2 1a7 7 0 0 0 0 2l-2 1 2 4 2-1a7 7 0 0 0 1.7 1l.3 2h4l.3-2a7 7 0 0 0 1.7-1l2 1 2-4-2-1a7 7 0 0 0 .1-2z"></path>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                         </svg>
                     </span>
-                    <span class="dock-label">
-                        <span class="title-en">More</span>
-                        <span class="title-bn">আরও</span>
+                    <span class="dock-label" data-i18n="nav.settings">Settings</span>
+                </button>
+                <button class="dock-item dock-item-animated dock-item-premium" data-target="premium" id="nav-premium" aria-label="Premium">
+                    <span class="dock-icon-box">
+                        <svg class="dock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="8" r="7"></circle>
+                            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                        </svg>
                     </span>
-                    <span class="dock-indicator"></span>
+                    <span class="dock-label" data-i18n="nav.premium">Pro</span>
                 </button>
             </div>
         </nav>
@@ -214,15 +223,76 @@
                     <button class="primary-btn" id="add-customer-btn" data-i18n="customers.addCustomer">+ Add Customer</button>
                 </div>
 
-                <div class="search-bar">
-                    <input type="search" id="customer-search" placeholder="Search by name or phone" data-i18n-placeholder="customers.searchPlaceholder" />
+                <div class="customers-tabs">
+                    <button class="tab-btn active" data-customers-tab="customers" data-i18n="customers.tabs.customers">Customers</button>
+                    <button class="tab-btn" data-customers-tab="debts" data-i18n="customers.tabs.debts">Debts</button>
                 </div>
 
-                <div class="data-empty" id="customers-empty" hidden style="display: none !important;">
-                    <!-- Hidden: No customers message removed per user request -->
+                <div class="customers-view" id="customers-view">
+                    <div class="search-bar">
+                        <input type="search" id="customer-search" placeholder="Search by name or phone" data-i18n-placeholder="customers.searchPlaceholder" />
+                    </div>
+
+                    <div class="data-empty" id="customers-empty" hidden style="display: none !important;">
+                        <!-- Hidden: No customers message removed per user request -->
+                    </div>
+
+                    <div class="cards" id="customer-list" aria-live="polite"></div>
                 </div>
 
-                <div class="cards" id="customer-list" aria-live="polite"></div>
+                <div class="debts-view" id="debts-view" hidden>
+                    <div class="debts-summary">
+                        <div class="debt-stat-card liquid-glass">
+                            <div class="debt-stat-icon">💰</div>
+                            <div>
+                                <div class="debt-stat-value" id="debt-total-outstanding">৳0</div>
+                                <div class="debt-stat-label" data-i18n="debts.totalOutstanding">Total Outstanding</div>
+                            </div>
+                        </div>
+                        <div class="debt-stat-card liquid-glass">
+                            <div class="debt-stat-icon">⏳</div>
+                            <div>
+                                <div class="debt-stat-value" id="debt-total-due-soon">৳0</div>
+                                <div class="debt-stat-label" data-i18n="debts.totalDueSoon">Due Soon</div>
+                            </div>
+                        </div>
+                        <div class="debt-stat-card liquid-glass">
+                            <div class="debt-stat-icon">⚠️</div>
+                            <div>
+                                <div class="debt-stat-value" id="debt-total-overdue">৳0</div>
+                                <div class="debt-stat-label" data-i18n="debts.totalOverdue">Overdue</div>
+                            </div>
+                        </div>
+                        <div class="debt-stat-card liquid-glass">
+                            <div class="debt-stat-icon">✅</div>
+                            <div>
+                                <div class="debt-stat-value" id="debt-total-settled">৳0</div>
+                                <div class="debt-stat-label" data-i18n="debts.totalSettled">Settled</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="search-bar">
+                        <input type="search" id="debt-search" placeholder="Search by customer or note" data-i18n-placeholder="debts.searchPlaceholder" />
+                    </div>
+
+                    <div class="debt-filters">
+                        <button class="filter-btn active" data-filter="all" data-i18n="debts.filterAll">All</button>
+                        <button class="filter-btn" data-filter="open" data-i18n="debts.filterOpen">Open</button>
+                        <button class="filter-btn" data-filter="dueSoon" data-i18n="debts.filterDueSoon">Due Soon</button>
+                        <button class="filter-btn" data-filter="overdue" data-i18n="debts.filterOverdue">Overdue</button>
+                        <button class="filter-btn" data-filter="settled" data-i18n="debts.filterSettled">Settled</button>
+                    </div>
+
+                    <div class="data-empty" id="debt-empty" hidden>
+                        <div class="empty-state">
+                            <div class="empty-icon">💸</div>
+                            <p data-i18n="debts.empty">No debts found. Add a customer or record a new debt.</p>
+                        </div>
+                    </div>
+
+                    <div class="cards" id="debt-list" aria-live="polite"></div>
+                </div>
             </section>
 
             <section class="panel" id="panel-bills" aria-label="Make Bills">
@@ -464,8 +534,30 @@
                 <!-- AI Chat -->
                 <div class="ai-tool-panel" id="ai-chat-panel">
                     <div id="ai-subscription-message" class="subscription-required-message" hidden>
-                        <p data-i18n="ai.subscriptionRequired">AI Assistant requires a subscription. Please subscribe to use this feature.</p>
-                        <button class="primary-btn" onclick="window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank')" data-i18n="ai.goToSubscription">View Subscription Plans</button>
+                        <div class="ultra-badge">
+                            <span class="ultra-icon">🔒</span>
+                            <span class="ultra-label">Ultra Only</span>
+                        </div>
+                        <h3 class="subscription-title">
+                            <span class="title-en">AI Chat - Ultra Exclusive</span>
+                            <span class="title-bn">এআই চ্যাট - শুধু Ultra প্ল্যান</span>
+                        </h3>
+                        <p class="subscription-desc">
+                            <span class="title-en">AI Chat is exclusively available for Ultra plan subscribers. Upgrade to Ultra to unlock powerful AI-powered conversations for your business.</span>
+                            <span class="title-bn">এআই চ্যাট শুধুমাত্র Ultra প্ল্যান সাবস্ক্রাইবারদের জন্য উপলব্ধ। আপনার ব্যবসার জন্য শক্তিশালী এআই চ্যাট আনলক করতে Ultra তে আপগ্রেড করুন।</span>
+                        </p>
+                        <div class="ultra-price-tag">
+                            <span class="title-en">800 ৳/year</span>
+                            <span class="title-bn">৮০০ ৳/বছর</span>
+                        </div>
+                        <button class="primary-btn ultra-subscribe-btn" onclick="window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank')">
+                            <span class="title-en">Subscribe to Ultra</span>
+                            <span class="title-bn">Ultra সাবস্ক্রাইব করুন</span>
+                        </button>
+                        <p class="coupon-hint-text">
+                            <span class="title-en">Use coupon code: <strong>TERECEPROXMAX</strong></span>
+                            <span class="title-bn">কুপন কোড ব্যবহার করুন: <strong>TERECEPROXMAX</strong></span>
+                        </p>
                     </div>
 
                     <div class="ai-chat-container" id="ai-chat-container">
@@ -501,504 +593,902 @@
             </section>
 
             <section class="panel" id="panel-notes" aria-label="Notes and Tasks">
-                <div class="panel-header">
-                    <div>
-                        <h1 data-i18n="notesTasks.title">Notes & Tasks</h1>
-                        <p class="panel-subtitle" data-i18n="notesTasks.subtitle">Keep notes and track your tasks</p>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="primary-btn" id="add-note-btn" data-i18n="notes.addNote">+ Todo</button>
-                        <button class="primary-btn" id="add-task-btn" data-i18n="tasks.addTask">+ Task</button>
-                    </div>
-                </div>
-
+                <!-- Tasks / Notes Tabs -->
                 <div class="notes-tasks-tabs">
-                    <button class="tab-btn active" data-tab="notes" data-i18n="notes.title">Todos</button>
-                    <button class="tab-btn" data-tab="tasks" data-i18n="tasks.title">Tasks</button>
+                    <button class="tab-btn-nt" data-tab="tasks">
+                        <span class="title-en">Tasks</span>
+                        <span class="title-bn">কাজ</span>
+                    </button>
+                    <button class="tab-btn-nt active" data-tab="notes">
+                        <span class="title-en">Notes</span>
+                        <span class="title-bn">নোট</span>
+                    </button>
+                </div>
+                <div id="tasks-section" hidden>
+                <!-- New Modern Todo App UI -->
+                <div class="todo-app-new">
+                    <!-- Header -->
+                    <div class="todo-header-new">
+                        <div class="todo-header-content">
+                            <h1>
+                                <span class="title-en">My Tasks</span>
+                                <span class="title-bn">আমার কাজ</span>
+                            </h1>
+                            <p>
+                                <span class="title-en">Stay organized and productive</span>
+                                <span class="title-bn">সংগঠিত এবং উৎপাদনশীল থাকুন</span>
+                            </p>
+                        </div>
+                        <div class="todo-header-stats">
+                            <div class="todo-stat-badge">
+                                <span class="todo-stat-number" id="total-tasks-count">0</span>
+                                <span class="todo-stat-label">
+                                    <span class="title-en">Total</span>
+                                    <span class="title-bn">মোট</span>
+                                </span>
+                            </div>
+                            <div class="todo-stat-badge completed">
+                                <span class="todo-stat-number" id="completed-tasks-count">0</span>
+                                <span class="todo-stat-label">
+                                    <span class="title-en">Done</span>
+                                    <span class="title-bn">সম্পন্ন</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Add Task -->
+                    <div class="todo-quick-add-new">
+                        <input type="text" id="quick-task-input" placeholder="Add a new task..." class="quick-task-input-new">
+                        <select id="quick-task-category" class="quick-task-select-new">
+                            <option value="personal">Personal</option>
+                            <option value="work">Work</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="health">Health</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <button type="button" id="quick-add-task-btn" class="quick-add-btn-new">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Category Tabs -->
+                    <div class="todo-tabs-new">
+                        <button class="todo-tab-new active" data-category="all">
+                            <span class="tab-icon">📋</span>
+                            <span class="title-en">All</span>
+                            <span class="title-bn">সব</span>
+                        </button>
+                        <button class="todo-tab-new" data-category="personal">
+                            <span class="tab-icon">👤</span>
+                            <span class="title-en">Personal</span>
+                            <span class="title-bn">ব্যক্তিগত</span>
+                        </button>
+                        <button class="todo-tab-new" data-category="work">
+                            <span class="tab-icon">💼</span>
+                            <span class="title-en">Work</span>
+                            <span class="title-bn">কাজ</span>
+                        </button>
+                        <button class="todo-tab-new" data-category="shopping">
+                            <span class="tab-icon">🛒</span>
+                            <span class="title-en">Shopping</span>
+                            <span class="title-bn">কেনাকাটা</span>
+                        </button>
+                        <button class="todo-tab-new" data-category="health">
+                            <span class="tab-icon">💪</span>
+                            <span class="title-en">Health</span>
+                            <span class="title-bn">স্বাস্থ্য</span>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="todo-progress-new">
+                        <div class="progress-info">
+                            <span>
+                                <span class="title-en">Progress</span>
+                                <span class="title-bn">অগ্রগতি</span>
+                            </span>
+                            <span class="progress-percent" id="tasks-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-new">
+                            <div class="progress-fill-new" id="tasks-progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- AI Debt Calendar Card -->
+                    <div class="todo-calendar-card-new" id="ai-debt-calendar">
+                        <div class="calendar-card-header">
+                            <div class="calendar-card-title">
+                                <span class="calendar-icon">📅</span>
+                                <div>
+                                    <h3>
+                                        <span class="title-en">AI Debt Calendar</span>
+                                        <span class="title-bn">এআই ঋণ ক্যালেন্ডার</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Upcoming payment days</span>
+                                        <span class="title-bn">আসন্ন পেমেন্ট দিন</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <button class="refresh-btn-new" id="ai-debt-calendar-refresh">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M23 4v6h-6M1 20v-6h6"></path>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="calendar-list-new" id="ai-debt-calendar-list"></div>
+                    </div>
+
+                    <!-- Mini Calendar -->
+                    <div class="todo-mini-calendar-card-new" id="tasks-calendar-card">
+                        <div class="mini-calendar-header">
+                            <span class="calendar-icon">🗓️</span>
+                            <h3>
+                                <span class="title-en">Calendar</span>
+                                <span class="title-bn">ক্যালেন্ডার</span>
+                            </h3>
+                        </div>
+                        <div class="mini-calendar calendar-enhanced" id="tasks-mini-calendar"></div>
+                    </div>
+
+                    <!-- Tasks List -->
+                    <div class="todo-list-new" id="todo-tasks-list-new">
+                        <!-- Tasks will be rendered here -->
+                    </div>
+
+                    <!-- Old todo-tasks-list for compatibility -->
+                    <div class="todo-tasks-list" id="todo-tasks-list" style="display: none;"></div>
+
+                    <!-- Empty State -->
+                    <div class="todo-empty-new" id="todo-empty-new" hidden>
+                        <div class="empty-illustration">
+                            <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+                                <circle cx="60" cy="60" r="50" fill="var(--surface-soft)" stroke="var(--border)" stroke-width="2"/>
+                                <path d="M40 55h40M40 65h30M40 75h20" stroke="var(--text-soft)" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="85" cy="85" r="20" fill="var(--primary)" opacity="0.2"/>
+                                <path d="M80 85l5 5 10-10" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>
+                            <span class="title-en">No tasks yet</span>
+                            <span class="title-bn">এখনও কোন কাজ নেই</span>
+                        </h3>
+                        <p>
+                            <span class="title-en">Add your first task to get started!</span>
+                            <span class="title-bn">শুরু করতে আপনার প্রথম কাজ যোগ করুন!</span>
+                        </p>
+                    </div>
+
+                    <!-- Old Category Views for backward compatibility -->
+                    <div class="todo-categories-view" id="todo-categories-view" style="display: none;">
+                        <div class="todo-categories-grid" id="todo-categories-grid"></div>
+                        <div class="data-empty" id="categories-empty" hidden>
+                            <div class="empty-state-icon">📋</div>
+                            <p data-i18n="tasks.empty">No categories yet.</p>
+                        </div>
+                    </div>
+                    <div class="todo-detail-view" id="todo-detail-view" style="display: none;"></div>
+                </div>
                 </div>
 
-                <div class="notes-section" id="notes-section">
-                    <div class="note-controls-enhanced">
-                        <div class="search-wrapper">
-                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
+                <!-- Notes Section - Premium Redesigned -->
+                <div class="notes-app-v2" id="notes-section">
+                        <!-- Notes Header -->
+                        <div class="notes-header-v2">
+                            <div class="notes-header-left">
+                                <div class="notes-icon-badge">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20h9"></path>
+                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h2 class="notes-title-v2">
+                                        <span class="title-en">My Notes</span>
+                                        <span class="title-bn">আমার নোট</span>
+                                    </h2>
+                                    <p class="notes-subtitle-v2">
+                                        <span class="title-en">Quick thoughts & ideas</span>
+                                        <span class="title-bn">দ্রুত চিন্তা ও ধারণা</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="notes-stats-v2">
+                                <div class="note-stat-pill" id="notes-count-pill">
+                                    <span class="note-stat-num" id="notes-total-count">0</span>
+                                    <span class="note-stat-text">
+                                        <span class="title-en">Notes</span>
+                                        <span class="title-bn">নোট</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notes Search & Actions -->
+                        <div class="notes-controls-v2">
+                            <div class="notes-search-v2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                                <input type="search" id="notes-search" placeholder="Search notes..." data-i18n-placeholder="notes.searchPlaceholder">
+                            </div>
+                            <button class="notes-add-btn-v2" id="add-note-btn" aria-label="Add Note">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span class="title-en">New Note</span>
+                                <span class="title-bn">নতুন নোট</span>
+                            </button>
+                        </div>
+
+                        <!-- All / Pinned / Recent -->
+                        <div class="notes-filter-row">
+                            <button class="filter-btn active" data-filter="all">
+                                <span class="title-en">All</span>
+                                <span class="title-bn">সব</span>
+                            </button>
+                            <button class="filter-btn" data-filter="pinned">
+                                <span class="title-en">Pinned</span>
+                                <span class="title-bn">পিন করা</span>
+                            </button>
+                            <button class="filter-btn" data-filter="recent">
+                                <span class="title-en">Recent</span>
+                                <span class="title-bn">সাম্প্রতিক</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Color Filter Pills -->
+                        <div class="notes-color-filters">
+                            <button class="color-filter-pill active" data-color="all">
+                                <span class="title-en">All</span>
+                                <span class="title-bn">সব</span>
+                            </button>
+                            <button class="color-filter-pill" data-color="yellow">
+                                <span class="color-dot yellow"></span>
+                                <span class="title-en">Yellow</span>
+                                <span class="title-bn">হলুদ</span>
+                            </button>
+                            <button class="color-filter-pill" data-color="green">
+                                <span class="color-dot green"></span>
+                                <span class="title-en">Green</span>
+                                <span class="title-bn">সবুজ</span>
+                            </button>
+                            <button class="color-filter-pill" data-color="blue">
+                                <span class="color-dot blue"></span>
+                                <span class="title-en">Blue</span>
+                                <span class="title-bn">নীল</span>
+                            </button>
+                            <button class="color-filter-pill" data-color="pink">
+                                <span class="color-dot pink"></span>
+                                <span class="title-en">Pink</span>
+                                <span class="title-bn">গোলাপি</span>
+                            </button>
+                            <button class="color-filter-pill" data-color="gray">
+                                <span class="color-dot gray"></span>
+                                <span class="title-en">Gray</span>
+                                <span class="title-bn">ধূসর</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Notes Empty State - Beautiful -->
+                        <div class="notes-empty-v2" id="notes-empty" hidden>
+                            <div class="empty-illustration-v2">
+                                <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
+                                    <circle cx="50" cy="50" r="45" fill="var(--primary-soft)" stroke="var(--primary)" stroke-width="2" stroke-dasharray="8 4"/>
+                                    <rect x="30" y="25" width="40" height="50" rx="4" fill="var(--surface)" stroke="var(--border)" stroke-width="2"/>
+                                    <line x1="38" y1="38" x2="62" y2="38" stroke="var(--text-soft)" stroke-width="2" stroke-linecap="round"/>
+                                    <line x1="38" y1="48" x2="58" y2="48" stroke="var(--text-soft)" stroke-width="2" stroke-linecap="round"/>
+                                    <line x1="38" y1="58" x2="52" y2="58" stroke="var(--text-soft)" stroke-width="2" stroke-linecap="round"/>
+                                    <circle cx="72" cy="70" r="14" fill="var(--primary)" opacity="0.9"/>
+                                    <line x1="72" y1="64" x2="72" y2="76" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                                    <line x1="66" y1="70" x2="78" y2="70" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                            <h4>
+                                <span class="title-en">Start capturing ideas</span>
+                                <span class="title-bn">আইডিয়া সংরক্ষণ শুরু করুন</span>
+                            </h4>
+                            <p>
+                                <span class="title-en">Your notes will appear here. Tap the button to create your first note.</span>
+                                <span class="title-bn">আপনার নোটগুলো এখানে দেখা যাবে। প্রথম নোট তৈরি করতে বোতামে ট্যাপ করুন।</span>
+                            </p>
+                            <button class="empty-create-btn" id="empty-add-note-btn">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span class="title-en">Create Note</span>
+                                <span class="title-bn">নোট তৈরি করুন</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Notes Grid - Modern Cards -->
+                        <div class="notes-grid-v2" id="notes-list" aria-live="polite"></div>
+                        
+                        <!-- Floating Action Button for Notes -->
+                        <button class="notes-fab" id="notes-fab" aria-label="Add Note">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
-                            <input type="search" id="notes-search" placeholder="Search your notes..." data-i18n-placeholder="notes.searchPlaceholder" />
-                        </div>
-                        <div class="filter-buttons">
-                            <button class="filter-btn active" data-filter="all" data-i18n="notes.filterAll">All</button>
-                            <button class="filter-btn" data-filter="pinned" data-i18n="notes.filterPinned">⭐ Pinned</button>
-                            <button class="filter-btn" data-filter="recent" data-i18n="notes.filterRecent">Recent</button>
-                        </div>
-                        <div class="color-filter-buttons">
-                            <button class="color-filter-btn" data-color="yellow" title="Yellow notes" style="background: linear-gradient(180deg, #f8e99f, #f5d97b);"></button>
-                            <button class="color-filter-btn" data-color="green" title="Green notes" style="background: linear-gradient(180deg, #c7f0c2, #a8e6a0);"></button>
-                            <button class="color-filter-btn" data-color="blue" title="Blue notes" style="background: linear-gradient(180deg, #c7defa, #a3c9f5);"></button>
-                            <button class="color-filter-btn" data-color="pink" title="Pink notes" style="background: linear-gradient(180deg, #f9c2d6, #f5a7c0);"></button>
-                            <button class="color-filter-btn" data-color="gray" title="Gray notes" style="background: linear-gradient(180deg, #e0e6eb, #cbd5dc);"></button>
-                        </div>
-                    </div>
-
-                    <div class="data-empty" id="notes-empty" hidden>
-                        <div class="empty-state-icon">📝</div>
-                        <p data-i18n="notes.empty">No notes yet. Create your first note to get started.</p>
-                    </div>
-
-                    <div class="cards notes-grid" id="notes-list" aria-live="polite"></div>
+                        </button>
                 </div>
+            </section>
 
-                <div class="tasks-section" id="tasks-section" hidden>
-                    <div class="tasks-header-enhanced">
-                        <div class="calendar-hint-enhanced">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
-                            <p data-i18n="tasks.calendarHint">Tap a date to see upcoming payments and tasks</p>
-                        </div>
-                        <div class="task-stats">
-                            <span class="task-stat-item" id="tasks-total">0 Total</span>
-                            <span class="task-stat-item" id="tasks-completed">0 Done</span>
-                            <span class="task-stat-item" id="tasks-pending">0 Pending</span>
+            <!-- Premium Panel -->
+            <section class="panel" id="panel-premium" aria-label="Premium">
+                <div class="premium-panel-new">
+                    <div class="premium-hero">
+                        <div class="premium-hero-icon">⭐</div>
+                        <h1>
+                            <span class="title-en">Upgrade to Premium</span>
+                            <span class="title-bn">প্রিমিয়ামে আপগ্রেড করুন</span>
+                        </h1>
+                        <p>
+                            <span class="title-en">Unlock all features and grow your business</span>
+                            <span class="title-bn">সব ফিচার আনলক করুন এবং আপনার ব্যবসা বাড়ান</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Current Plan Status -->
+                    <div class="premium-current-status" id="premium-current-status">
+                        <div class="status-badge free">
+                            <span class="title-en">Current: Free Plan</span>
+                            <span class="title-bn">বর্তমান: ফ্রি প্ল্যান</span>
                         </div>
                     </div>
+                    
+                    <!-- All 4 Plans - Sorted by Price (Cheapest First) -->
+                    <div class="plan-carousel-viewport">
+                        <div class="plan-carousel-track" id="plan-carousel-track">
+                        
+                        <!-- 1. MAX Plan - ৳400/year (CHEAPEST) -->
+                        <div class="plan-card-new featured" data-plan="max">
+                            <div class="plan-badge-new">💰 Best Value</div>
+                            <div class="plan-header-new">
+                                <h3>MAX</h3>
+                                <div class="plan-price-new">
+                                    <strong>৳400</strong>
+                                    <span>/year</span>
+                                </div>
+                            </div>
+                            <ul class="plan-features-new">
+                                <li>✓ <span class="title-en">Unlimited customers</span><span class="title-bn">সীমাহীন ক্রেতা</span></li>
+                                <li>✓ <span class="title-en">Everything in Pro</span><span class="title-bn">প্রো-এর সবকিছু</span></li>
+                                <li>✓ <span class="title-en">AI Insights</span><span class="title-bn">এআই অন্তর্দৃষ্টি</span></li>
+                                <li>✓ <span class="title-en">Priority support</span><span class="title-bn">অগ্রাধিকার সাপোর্ট</span></li>
+                            </ul>
+                            <div class="plan-coupon-new">
+                                <input type="text" id="premium-coupon-max" class="coupon-input-new" placeholder="Enter coupon code" autocomplete="off" />
+                                <button type="button" class="coupon-btn-new" data-plan="max" id="premium-activate-max">
+                                    <span class="title-en">Activate</span>
+                                    <span class="title-bn">সক্রিয়</span>
+                                </button>
+                            </div>
+                            <div class="coupon-feedback-new" id="premium-feedback-max"></div>
+                        </div>
 
-                    <div class="calendar-enhanced" id="mini-calendar" aria-label="Calendar view"></div>
+                        <!-- 2. PRO Plan - ৳40/month (~৳480/year) -->
+                        <div class="plan-card-new" data-plan="pro">
+                            <div class="plan-header-new">
+                                <h3>PRO</h3>
+                                <div class="plan-price-new">
+                                    <strong>৳40</strong>
+                                    <span>/month</span>
+                                </div>
+                            </div>
+                            <ul class="plan-features-new">
+                                <li>✓ <span class="title-en">Up to 100 customers</span><span class="title-bn">সর্বোচ্চ ১০০ জন ক্রেতা</span></li>
+                                <li>✓ <span class="title-en">Todo & Tasks</span><span class="title-bn">টুডু ও টাস্ক</span></li>
+                                <li>✓ <span class="title-en">Advanced tracking</span><span class="title-bn">উন্নত ট্র্যাকিং</span></li>
+                                <li>✓ <span class="title-en">No Premium button</span><span class="title-bn">প্রিমিয়াম বাটন নেই</span></li>
+                            </ul>
+                            <div class="plan-coupon-new">
+                                <input type="text" id="premium-coupon-pro" class="coupon-input-new" placeholder="Enter coupon code" autocomplete="off" />
+                                <button type="button" class="coupon-btn-new" data-plan="pro" id="premium-activate-pro">
+                                    <span class="title-en">Activate</span>
+                                    <span class="title-bn">সক্রিয়</span>
+                                </button>
+                            </div>
+                            <div class="coupon-feedback-new" id="premium-feedback-pro"></div>
+                        </div>
 
-                    <div class="data-empty" id="tasks-empty" hidden>
-                        <div class="empty-state-icon">✅</div>
-                        <p data-i18n="tasks.empty">No tasks scheduled. Add your first task to get started.</p>
+                        <!-- 3. ONLINE Plan - ৳500/year -->
+                        <div class="plan-card-new" data-plan="online">
+                            <div class="plan-header-new">
+                                <h3>ONLINE</h3>
+                                <div class="plan-price-new">
+                                    <strong>৳500</strong>
+                                    <span>/year</span>
+                                </div>
+                            </div>
+                            <ul class="plan-features-new">
+                                <li>✓ <span class="title-en">Unlimited customers</span><span class="title-bn">সীমাহীন ক্রেতা</span></li>
+                                <li>✓ <span class="title-en">Online-first features</span><span class="title-bn">অনলাইন ব্যবসা ফিচার</span></li>
+                                <li>✓ <span class="title-en">Standard support</span><span class="title-bn">স্ট্যান্ডার্ড সাপোর্ট</span></li>
+                            </ul>
+                            <div class="plan-coupon-new">
+                                <input type="text" id="premium-coupon-online" class="coupon-input-new" placeholder="Enter coupon code" autocomplete="off" />
+                                <button type="button" class="coupon-btn-new" data-plan="online" id="premium-activate-online">
+                                    <span class="title-en">Activate</span>
+                                    <span class="title-bn">সক্রিয়</span>
+                                </button>
+                            </div>
+                            <div class="coupon-feedback-new" id="premium-feedback-online"></div>
+                        </div>
+
+                        <!-- 4. ULTRA Plan - ৳800/year (MOST EXPENSIVE - Includes AI Chat) -->
+                        <div class="plan-card-new ultra" data-plan="ultra">
+                            <div class="plan-badge-new">👑 Premium + AI</div>
+                            <div class="plan-header-new">
+                                <h3>ULTRA</h3>
+                                <div class="plan-price-new">
+                                    <strong>৳800</strong>
+                                    <span>/year</span>
+                                </div>
+                            </div>
+                            <ul class="plan-features-new">
+                                <li>✓ <span class="title-en">Unlimited customers</span><span class="title-bn">সীমাহীন ক্রেতা</span></li>
+                                <li>✓ <span class="title-en">Everything in Max</span><span class="title-bn">ম্যাক্স-এর সবকিছু</span></li>
+                                <li>✓ <span class="title-en"><strong>AI Chat (Exclusive)</strong></span><span class="title-bn"><strong>এআই চ্যাট (একচেটিয়া)</strong></span></li>
+                                <li>✓ <span class="title-en">Trust Ratio Analysis</span><span class="title-bn">ট্রাস্ট রেশিও বিশ্লেষণ</span></li>
+                                <li>✓ <span class="title-en">24/7 Support</span><span class="title-bn">২৪/৭ সাপোর্ট</span></li>
+                            </ul>
+                            <div class="plan-coupon-new">
+                                <input type="text" id="premium-coupon-ultra" class="coupon-input-new" placeholder="Enter coupon code" autocomplete="off" />
+                                <button type="button" class="coupon-btn-new" data-plan="ultra" id="premium-activate-ultra">
+                                    <span class="title-en">Activate</span>
+                                    <span class="title-bn">সক্রিয়</span>
+                                </button>
+                            </div>
+                            <div class="coupon-feedback-new" id="premium-feedback-ultra"></div>
+                        </div>
+                        
+                        </div>
                     </div>
-
-                    <div class="cards tasks-list-enhanced" id="tasks-list" aria-live="polite"></div>
+                    <div class="plan-carousel-nav">
+                        <button type="button" class="plan-carousel-btn plan-carousel-prev" id="plan-carousel-prev" aria-label="Previous plan">‹</button>
+                        <div class="plan-carousel-dots" id="plan-carousel-dots">
+                            <button type="button" class="plan-carousel-dot active" data-index="0" aria-label="Plan 1"></button>
+                            <button type="button" class="plan-carousel-dot" data-index="1" aria-label="Plan 2"></button>
+                            <button type="button" class="plan-carousel-dot" data-index="2" aria-label="Plan 3"></button>
+                            <button type="button" class="plan-carousel-dot" data-index="3" aria-label="Plan 4"></button>
+                        </div>
+                        <button type="button" class="plan-carousel-btn plan-carousel-next" id="plan-carousel-next" aria-label="Next plan">›</button>
+                    </div>
+                    
+                    <!-- Buy Button -->
+                    <div class="premium-buy-section">
+                        <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank" rel="noopener noreferrer" class="premium-buy-button">
+                            <span class="title-en">💬 Buy Subscription on Facebook</span>
+                            <span class="title-bn">💬 ফেসবুকে সাবস্ক্রিপশন কিনুন</span>
+                        </a>
+                    </div>
                 </div>
             </section>
 
             <section class="panel" id="panel-settings" aria-label="Settings">
-                <header class="settings-header-minimal">
-                    <div class="settings-app-name">
-                        <span class="title-en">Debt<span class="logo-x">x</span></span>
-                        <span class="title-bn">ডেবট<span class="logo-x">এক্স</span></span>
+                <!-- New Modern Settings UI -->
+                <div class="settings-new">
+                    <!-- Header -->
+                    <div class="settings-header-new">
+                        <h1>
+                            <span class="title-en">Settings</span>
+                            <span class="title-bn">সেটিংস</span>
+                        </h1>
+                        <p class="settings-subtitle">
+                            <span class="title-en">Customize your experience</span>
+                            <span class="title-bn">আপনার অভিজ্ঞতা কাস্টমাইজ করুন</span>
+                        </p>
                     </div>
-                </header>
+                    
+                    <!-- Settings Grid -->
+                    <div class="settings-grid-new">
+                        <!-- Your Plan / DebtX - Plan-based branding -->
+                        <div class="settings-section-new settings-plan-debtx" id="settings-plan-section">
+                            <div class="section-header-new section-plan-header">
+                                <div class="section-icon-new debtx-plan-icon" id="settings-plan-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                        <path d="M2 17l10 5 10-5"/>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3 class="debtx-brand" id="settings-debtx-name">DebtX</h3>
+                                    <p class="settings-plan-badge" id="settings-plan-badge">Free</p>
+                                    <p class="settings-plan-offline">
+                                        <span class="title-en">✓ Works offline</span>
+                                        <span class="title-bn">✓ অফলাইনে কাজ করে</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
-                <div class="settings-content">
-                    <!-- Language Section -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <svg class="settings-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="2" y1="12" x2="22" y2="12"></line>
-                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                            </svg>
-                            <h2 data-i18n="settings.languageTitle">Language</h2>
-                        </div>
-                        <p class="settings-muted" data-i18n="settings.languageHint">Choose your preferred language</p>
-                        <div class="language-options">
-                            <button type="button" class="language-option-btn" data-lang="en" data-i18n="language.english">English</button>
-                            <button type="button" class="language-option-btn" data-lang="bn" data-i18n="language.bengali">বাংলা</button>
-                        </div>
-                    </div>
-
-                    <!-- Text Size Section -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <svg class="settings-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 7V4h16v3"></path>
-                                <path d="M9 20h6"></path>
-                                <path d="M12 4v16"></path>
-                            </svg>
-                            <h2 data-i18n="settings.textSizeTitle">Text Size</h2>
-                        </div>
-                        <p class="settings-muted" data-i18n="settings.textSizeHint">Make text bigger or smaller</p>
-                        <div class="text-size-options">
-                            <button type="button" class="text-size-btn" data-size="1">A</button>
-                            <button type="button" class="text-size-btn" data-size="2">A</button>
-                            <button type="button" class="text-size-btn active" data-size="3">A</button>
-                            <button type="button" class="text-size-btn" data-size="4">A</button>
-                            <button type="button" class="text-size-btn" data-size="5">A</button>
-                        </div>
-                    </div>
-
-                    <!-- Shop Profile Section -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <svg class="settings-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                            <h2 data-i18n="settings.shopProfileTitle">Shop Information</h2>
-                        </div>
-                        <p class="settings-muted" data-i18n="settings.shopProfileHint">Manage your shop details and contact information</p>
-                        <div class="shop-profile-section">
-                            <div class="shop-profile-main">
-                                <div class="shop-logo-upload">
-                                    <div class="shop-logo-preview">
-                                        <div class="profile-avatar" id="settings-shop-logo-preview">
-                                            <span id="settings-shop-logo-placeholder">🏪</span>
-                                        </div>
-                                        <label class="upload-overlay-btn" for="settings-shop-logo-input">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                <polyline points="17 8 12 3 7 8"></polyline>
-                                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                                            </svg>
-                                        </label>
+                        <!-- Profile Section -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Shop Profile</span>
+                                        <span class="title-bn">দোকানের প্রোফাইল</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Your business information</span>
+                                        <span class="title-bn">আপনার ব্যবসার তথ্য</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <div class="profile-upload-new">
+                                    <div class="avatar-upload-new" id="settings-shop-logo-preview">
+                                        <span id="settings-shop-logo-placeholder">🏪</span>
                                         <input type="file" id="settings-shop-logo-input" accept="image/*" hidden>
                                     </div>
+                                    <label for="settings-shop-logo-input" class="upload-btn-new">
+                                        <span class="title-en">Change Logo</span>
+                                        <span class="title-bn">লোগো পরিবর্তন</span>
+                                    </label>
                                 </div>
-                                <div class="shop-profile-details">
-                                    <div class="shop-name-label">
-                                        <span data-i18n="settings.shopName">Shop Name</span>
-                                        <input type="text" id="settings-shop-name-input" maxlength="80" placeholder="Your shop name">
+                                <div class="input-group-new">
+                                    <label>
+                                        <span class="title-en">Shop Name</span>
+                                        <span class="title-bn">দোকানের নাম</span>
+                                    </label>
+                                    <input type="text" id="settings-shop-name-input" maxlength="80" placeholder="Your shop name">
+                                </div>
+                                <div class="input-group-new">
+                                    <label>
+                                        <span class="title-en">Owner Name</span>
+                                        <span class="title-bn">মালিকের নাম</span>
+                                    </label>
+                                    <input type="text" id="settings-owner-name-input" maxlength="60" placeholder="Your name">
+                                </div>
+                                <div class="input-row-new">
+                                    <div class="input-group-new">
+                                        <label>
+                                            <span class="title-en">Phone</span>
+                                            <span class="title-bn">ফোন</span>
+                                        </label>
+                                        <input type="tel" id="settings-phone-number" maxlength="15" placeholder="01XXXXXXXXX">
                                     </div>
-                                    <div class="shop-owner-label">
-                                        <span data-i18n="settings.ownerName">Owner Name</span>
-                                        <input type="text" id="settings-owner-name-input" maxlength="60" placeholder="Your name">
+                                    <div class="input-group-new">
+                                        <label>
+                                            <span class="title-en">Payment Number</span>
+                                            <span class="title-bn">পেমেন্ট নম্বর</span>
+                                        </label>
+                                        <input type="tel" id="settings-payment-number" maxlength="15" placeholder="01XXXXXXXXX">
                                     </div>
                                 </div>
                             </div>
-                            <div class="shop-contact-section">
-                                <div class="contact-label">
-                                    <span data-i18n="settings.phoneNumber">Phone Number</span>
-                                    <input type="tel" id="settings-phone-number" maxlength="15" placeholder="01XXXXXXXXX">
+                        </div>
+
+                        <!-- Appearance Section -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <circle cx="12" cy="12" r="5"></circle>
+                                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                    </svg>
                                 </div>
-                                <div class="contact-label">
-                                    <span data-i18n="settings.paymentNumber">Payment Number</span>
-                                    <input type="tel" id="settings-payment-number" maxlength="15" placeholder="01XXXXXXXXX">
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Appearance</span>
+                                        <span class="title-bn">চেহারা</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Theme, text size & dock</span>
+                                        <span class="title-bn">থিম, টেক্সট সাইজ ও ডক</span>
+                                    </p>
                                 </div>
                             </div>
-                            <div class="owner-photo-section">
-                                <label>
-                                    <span data-i18n="settings.myPhoto">My Photo</span>
-                                    <div class="photo-upload-area">
-                                        <div class="photo-preview" id="settings-my-photo-preview">
-                                            <div class="photo-placeholder" data-i18n="settings.tapToUploadPhoto">Tap to upload</div>
-                                            <img id="settings-my-photo-img" hidden>
+                            <div class="section-content-new">
+                                <!-- Language -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Language</span>
+                                        <span class="title-bn">ভাষা</span>
+                                    </span>
+                                    <div class="language-toggle-new">
+                                        <button type="button" class="lang-btn-new" data-lang="en">EN</button>
+                                        <button type="button" class="lang-btn-new active" data-lang="bn">বাং</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Text Size -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Text Size</span>
+                                        <span class="title-bn">টেক্সট সাইজ</span>
+                                    </span>
+                                    <div class="text-size-new">
+                                        <button type="button" class="size-btn-new" data-size="1">A</button>
+                                        <button type="button" class="size-btn-new" data-size="2">A</button>
+                                        <button type="button" class="size-btn-new active" data-size="3">A</button>
+                                        <button type="button" class="size-btn-new" data-size="4">A</button>
+                                        <button type="button" class="size-btn-new" data-size="5">A</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Dock Size -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Dock Size</span>
+                                        <span class="title-bn">ডক সাইজ</span>
+                                    </span>
+                                    <div class="dock-slider-new">
+                                        <input type="range" id="dock-size-range" min="0.2" max="1.0" step="0.01" value="1" />
+                                        <span class="dock-value-new" id="dock-size-value">100%</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Themes -->
+                                <div class="themes-grid-new" id="theme-grid">
+                                    <div class="theme-tile-new" data-theme="cozy-ledger" aria-checked="true">
+                                        <div class="theme-preview-new cozy"></div>
+                                        <span>Cozy</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="clean-business" aria-checked="false">
+                                        <div class="theme-preview-new clean"></div>
+                                        <span>Clean</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="night-shop" aria-checked="false">
+                                        <div class="theme-preview-new night"></div>
+                                        <span>Night</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="zen-finance" aria-checked="false">
+                                        <div class="theme-preview-new zen"></div>
+                                        <span>Zen</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="street-ledger" aria-checked="false">
+                                        <div class="theme-preview-new street"></div>
+                                        <span>Street</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="classic-paper" aria-checked="false">
+                                        <div class="theme-preview-new classic"></div>
+                                        <span>Classic</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Methods Section -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Payment Methods</span>
+                                        <span class="title-bn">পেমেন্ট পদ্ধতি</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Enable payment options</span>
+                                        <span class="title-bn">পেমেন্ট অপশন সক্রিয় করুন</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <div class="payment-item-new">
+                                    <div class="payment-info-new">
+                                        <span class="payment-name-new">bKash</span>
+                                        <span class="payment-desc-new">Mobile Banking</span>
+                                    </div>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="payment-toggle-bkash">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
+                                <div class="payment-item-new">
+                                    <div class="payment-info-new">
+                                        <span class="payment-name-new">Nagad</span>
+                                        <span class="payment-desc-new">Mobile Banking</span>
+                                    </div>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="payment-toggle-nagad">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
+                                <div class="payment-item-new">
+                                    <div class="payment-info-new">
+                                        <span class="payment-name-new">Rocket</span>
+                                        <span class="payment-desc-new">Mobile Banking</span>
+                                    </div>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="payment-toggle-rocket">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Backup & Transfer -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3 data-i18n="settings.dataTitle">Data Backup & Transfer</h3>
+                                    <p data-i18n="settings.dataHint">Export your data as JSON to backup or transfer to another device. Import to restore your data.</p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <div class="support-buttons-new">
+                                    <button type="button" class="support-btn-new export" id="export-data-btn">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                        <span data-i18n="settings.exportData">Export JSON</span>
+                                    </button>
+                                    <label class="support-btn-new import" for="import-data-input">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
+                                        <span data-i18n="settings.importData">Import JSON</span>
+                                    </label>
+                                </div>
+                                <input type="file" id="import-data-input" accept=".json,application/json" hidden>
+                                <p id="data-status" class="data-status" role="status"></p>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Stats Section -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Monthly Stats</span>
+                                        <span class="title-bn">মাসিক পরিসংখ্যান</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Your business overview</span>
+                                        <span class="title-bn">আপনার ব্যবসার সারাংশ</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <div class="stats-grid-new">
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">💰</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-total-revenue">৳0</span>
+                                            <span class="stat-label-new">Revenue</span>
                                         </div>
-                                        <input type="file" id="settings-my-photo-input" accept="image/*" hidden>
                                     </div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Settings Section -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <svg class="settings-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                            <h2 data-i18n="settings.paymentSettingsTitle">Payment Settings</h2>
-                        </div>
-                        <p class="settings-muted" data-i18n="settings.paymentSettingsHint">Enable or disable supported payment options</p>
-                        <div class="payment-toggles">
-                            <div class="payment-toggle-item">
-                                <div class="toggle-content">
-                                    <span class="payment-method-name">bKash</span>
-                                    <span class="payment-method-desc" data-i18n="settings.paymentMethodDesc">Mobile banking</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="payment-toggle-bkash">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="payment-toggle-item">
-                                <div class="toggle-content">
-                                    <span class="payment-method-name">Nagad</span>
-                                    <span class="payment-method-desc" data-i18n="settings.paymentMethodDesc">Mobile banking</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="payment-toggle-nagad">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="payment-toggle-item">
-                                <div class="toggle-content">
-                                    <span class="payment-method-name">Rocket</span>
-                                    <span class="payment-method-desc" data-i18n="settings.paymentMethodDesc">Mobile banking</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="payment-toggle-rocket">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Theme & Appearance Section -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <svg class="settings-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="5"></circle>
-                                <line x1="12" y1="1" x2="12" y2="3"></line>
-                                <line x1="12" y1="21" x2="12" y2="23"></line>
-                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                                <line x1="1" y1="12" x2="3" y2="12"></line>
-                                <line x1="21" y1="12" x2="23" y2="12"></line>
-                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                            </svg>
-                            <h2 data-i18n="settings.themeTitle">Theme & Appearance</h2>
-                        </div>
-                        <p class="settings-muted" data-i18n="settings.themeHint">Switch between themes with instant preview</p>
-                        <div class="theme-appearance-grid" id="theme-grid">
-                            <!-- Cozy Ledger - Warm & Calming -->
-                            <div class="theme-appearance-tile" data-theme="cozy-ledger" aria-checked="true">
-                                <div class="theme-preview theme-preview-cozy-ledger">
-                                    <div class="theme-preview-header"></div>
-                                    <div class="theme-preview-content">
-                                        <div class="theme-preview-card"></div>
-                                        <div class="theme-preview-card"></div>
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">✅</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-payments-received">৳0</span>
+                                            <span class="stat-label-new">Received</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">📄</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-bills-generated">0</span>
+                                            <span class="stat-label-new">Bills</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">⏳</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-pending-amount">৳0</span>
+                                            <span class="stat-label-new">Pending</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <span class="theme-appearance-name" data-i18n="themes.cozyLedger">Cozy Ledger</span>
-                            </div>
-                            <!-- Clean Business - Minimal & High-Contrast -->
-                            <div class="theme-appearance-tile" data-theme="clean-business" aria-checked="false">
-                                <div class="theme-preview theme-preview-clean-business">
-                                    <div class="theme-preview-header"></div>
-                                    <div class="theme-preview-content">
-                                        <div class="theme-preview-card"></div>
-                                        <div class="theme-preview-card"></div>
-                                    </div>
-                                </div>
-                                <span class="theme-appearance-name" data-i18n="themes.cleanBusiness">Clean Business</span>
-                            </div>
-                            <!-- Night Shop - Dark Mode -->
-                            <div class="theme-appearance-tile" data-theme="night-shop" aria-checked="false">
-                                <div class="theme-preview theme-preview-night-shop">
-                                    <div class="theme-preview-header"></div>
-                                    <div class="theme-preview-content">
-                                        <div class="theme-preview-card"></div>
-                                        <div class="theme-preview-card"></div>
-                                    </div>
-                                </div>
-                                <span class="theme-appearance-name" data-i18n="themes.nightShop">Night Shop</span>
-                            </div>
-                            <!-- Zen Finance - Peaceful Pastels -->
-                            <div class="theme-appearance-tile" data-theme="zen-finance" aria-checked="false">
-                                <div class="theme-preview theme-preview-zen-finance">
-                                    <div class="theme-preview-header"></div>
-                                    <div class="theme-preview-content">
-                                        <div class="theme-preview-card"></div>
-                                        <div class="theme-preview-card"></div>
-                                    </div>
-                                </div>
-                                <span class="theme-appearance-name" data-i18n="themes.zenFinance">Zen Finance</span>
-                            </div>
-                            <!-- Street Ledger - Bold & Modern -->
-                            <div class="theme-appearance-tile" data-theme="street-ledger" aria-checked="false">
-                                <div class="theme-preview theme-preview-street-ledger">
-                                    <div class="theme-preview-header"></div>
-                                    <div class="theme-preview-content">
-                                        <div class="theme-preview-card"></div>
-                                        <div class="theme-preview-card"></div>
-                                    </div>
-                                </div>
-                                <span class="theme-appearance-name" data-i18n="themes.streetLedger">Street Ledger</span>
-                            </div>
-                            <!-- Classic Paper - Traditional -->
-                            <div class="theme-appearance-tile" data-theme="classic-paper" aria-checked="false">
-                                <div class="theme-preview theme-preview-classic-paper">
-                                    <div class="theme-preview-header"></div>
-                                    <div class="theme-preview-content">
-                                        <div class="theme-preview-card"></div>
-                                        <div class="theme-preview-card"></div>
-                                    </div>
-                                </div>
-                                <span class="theme-appearance-name" data-i18n="themes.classicPaper">Classic Paper</span>
-                            </div>
-                        </div>
-                        <!-- Theme Descriptions -->
-                        <div class="theme-descriptions" id="theme-description">
-                            <p class="theme-description-text settings-muted" data-theme-desc="cozy-ledger">Warm, calming tones with soft shadows — designed to reduce stress during long daily use.</p>
-                        </div>
-                        <div id="theme-export-section" class="theme-advanced-options" style="display: none;">
-                            <h3 style="margin-bottom: 12px;">Share Theme</h3>
-                            <p class="settings-muted" style="margin-bottom: 16px;">Export your theme settings to share with others</p>
-                            <button class="secondary-btn" id="export-theme-btn">Export Theme</button>
-                            <input type="file" id="import-theme-input" accept=".json" style="display: none;">
-                            <label for="import-theme-input" class="secondary-btn" style="display: inline-block; margin-left: 8px; cursor: pointer;">Import Theme</label>
-                        </div>
-                    </div>
-
-                    <!-- Monthly Wrapped Section -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <svg class="settings-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                            </svg>
-                            <h2 data-i18n="settings.monthlyWrapTitle">Monthly Wrapped</h2>
-                        </div>
-                        <p class="settings-muted" data-i18n="settings.monthlyWrapHint">Visual summary of your monthly activity</p>
-                        <div class="monthly-wrap-cards">
-                            <div class="monthly-wrap-card-stat">
-                                <div class="wrap-stat-icon">💰</div>
-                                <div class="wrap-stat-content">
-                                    <div class="wrap-stat-value" id="monthly-total-revenue">৳0</div>
-                                    <div class="wrap-stat-label" data-i18n="settings.totalRevenue">Total Revenue</div>
-                                </div>
-                            </div>
-                            <div class="monthly-wrap-card-stat">
-                                <div class="wrap-stat-icon">✅</div>
-                                <div class="wrap-stat-content">
-                                    <div class="wrap-stat-value" id="monthly-payments-received">৳0</div>
-                                    <div class="wrap-stat-label" data-i18n="settings.paymentsReceived">Payments Received</div>
-                                </div>
-                            </div>
-                            <div class="monthly-wrap-card-stat">
-                                <div class="wrap-stat-icon">📄</div>
-                                <div class="wrap-stat-content">
-                                    <div class="wrap-stat-value" id="monthly-bills-generated">0</div>
-                                    <div class="wrap-stat-label" data-i18n="settings.billsGenerated">Bills Generated</div>
-                                </div>
-                            </div>
-                            <div class="monthly-wrap-card-stat">
-                                <div class="wrap-stat-icon">⏳</div>
-                                <div class="wrap-stat-content">
-                                    <div class="wrap-stat-value" id="monthly-pending-amount">৳0</div>
-                                    <div class="wrap-stat-label" data-i18n="settings.pendingAmount">Pending Amount</div>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="primary-btn monthly-wrap-view-btn" id="view-monthly-wrap-btn" data-i18n="settings.viewMonthlyWrap">View Full Monthly Wrap</button>
-                    </div>
-
-                    <!-- Subscriptions Section -->
-                    <div class="settings-card subscription-card-animated">
-                        <div class="settings-card-header">
-                            <svg class="settings-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 7h-4V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v2H2a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V8a1 1 0 0 0-1-1z"></path>
-                            </svg>
-                            <h2 data-i18n="settings.subscriptionTitle">✨ Subscriptions</h2>
-                        </div>
-                        <div class="subscription-intro">
-                            <p class="settings-muted" style="margin-bottom: 12px;">
-                                🎉 Unlock premium features! Click any subscribe button to visit our 
-                                <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none;">Cozy Tu Studio Facebook Page</a> 
-                                and get your subscription.
-                            </p>
-                            <button class="read-more-btn" id="subscription-read-more-btn">
-                                <span class="title-en">Read More</span>
-                                <span class="title-bn">আরও পড়ুন</span>
-                            </button>
-                        </div>
-                        <div class="subscription-details" id="subscription-details" style="display: none;">
-                            <p class="settings-muted" style="margin-top: 12px;">
-                                <strong>Pro Plan:</strong> Perfect for small businesses. Get unlimited customers, advanced debt tracking, and priority support for just 40 ৳/month.
-                            </p>
-                            <p class="settings-muted">
-                                <strong>Max Plan:</strong> Best value for growing businesses. Everything in Pro plus AI-powered insights, advanced analytics, and custom branding for 300 ৳/year (Save 37%).
-                            </p>
-                            <p class="settings-muted">
-                                <strong>Ultra Pro Plan:</strong> Premium solution for established businesses. All Max features plus unlimited AI features, 24/7 priority support, early access to features, and custom integrations for 480 ৳/year (Save 50%).
-                            </p>
-                            <p class="settings-muted" style="margin-top: 12px;">
-                                All plans include coupon support. Use coupon codes at checkout for special discounts!
-                            </p>
-                        </div>
-                        <div class="subscription-status" id="subscription-status">
-                            <p class="subscription-current">
-                                <span data-i18n="settings.subscriptionCurrent">Current Plan:</span>
-                                <strong id="current-plan-display">Free</strong>
-                            </p>
-                        </div>
-                        <div class="subscription-plans">
-                            <!-- Pro Plan -->
-                            <div class="subscription-plan subscription-plan-animated">
-                                <div class="plan-header">
-                                    <h3 data-i18n="subscription.pro">Pro</h3>
-                                    <span class="plan-badge animated-badge">⚡ Monthly</span>
-                                </div>
-                                <div class="plan-price">40 ৳<span style="font-size: 0.5em; margin-left: 4px;">/month</span></div>
-                                <p class="plan-duration" data-i18n="subscription.proDuration">Billed monthly</p>
-                                <ul class="plan-benefits">
-                                    <li data-i18n="subscription.proBenefit1">Unlimited customers</li>
-                                    <li data-i18n="subscription.proBenefit2">Advanced debt tracking</li>
-                                    <li data-i18n="subscription.proBenefit3">Priority support</li>
-                                </ul>
-                                <div class="coupon-section">
-                                    <div class="coupon-input-wrapper">
-                                        <input type="text" class="coupon-input" id="coupon-input-pro" placeholder="Enter coupon code (optional)" data-i18n-placeholder="settings.couponPlaceholder">
-                                        <button type="button" class="coupon-redeem-btn" id="redeem-coupon-pro" data-plan="pro">
-                                            <span class="title-en" data-i18n="settings.redeemCoupon">Redeem</span>
-                                            <span class="title-bn" data-i18n="settings.redeemCoupon">রিডিম করুন</span>
-                                        </button>
-                                    </div>
-                                    <div class="coupon-feedback" id="coupon-feedback-pro"></div>
-                                </div>
-                                <button class="primary-btn plan-subscribe-btn subscribe-facebook-btn animated-btn" data-plan="pro" data-i18n="subscription.subscribe">
-                                    <span class="btn-sparkle"></span>
-                                    ✨ Subscribe Now
+                                <button class="view-wrap-btn-new" id="view-monthly-wrap-btn">
+                                    <span class="title-en">View Full Report</span>
+                                    <span class="title-bn">সম্পূর্ণ রিপোর্ট দেখুন</span>
                                 </button>
                             </div>
-
-                            <!-- Max Plan -->
-                            <div class="subscription-plan subscription-plan-animated">
-                                <div class="plan-header">
-                                    <h3 data-i18n="subscription.max">Max</h3>
-                                    <span class="plan-badge plan-badge-best animated-badge" data-i18n="subscription.bestValue">🌟 Best Value</span>
-                                </div>
-                                <div class="plan-price">300 ৳<span style="font-size: 0.5em; margin-left: 4px;">/year</span></div>
-                                <p class="plan-duration" data-i18n="subscription.maxDuration">Billed annually (Save 37%)</p>
-                                <ul class="plan-benefits">
-                                    <li data-i18n="subscription.maxBenefit1">Everything in Pro</li>
-                                    <li data-i18n="subscription.maxBenefit2">AI-powered insights</li>
-                                    <li data-i18n="subscription.maxBenefit3">Advanced analytics</li>
-                                    <li data-i18n="subscription.maxBenefit4">Custom branding</li>
-                                </ul>
-                                <div class="coupon-section">
-                                    <div class="coupon-input-wrapper">
-                                        <input type="text" class="coupon-input" id="coupon-input-max" placeholder="Enter coupon code (optional)" data-i18n-placeholder="settings.couponPlaceholder">
-                                        <button type="button" class="coupon-redeem-btn" id="redeem-coupon-max" data-plan="max">
-                                            <span class="title-en" data-i18n="settings.redeemCoupon">Redeem</span>
-                                            <span class="title-bn" data-i18n="settings.redeemCoupon">রিডিম করুন</span>
-                                        </button>
-                                    </div>
-                                    <div class="coupon-feedback" id="coupon-feedback-max"></div>
-                                </div>
-                                <button class="primary-btn plan-subscribe-btn subscribe-facebook-btn animated-btn" data-plan="max" data-i18n="subscription.subscribe">
-                                    <span class="btn-sparkle"></span>
-                                    💎 Subscribe Now
+                        </div>
+                    </div>
+                    
+                    <!-- Support & Subscription Section -->
+                    <div class="settings-section-new">
+                        <div class="section-header-new">
+                            <div class="section-icon-new" style="background: linear-gradient(135deg, #ec4899, #be185d);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                            </div>
+                            <div class="section-title-new">
+                                <h3>
+                                    <span class="title-en">Help & Support</span>
+                                    <span class="title-bn">সাহায্য ও সাপোর্ট</span>
+                                </h3>
+                                <p>
+                                    <span class="title-en">Get help or manage subscription</span>
+                                    <span class="title-bn">সাহায্য নিন বা সাবস্ক্রিপশন পরিচালনা করুন</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="section-content-new">
+                            <div class="support-buttons-new">
+                                <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank" rel="noopener noreferrer" class="support-btn-new chat">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                    </svg>
+                                    <span>
+                                        <span class="title-en">Support Chat</span>
+                                        <span class="title-bn">সাপোর্ট চ্যাট</span>
+                                    </span>
+                                </a>
+                                <button type="button" class="support-btn-new cancel" id="cancel-subscription-btn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                    <span>
+                                        <span class="title-en">Cancel Subscription</span>
+                                        <span class="title-bn">সাবস্ক্রিপশন বাতিল</span>
+                                    </span>
                                 </button>
                             </div>
+                            <p class="support-note-new">
+                                <span class="title-en">Need help? Chat with us on Facebook for quick support!</span>
+                                <span class="title-bn">সাহায্য দরকার? দ্রুত সাপোর্টের জন্য ফেসবুকে আমাদের সাথে চ্যাট করুন!</span>
+                            </p>
+                        </div>
+                    </div>
 
-                            <!-- Ultra Pro Plan -->
-                            <div class="subscription-plan subscription-plan-animated subscription-plan-premium">
-                                <div class="plan-header">
-                                    <h3 data-i18n="subscription.ultra">Ultra Pro</h3>
-                                    <span class="plan-badge plan-badge-premium animated-badge" data-i18n="subscription.premium">👑 Premium</span>
-                                </div>
-                                <div class="plan-price">480 ৳<span style="font-size: 0.5em; margin-left: 4px;">/year</span></div>
-                                <p class="plan-duration" data-i18n="subscription.ultraDuration">Billed annually (Save 50%)</p>
-                                <ul class="plan-benefits">
-                                    <li data-i18n="subscription.ultraBenefit1">Everything in Max</li>
-                                    <li data-i18n="subscription.ultraBenefit2">Unlimited AI features</li>
-                                    <li data-i18n="subscription.ultraBenefit3">24/7 priority support</li>
-                                    <li data-i18n="subscription.ultraBenefit4">Early access to features</li>
-                                    <li data-i18n="subscription.ultraBenefit5">Custom integrations</li>
-                                </ul>
-                                <button class="primary-btn plan-subscribe-btn subscribe-facebook-btn animated-btn" data-plan="ultra" data-i18n="subscription.subscribe">
-                                    <span class="btn-sparkle"></span>
-                                    🚀 Subscribe Now
-                                </button>
-                            </div>
+                    <!-- Credits Footer -->
+                    <div class="settings-credits-new">
+                        <div class="credits-logo">
+                            <span class="credits-icon">✨</span>
+                            <span class="credits-brand">DebtX</span>
+                        </div>
+                        <div class="credits-info">
+                            <p class="credits-made">Made by <strong>Cozytustudios</strong></p>
+                            <p class="credits-founder">Founder: <strong>Sajid Hossain</strong></p>
+                        </div>
+                        <div class="credits-version">
+                            <span>Version 2.0</span>
                         </div>
                     </div>
                 </div>
             </section>
         </main>
 
-        <!-- Footer removed per user request -->
     </div>
 
     <dialog class="modal" id="profile-modal" aria-labelledby="profile-modal-title">
@@ -1152,11 +1642,9 @@
             <label>
                 <span data-i18n="modals.task.type">Category</span>
                 <select name="type">
-                    <option value="payment" data-i18n="modals.task.typePayment">💳 Payment Follow-up</option>
-                    <option value="delivery" data-i18n="modals.task.typeDelivery">🚚 Delivery</option>
-                    <option value="purchase" data-i18n="modals.task.typePurchase">📦 Stock Purchase</option>
-                    <option value="meeting" data-i18n="modals.task.typeMeeting">🤝 Meeting</option>
-                    <option value="reminder" data-i18n="modals.task.typeReminder">⏰ Reminder</option>
+                    <option value="work" data-i18n="modals.task.typeWork">💼 Work</option>
+                    <option value="personal" data-i18n="modals.task.typePersonal">👤 Personal</option>
+                    <option value="shopping" data-i18n="modals.task.typeShopping">🛒 Shopping</option>
                     <option value="other" data-i18n="modals.task.typeOther">📝 Other</option>
                 </select>
             </label>
@@ -1617,6 +2105,149 @@
         </form>
     </dialog>
 
+    <!-- Onboarding Tutorial Modal -->
+    <dialog class="modal onboarding-modal" id="onboarding-modal">
+        <div class="onboarding-container">
+            <button class="onboarding-skip" id="onboarding-skip">
+                <span class="title-en">Skip Tutorial</span>
+                <span class="title-bn">টিউটোরিয়াল বাদ দিন</span>
+            </button>
+            
+            <div class="onboarding-slides" id="onboarding-slides">
+                <!-- Step 1: Welcome -->
+                <div class="onboarding-slide active" data-step="0">
+                    <div class="onboarding-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h2 class="onboarding-title">
+                        <span class="title-en">Welcome to DebtX!</span>
+                        <span class="title-bn">DebtX-এ স্বাগতম!</span>
+                    </h2>
+                    <p class="onboarding-desc">
+                        <span class="title-en">Let us show you how to get started with managing your shop's debts and bills.</span>
+                        <span class="title-bn">আসুন দেখি কিভাবে আপনার দোকানের বাকি ও বিল ম্যানেজ করবেন।</span>
+                    </p>
+                </div>
+
+                <!-- Step 2: Add Customers -->
+                <div class="onboarding-slide" data-step="1">
+                    <div class="onboarding-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <line x1="19" y1="8" x2="19" y2="14"/>
+                            <line x1="22" y1="11" x2="16" y2="11"/>
+                        </svg>
+                    </div>
+                    <h2 class="onboarding-title">
+                        <span class="title-en">Add Your First Customer</span>
+                        <span class="title-bn">প্রথম ক্রেতা যোগ করুন</span>
+                    </h2>
+                    <p class="onboarding-desc">
+                        <span class="title-en">Start by adding customers to track their debts and payments. Tap the <strong>+ Add Customer</strong> button on the Customers page.</span>
+                        <span class="title-bn">ক্রেতাদের দেনা ও পেমেন্ট ট্র্যাক করতে প্রথমে তাদের যোগ করুন। ক্রেতা পেজে <strong>+ ক্রেতা যোগ করুন</strong> বোতামে ট্যাপ করুন।</span>
+                    </p>
+                    <div class="onboarding-tip">
+                        <span class="title-en">💡 Tip: Add phone number to easily contact customers</span>
+                        <span class="title-bn">💡 টিপ: সহজে যোগাযোগের জন্য ফোন নম্বর যোগ করুন</span>
+                    </div>
+                </div>
+
+                <!-- Step 3: Record Debts & Payments -->
+                <div class="onboarding-slide" data-step="2">
+                    <div class="onboarding-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                            <line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                    </div>
+                    <h2 class="onboarding-title">
+                        <span class="title-en">Record Debts & Payments</span>
+                        <span class="title-bn">দেনা ও পেমেন্ট রেকর্ড করুন</span>
+                    </h2>
+                    <p class="onboarding-desc">
+                        <span class="title-en">Tap on any customer card to record debts when they buy on credit, or payments when they pay back.</span>
+                        <span class="title-bn">যেকোনো ক্রেতা কার্ডে ট্যাপ করে বাকিতে কিনলে দেনা এবং টাকা দিলে পেমেন্ট রেকর্ড করুন।</span>
+                    </p>
+                    <div class="onboarding-tip">
+                        <span class="title-en">💡 Tip: Use "Add Debt" for credit purchases, "Record Payment" for received money</span>
+                        <span class="title-bn">💡 টিপ: বাকি কেনার জন্য "দেনা যোগ করুন", টাকা পেলে "পেমেন্ট রেকর্ড করুন"</span>
+                    </div>
+                </div>
+
+                <!-- Step 4: Create Bills -->
+                <div class="onboarding-slide" data-step="3">
+                    <div class="onboarding-icon">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <h2 class="onboarding-title">
+                        <span class="title-en">Create Professional Bills</span>
+                        <span class="title-bn">প্রফেশনাল বিল তৈরি করুন</span>
+                    </h2>
+                    <p class="onboarding-desc">
+                        <span class="title-en">Go to <strong>Bills</strong> in the navigation to create beautiful, professional bills. Add items, set prices, and generate printable bills.</span>
+                        <span class="title-bn">নেভিগেশনে <strong>বিল</strong>-এ গিয়ে সুন্দর প্রফেশনাল বিল তৈরি করুন। আইটেম যোগ করুন, দাম সেট করুন।</span>
+                    </p>
+                    <div class="onboarding-tip">
+                        <span class="title-en">💡 Tip: Customize your bill with shop logo and custom notes</span>
+                        <span class="title-bn">💡 টিপ: দোকানের লোগো ও কাস্টম নোট দিয়ে বিল সাজান</span>
+                    </div>
+                </div>
+
+                <!-- Step 5: All Set -->
+                <div class="onboarding-slide" data-step="4">
+                    <div class="onboarding-icon celebration">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                            <line x1="9" y1="9" x2="9.01" y2="9"/>
+                            <line x1="15" y1="9" x2="15.01" y2="9"/>
+                        </svg>
+                    </div>
+                    <h2 class="onboarding-title">
+                        <span class="title-en">You're All Set!</span>
+                        <span class="title-bn">আপনি তৈরি!</span>
+                    </h2>
+                    <p class="onboarding-desc">
+                        <span class="title-en">Explore <strong>Notes</strong> for quick reminders, <strong>AI Tools</strong> for smart features, and <strong>Settings</strong> to customize your experience.</span>
+                        <span class="title-bn">দ্রুত নোটের জন্য <strong>নোটস</strong>, স্মার্ট ফিচারের জন্য <strong>AI Tools</strong> এবং কাস্টমাইজের জন্য <strong>সেটিংস</strong> এক্সপ্লোর করুন।</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Progress Dots -->
+            <div class="onboarding-dots">
+                <span class="dot active" data-step="0"></span>
+                <span class="dot" data-step="1"></span>
+                <span class="dot" data-step="2"></span>
+                <span class="dot" data-step="3"></span>
+                <span class="dot" data-step="4"></span>
+            </div>
+
+            <!-- Navigation -->
+            <div class="onboarding-nav">
+                <button class="onboarding-btn secondary" id="onboarding-prev" style="visibility: hidden;">
+                    <span class="title-en">Back</span>
+                    <span class="title-bn">আগের</span>
+                </button>
+                <button class="onboarding-btn primary" id="onboarding-next">
+                    <span class="title-en">Next</span>
+                    <span class="title-bn">পরবর্তী</span>
+                </button>
+            </div>
+        </div>
+    </dialog>
+
     <template id="customer-card-template">
         <article class="customer-card" data-customer-id="">
             <header class="customer-card__header">
@@ -1655,6 +2286,7 @@
                 <button class="secondary-btn" data-action="payment" data-i18n="customers.card.payment">Record Payment</button>
                 <button class="secondary-btn" data-action="demand" data-i18n="customers.card.demand">Demand Payment</button>
                 <button class="primary-btn" data-action="debt" data-i18n="customers.card.debt">Add Debt</button>
+                <button class="danger-btn" data-action="delete" data-i18n="customers.card.delete">Delete</button>
             </footer>
             <div class="customer-history" hidden>
                 <h3 data-i18n="customers.card.historyTitle">Activity</h3>
