@@ -35,11 +35,6 @@
                 rocket: { enabled: false, number: '' }
             }
         },
-        subscription: {
-            plan: 'free', // free, pro, max, ultra
-            activatedAt: null,
-            expiresAt: null
-        },
         auth: {
             name: '',
             email: '',
@@ -60,10 +55,15 @@
             notesFilter: 'all',
             notesColorFilter: null, // Array of selected colors or null
             activeNotesTab: 'notes', // notes or tasks
+            customersTab: 'customers', // customers or debts
+            debtQuery: '',
+            debtFilter: 'all',
+            dockScale: 1,
             theme: 'cozy-ledger', // Default theme - warm and calming
             haptics: true,
             sounds: true,
-            textSize: 3
+            textSize: 3,
+            hasSeenOnboarding: false
         },
         ai: {
             lastSummary: '',
@@ -72,6 +72,11 @@
         calculator: {
             expression: '',
             result: '0'
+        },
+        subscription: {
+            plan: 'free', // free, pro, max, ultra, online
+            activatedAt: null,
+            expiresAt: null
         }
     });
 
@@ -84,6 +89,7 @@
             'nav.notes': 'Notes',
             'nav.tasks': 'To-Do',
             'nav.settings': 'Settings',
+            'nav.premium': 'Pro',
             'ai.title': 'AI Tools',
             'ai.subtitle': 'Calculator, Card Generator & AI Chat',
             'ai.cardGenerator': 'Card Generator',
@@ -102,7 +108,6 @@
             'ai.cardColor': 'Card Color',
             'ai.customMessage': 'Custom Message (optional)',
             'ai.generateCard': 'Generate Card',
-            'ai.requiresPremium': '🔒 This feature requires a premium subscription. Upgrade to Pro, Max, or Ultra to create custom cards.',
             'ai.preview': 'Preview',
             'ai.downloadCard': '📥 Download',
             'ai.shareCard': '📤 Share',
@@ -112,6 +117,8 @@
             'customers.subtitle': 'Manage customer accounts and track payments',
             'customers.addCustomer': '+ Add Customer',
             'customers.searchPlaceholder': 'Search by name or phone',
+            'customers.tabs.customers': 'Customers',
+            'customers.tabs.debts': 'Debts',
             'customers.empty': 'No customers yet. Add your first customer to get started.',
             'customers.emptySearch': 'No customers found. Try a different search term.',
             'customers.card.balance': 'Outstanding Balance',
@@ -122,11 +129,41 @@
             'customers.card.payment': 'Record Payment',
             'customers.card.demand': 'Request Payment',
             'customers.card.debt': 'Add New Debt',
+            'customers.card.delete': 'Delete',
             'customers.card.historyTitle': 'Transaction History',
             'customers.card.settled': 'All Paid',
             'customers.card.onTrack': 'On Schedule',
             'customers.card.dueSoon': 'Due Soon',
             'customers.card.overdue': 'Overdue',
+            'aiDebtCalendar.title': 'AI Debt Calendar',
+            'aiDebtCalendar.subtitle': 'Upcoming payment days from your customers',
+            'aiDebtCalendar.empty': 'No upcoming debt payments yet.',
+            'aiDebtCalendar.refresh': 'Refresh',
+            'settings.dockSizeTitle': 'Dock Custom',
+            'settings.dockSizeHint': 'Customize dock size from really small to normal',
+            'settings.dockCustomTitle': 'Dock Custom',
+            'settings.dockCustomHint': 'Customize dock size from really small to normal',
+            'debts.title': 'Debt Ledger',
+            'debts.subtitle': 'Track every due amount across customers',
+            'debts.searchPlaceholder': 'Search by customer or note',
+            'debts.filterAll': 'All',
+            'debts.filterOpen': 'Open',
+            'debts.filterDueSoon': 'Due Soon',
+            'debts.filterOverdue': 'Overdue',
+            'debts.filterSettled': 'Settled',
+            'debts.totalOutstanding': 'Total Outstanding',
+            'debts.totalDueSoon': 'Due Soon',
+            'debts.totalOverdue': 'Overdue',
+            'debts.totalSettled': 'Settled',
+            'debts.empty': 'No debts found. Add a customer or record a new debt.',
+            'debts.card.outstanding': 'Outstanding',
+            'debts.card.original': 'Original',
+            'debts.card.paid': 'Paid',
+            'debts.card.dueDate': 'Due',
+            'debts.card.paysOn': 'Pays on',
+            'debts.card.recordPayment': 'Record Payment',
+            'debts.card.demandPayment': 'Request Payment',
+            'debts.card.addDebt': 'Add Debt',
             'notes.title': 'Todos',
             'notes.subtitle': 'Keep quick reminders in one place',
             'notesTasks.title': 'Todos & Tasks',
@@ -160,8 +197,6 @@
             'settings.aiHint': 'Get smart insights about your business',
             'settings.aiRefresh': 'Refresh Summary',
             'settings.aiEmpty': 'Tap refresh to see your business summary',
-            'settings.subscriptionTitle': 'Subscription Plans',
-            'settings.subscriptionCurrent': 'Current Plan',
             'settings.languageTitle': 'Language',
             'settings.languageHint': 'Choose your preferred language',
             'settings.textSizeTitle': 'Text Size',
@@ -213,7 +248,6 @@
             'settings.exportError': 'Export failed. Please try again',
             'settings.importSuccess': 'Data imported successfully',
             'settings.importError': 'Import failed. Please check the file format',
-            'settings.premiumRequired': 'This feature requires a premium subscription. Please upgrade to continue.',
             'settings.themeImported': 'Theme imported successfully',
             'settings.themeImportError': 'Failed to import theme. Please check the file format',
             'settings.shopName': 'Shop Name',
@@ -223,46 +257,11 @@
             'settings.couponInvalid': 'Invalid coupon',
             'settings.redeemCoupon': 'Redeem',
             'settings.readMore': 'Read More',
+            'settings.account': 'Account',
+            'settings.myAddress': 'My Address',
+            'settings.notifications': 'Notifications',
             'language.english': 'English',
             'language.bengali': 'বাংলা',
-            'subscription.pro': 'Pro',
-            'subscription.proPrice': '40 ৳ / month',
-            'subscription.proDuration': 'Billed monthly',
-            'subscription.proBenefit1': 'Unlimited customers',
-            'subscription.proBenefit2': 'Advanced debt tracking',
-            'subscription.proBenefit3': 'Priority support',
-            'subscription.max': 'Max',
-            'subscription.maxPrice': '300 ৳ / year',
-            'subscription.maxDuration': 'Billed annually (Save 37%)',
-            'subscription.maxBenefit1': 'Everything in Pro',
-            'subscription.maxBenefit2': 'AI-powered insights',
-            'subscription.maxBenefit3': 'Advanced analytics',
-            'subscription.maxBenefit4': 'Custom branding',
-            'subscription.ultra': 'Ultra Pro',
-            'subscription.ultraPrice': '480 ৳ / year',
-            'subscription.ultraDuration': 'Billed annually (Save 50%)',
-            'subscription.ultraBenefit1': 'Everything in Max',
-            'subscription.ultraBenefit2': 'Unlimited AI features',
-            'subscription.ultraBenefit3': '24/7 priority support',
-            'subscription.ultraBenefit4': 'Early access to features',
-            'subscription.ultraBenefit5': 'Custom integrations',
-            'subscription.subscribe': 'Subscribe',
-            'subscription.bestValue': 'Best Value',
-            'subscription.premium': 'Premium',
-            'subscription.free': 'Free',
-            'subscription.couponPlaceholder': 'Coupon code',
-            'subscription.activate': 'Activate',
-            'subscription.subscribe': 'Subscribe',
-            'subscription.monthlyRenewal': 'Monthly renewal',
-            'subscription.yearlyRenewal': 'Yearly renewal',
-            'subscription.couponValid': '✓ Valid coupon code',
-            'subscription.couponRequired': 'Please enter a coupon code',
-            'subscription.buyHint': 'Want to buy a subscription? Visit our Facebook page for payment and confirmation.',
-            'subscription.buyCoupon': 'Subscribe on Facebook',
-            'subscription.invalidCoupon': 'Invalid coupon code',
-            'subscription.activated': 'Subscription activated successfully!',
-            'subscription.chatWelcome': 'Need help choosing a plan? Ask me anything about our subscription plans!',
-            'subscription.chatPlaceholder': 'Ask about plans...',
             'modals.logo.title': 'Add Shop Logo',
             'modals.logo.name': 'Logo Name',
             'modals.logo.image': 'Logo Image',
@@ -346,7 +345,14 @@
             'modals.task.typePurchase': 'Stock Purchase',
             'modals.task.typeOther': 'Other',
             'modals.task.date': 'Due Date',
+            'modals.task.time': 'Due Time (optional)',
             'modals.task.note': 'Note',
+            'modals.task.priority': 'Priority',
+            'modals.task.recurring': 'Repeat this task',
+            'modals.task.recurringType': 'Repeat',
+            'modals.task.typeWork': 'Work',
+            'modals.task.typePersonal': 'Personal',
+            'modals.task.typeShopping': 'Shopping',
             'modals.profile.title': 'Edit Profile',
             'modals.profile.name': 'Name',
             'modals.profile.email': 'Email',
@@ -383,6 +389,8 @@
             'bills.duplicate': 'Duplicate',
             'bills.view': 'View',
             'bills.share': 'Share',
+            'bills.downloadPng': 'Download PNG',
+            'bills.makeInvoice': 'Make Invoice',
             'bills.invoiceNumber': 'Invoice #',
             'bills.items': 'Items',
             'bills.totalAmount': 'Total',
@@ -442,8 +450,8 @@
             'ai.subtitle': 'Get insights and generate cards',
             'ai.welcome': 'Hello! I can help you manage your shop, track payments, generate reminder cards, and more. How can I help you today?',
             'ai.placeholder': 'Ask me anything...',
-            'ai.subscriptionRequired': 'AI Assistant requires a subscription. Please subscribe to use this feature.',
-            'ai.goToSubscription': 'View Subscription Plans',
+            'ai.ultraOnly': 'Ultra Only',
+            'ai.ultraExclusive': 'AI Chat - Ultra Exclusive',
             'notifications.enabled': 'Reminders on',
             'notifications.disabled': 'Reminders off',
             'notifications.permissionDenied': 'Notifications blocked. Please allow them from your browser settings.',
@@ -458,7 +466,21 @@
                 'July', 'August', 'September', 'October', 'November', 'December'
             ],
             'calendar.dayNames': ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-            'calendar.empty': 'No items for this day Add a task or record a debt'
+            'calendar.empty': 'No items for this day Add a task or record a debt',
+            'onboarding.welcome': 'Welcome to DebtX!',
+            'onboarding.subtitle': 'Let us show you how to get started',
+            'onboarding.skip': 'Skip Tutorial',
+            'onboarding.next': 'Next',
+            'onboarding.prev': 'Back',
+            'onboarding.done': 'Get Started',
+            'onboarding.step1.title': 'Add Your First Customer',
+            'onboarding.step1.desc': 'Start by adding customers to track their debts and payments. Tap the + button on the Customers page.',
+            'onboarding.step2.title': 'Record Debts & Payments',
+            'onboarding.step2.desc': 'After adding a customer, you can record debts when they buy on credit and payments when they pay back.',
+            'onboarding.step3.title': 'Create Professional Bills',
+            'onboarding.step3.desc': 'Go to Bills section to create beautiful, professional bills. Add items, set prices, and generate printable bills.',
+            'onboarding.step4.title': 'You\'re All Set!',
+            'onboarding.step4.desc': 'Explore Notes for quick reminders, AI Tools for smart features, and Settings to customize your experience.'
         },
         bn: {
             'nav.customers': 'ক্রেতা',
@@ -468,6 +490,7 @@
             'nav.notes': 'নোট',
             'nav.tasks': 'করণীয়',
             'nav.settings': 'সেটিংস',
+            'nav.premium': 'প্রো',
             'ai.title': 'এআই টুলস',
             'ai.subtitle': 'ক্যালকুলেটর, কার্ড জেনারেটর ও এআই চ্যাট',
             'ai.cardGenerator': 'কার্ড জেনারেটর',
@@ -486,7 +509,6 @@
             'ai.cardColor': 'কার্ডের রঙ',
             'ai.customMessage': 'কাস্টম বার্তা (ঐচ্ছিক)',
             'ai.generateCard': 'কার্ড তৈরি করুন',
-            'ai.requiresPremium': '🔒 কার্ড জেনারেটরের জন্য প্রিমিয়াম সাবস্ক্রিপশন প্রয়োজন। এই ফিচার ব্যবহার করতে দয়া করে Pro, Max বা Ultra তে আপগ্রেড করুন।',
             'ai.preview': 'প্রিভিউ',
             'ai.downloadCard': '📥 ডাউনলোড',
             'ai.shareCard': '📤 শেয়ার',
@@ -496,6 +518,8 @@
             'customers.subtitle': 'দেনা, পরিশোধ ও অনুস্মারক ট্র্যাক করুন',
             'customers.addCustomer': '+ নতুন ক্রেতা',
             'customers.searchPlaceholder': 'নাম বা ফোন দিয়ে খুঁজুন',
+            'customers.tabs.customers': 'ক্রেতা',
+            'customers.tabs.debts': 'দেনা',
             'customers.empty': 'এখনও কোনো ক্রেতা নেই প্রথম ক্রেতা যুক্ত করুন',
             'customers.emptySearch': 'কোনো ক্রেতা পাওয়া যায়নি অন্যভাবে খুঁজুন',
             'customers.card.balance': 'বাকি টাকা',
@@ -506,11 +530,41 @@
             'customers.card.payment': 'পেমেন্ট নিন',
             'customers.card.demand': 'পেমেন্ট দাবি',
             'customers.card.debt': 'নতুন দেনা যোগ করুন',
+            'customers.card.delete': 'মুছুন',
             'customers.card.historyTitle': 'লেনদেনের ইতিহাস',
             'customers.card.settled': 'সমস্ত পরিশোধিত',
             'customers.card.onTrack': 'সময়ের মধ্যে',
             'customers.card.dueSoon': 'শীঘ্রই বাকি',
             'customers.card.overdue': 'বাকি পড়েছে',
+            'aiDebtCalendar.title': 'এআই দেনা ক্যালেন্ডার',
+            'aiDebtCalendar.subtitle': 'ক্রেতাদের পরিশোধের তারিখ দেখুন',
+            'aiDebtCalendar.empty': 'এখনও কোনো দেনার তারিখ নেই।',
+            'aiDebtCalendar.refresh': 'রিফ্রেশ',
+            'settings.dockSizeTitle': 'ডক কাস্টম',
+            'settings.dockSizeHint': 'ডক সাইজ অনেক ছোট থেকে স্বাভাবিক পর্যন্ত কাস্টমাইজ করুন',
+            'settings.dockCustomTitle': 'ডক কাস্টম',
+            'settings.dockCustomHint': 'ডক সাইজ অনেক ছোট থেকে স্বাভাবিক পর্যন্ত কাস্টমাইজ করুন',
+            'debts.title': 'দেনা খাতা',
+            'debts.subtitle': 'সব ক্রেতার বকেয়া এক জায়গায় দেখুন',
+            'debts.searchPlaceholder': 'ক্রেতা বা নোট দিয়ে খুঁজুন',
+            'debts.filterAll': 'সব',
+            'debts.filterOpen': 'চলমান',
+            'debts.filterDueSoon': 'শীঘ্রই বাকি',
+            'debts.filterOverdue': 'বাকি পড়েছে',
+            'debts.filterSettled': 'পরিশোধিত',
+            'debts.totalOutstanding': 'মোট বকেয়া',
+            'debts.totalDueSoon': 'শীঘ্রই বাকি',
+            'debts.totalOverdue': 'বাকি পড়েছে',
+            'debts.totalSettled': 'পরিশোধিত',
+            'debts.empty': 'কোনো দেনা পাওয়া যায়নি নতুন দেনা যোগ করুন।',
+            'debts.card.outstanding': 'বকেয়া',
+            'debts.card.original': 'মূল',
+            'debts.card.paid': 'পরিশোধ',
+            'debts.card.dueDate': 'পরিশোধের তারিখ',
+            'debts.card.paysOn': 'পেমেন্টের তারিখ',
+            'debts.card.recordPayment': 'পেমেন্ট নিন',
+            'debts.card.demandPayment': 'পেমেন্ট দাবি',
+            'debts.card.addDebt': 'নতুন দেনা যোগ করুন',
             'notes.title': 'টুডু',
             'notes.subtitle': 'দ্রুত নোট এক জায়গায় রাখুন',
             'notesTasks.title': 'টুডু ও কাজ',
@@ -542,12 +596,10 @@
             'settings.sounds': 'সাউন্ড চালু',
             'settings.aiTitle': 'এআই সহায়ক',
             'settings.aiHint': 'অফলাইনে টাস্ক/ইতিহাসের সারাংশ দেখায় কোনো API লাগে না',
-            'ai.subscriptionRequired': 'এআই সহায়ক (অপ্টিচেইন) ব্যবহার করতে সাবস্ক্রিপশন প্রয়োজন। সাবস্ক্রিপশন নিন।',
-            'ai.goToSubscription': 'সাবস্ক্রিপশনে যান',
+            'ai.ultraOnly': 'শুধু Ultra',
+            'ai.ultraExclusive': 'এআই চ্যাট - Ultra একচেটিয়া',
             'settings.aiRefresh': 'সারাংশ দেখাও',
             'settings.aiEmpty': 'সারাংশ দেখতে বাটনে ট্যাপ করুন',
-            'settings.subscriptionTitle': 'সাবস্ক্রিপশন',
-            'settings.subscriptionCurrent': 'বর্তমান প্ল্যান',
             'settings.languageTitle': 'ভাষা',
             'settings.textSizeTitle': 'লেখার আকার',
             'settings.textSizeHint': 'লেখা বড় বা ছোট করুন',
@@ -606,46 +658,11 @@
             'settings.couponInvalid': 'অবৈধ কুপন',
             'settings.redeemCoupon': 'রিডিম করুন',
             'settings.readMore': 'আরও পড়ুন',
+            'settings.account': 'অ্যাকাউন্ট',
+            'settings.myAddress': 'আমার ঠিকানা',
+            'settings.notifications': 'বিজ্ঞপ্তি',
             'language.english': 'English',
             'language.bengali': 'বাংলা',
-            'subscription.pro': 'প্রো',
-            'subscription.proPrice': '৪০ ৳ / মাস',
-            'subscription.proDuration': 'মাসিক বিল',
-            'subscription.proBenefit1': 'সীমাহীন ক্রেতা',
-            'subscription.proBenefit2': 'উন্নত ঋণ ট্র্যাকিং',
-            'subscription.proBenefit3': 'অগ্রাধিকার সহায়তা',
-            'subscription.max': 'ম্যাক্স',
-            'subscription.maxPrice': '৩০০ ৳ / বছর',
-            'subscription.maxDuration': 'বার্ষিক বিল (৩৭% সাশ্রয়)',
-            'subscription.maxBenefit1': 'প্রো-এর সবকিছু',
-            'subscription.maxBenefit2': 'এআই-চালিত অন্তর্দৃষ্টি',
-            'subscription.maxBenefit3': 'উন্নত বিশ্লেষণ',
-            'subscription.maxBenefit4': 'কাস্টম ব্র্যান্ডিং',
-            'subscription.ultra': 'আল্ট্রা প্রো',
-            'subscription.ultraPrice': '৪৮০ ৳ / বছর',
-            'subscription.ultraDuration': 'বার্ষিক বিল (৫০% সাশ্রয়)',
-            'subscription.ultraBenefit1': 'ম্যাক্স-এর সবকিছু',
-            'subscription.ultraBenefit2': 'সীমাহীন এআই ফিচার',
-            'subscription.ultraBenefit3': '২৪/৭ অগ্রাধিকার সহায়তা',
-            'subscription.ultraBenefit4': 'ফিচারের প্রাথমিক অ্যাক্সেস',
-            'subscription.ultraBenefit5': 'কাস্টম ইন্টিগ্রেশন',
-            'subscription.subscribe': 'সাবস্ক্রাইব',
-            'subscription.bestValue': 'সেরা মূল্য',
-            'subscription.premium': 'প্রিমিয়াম',
-            'subscription.free': 'ফ্রি',
-            'subscription.couponPlaceholder': 'কুপন কোড',
-            'subscription.activate': 'সক্রিয় করুন',
-            'subscription.subscribe': 'সাবস্ক্রাইব করুন',
-            'subscription.monthlyRenewal': 'মাসিক নবায়ন',
-            'subscription.yearlyRenewal': 'বার্ষিক নবায়ন',
-            'subscription.couponValid': '✓ বৈধ কুপন কোড',
-            'subscription.couponRequired': 'অনুগ্রহ করে একটি কুপন কোড লিখুন',
-            'subscription.buyHint': 'সাবস্ক্রিপশন কিনতে চান? পেমেন্ট এবং নিশ্চিতকরণের জন্য আমাদের Facebook পেজে যান।',
-            'subscription.buyCoupon': 'Facebook এ সাবস্ক্রাইব করুন',
-            'subscription.invalidCoupon': 'অবৈধ কুপন কোড',
-            'subscription.activated': 'সাবস্ক্রিপশন সফলভাবে সক্রিয় হয়েছে',
-            'subscription.chatWelcome': 'প্ল্যান বেছে নিতে সাহায্য চান? আমাদের সাবস্ক্রিপশন প্ল্যান সম্পর্কে যেকোনো কিছু জিজ্ঞাসা করুন!',
-            'subscription.chatPlaceholder': 'প্ল্যান সম্পর্কে জিজ্ঞাসা করুন...',
             'modals.logo.title': 'দোকানের লোগো যোগ করুন',
             'modals.logo.name': 'লোগোর নাম',
             'modals.logo.image': 'লোগো ছবি',
@@ -729,7 +746,14 @@
             'modals.task.typePurchase': 'মালামাল কেনা',
             'modals.task.typeOther': 'অন্যান্য',
             'modals.task.date': 'শেষ তারিখ',
+            'modals.task.time': 'সময় (ঐচ্ছিক)',
             'modals.task.note': 'নোট',
+            'modals.task.priority': 'অগ্রাধিকার',
+            'modals.task.recurring': 'এই কাজ পুনরাবৃত্তি',
+            'modals.task.recurringType': 'পুনরাবৃত্তি',
+            'modals.task.typeWork': 'কাজ',
+            'modals.task.typePersonal': 'ব্যক্তিগত',
+            'modals.task.typeShopping': 'কেনাকাটা',
             'modals.profile.title': 'প্রোফাইল এডিট',
             'modals.profile.name': 'নাম',
             'modals.profile.email': 'ইমেইল',
@@ -773,6 +797,8 @@
             'bills.duplicate': 'অনুলিপি',
             'bills.view': 'দেখুন',
             'bills.share': 'শেয়ার',
+            'bills.downloadPng': 'PNG ডাউনলোড',
+            'bills.makeInvoice': 'ইনভয়েস তৈরি',
             'bills.invoiceNumber': 'ইনভয়েস #',
             'bills.items': 'পণ্য',
             'bills.totalAmount': 'মোট',
@@ -832,8 +858,8 @@
             'ai.subtitle': 'ইনসাইট ও কার্ড তৈরি করুন',
             'ai.welcome': 'হ্যালো আমি আপনার দোকান পরিচালনা ট্রাস্ট রেশিও গণনা (জিজ্ঞাসা করুন: "[ক্রেতার নাম] এর ট্রাস্ট রেশিও কত?") পেমেন্ট কার্ড তৈরি ইত্যাদিতে সাহায্য করতে পারি কিছু জিজ্ঞাসা করুন',
             'ai.placeholder': 'কিছু জিজ্ঞাসা করুন',
-            'ai.subscriptionRequired': 'এআই সহায়ক (অপ্টিচেইন) ব্যবহার করতে সাবস্ক্রিপশন প্রয়োজন। সাবস্ক্রিপশন নিন।',
-            'ai.goToSubscription': 'সাবস্ক্রিপশনে যান',
+            'ai.ultraOnly': 'শুধু Ultra',
+            'ai.ultraExclusive': 'এআই চ্যাট - Ultra একচেটিয়া',
             'notifications.enabled': 'রিমাইন্ডার চালু',
             'notifications.disabled': 'রিমাইন্ডার বন্ধ',
             'notifications.permissionDenied': 'ব্রাউজারের সেটিং থেকে নোটিফিকেশন চালু করুন',
@@ -848,7 +874,21 @@
                 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'
             ],
             'calendar.dayNames': ['র', 'সো', 'মো', 'বু', 'বৃ', 'শু', 'শো'],
-            'calendar.empty': 'এই দিনে কিছু নেই কাজ যোগ করুন বা দেনা লিখুন'
+            'calendar.empty': 'এই দিনে কিছু নেই কাজ যোগ করুন বা দেনা লিখুন',
+            'onboarding.welcome': 'DebtX-এ স্বাগতম!',
+            'onboarding.subtitle': 'আসুন দেখি কিভাবে শুরু করবেন',
+            'onboarding.skip': 'টিউটোরিয়াল বাদ দিন',
+            'onboarding.next': 'পরবর্তী',
+            'onboarding.prev': 'আগের',
+            'onboarding.done': 'শুরু করুন',
+            'onboarding.step1.title': 'প্রথম ক্রেতা যোগ করুন',
+            'onboarding.step1.desc': 'ক্রেতাদের দেনা ও পেমেন্ট ট্র্যাক করতে প্রথমে তাদের যোগ করুন। ক্রেতা পেজে + বোতামে ট্যাপ করুন।',
+            'onboarding.step2.title': 'দেনা ও পেমেন্ট রেকর্ড করুন',
+            'onboarding.step2.desc': 'ক্রেতা যোগ করার পর, বাকিতে কিনলে দেনা এবং টাকা দিলে পেমেন্ট রেকর্ড করুন।',
+            'onboarding.step3.title': 'প্রফেশনাল বিল তৈরি করুন',
+            'onboarding.step3.desc': 'বিলস সেকশনে গিয়ে সুন্দর প্রফেশনাল বিল তৈরি করুন। আইটেম যোগ করুন, দাম সেট করুন, প্রিন্টযোগ্য বিল তৈরি করুন।',
+            'onboarding.step4.title': 'আপনি তৈরি!',
+            'onboarding.step4.desc': 'দ্রুত নোটের জন্য Notes, স্মার্ট ফিচারের জন্য AI Tools এবং কাস্টমাইজের জন্য Settings এক্সপ্লোর করুন।'
         }
     };
 
@@ -864,6 +904,7 @@
             notes: document.getElementById('nav-notes'),
             tasks: document.getElementById('nav-tasks'),
             settings: document.getElementById('nav-settings'),
+            premium: document.getElementById('nav-premium'),
         },
         panels: {
             customers: document.getElementById('panel-customers'),
@@ -871,13 +912,20 @@
             ai: document.getElementById('panel-ai'),
             notes: document.getElementById('panel-notes'),
             tasks: document.getElementById('panel-tasks'),
-            settings: document.getElementById('panel-settings')
+            settings: document.getElementById('panel-settings'),
+            premium: document.getElementById('panel-premium')
         },
         languageToggle: document.getElementById('language-toggle'),
         notificationToggle: document.getElementById('notification-toggle'),
         customerList: document.getElementById('customer-list'),
         customersEmpty: document.getElementById('customers-empty'),
         customerSearch: document.getElementById('customer-search'),
+        customersTabs: document.querySelectorAll('[data-customers-tab]'),
+        customersView: document.getElementById('customers-view'),
+        debtsView: document.getElementById('debts-view'),
+        debtList: document.getElementById('debt-list'),
+        debtSearch: document.getElementById('debt-search'),
+        debtEmpty: document.getElementById('debt-empty'),
         notesList: document.getElementById('notes-list'),
         notesEmpty: document.getElementById('notes-empty'),
         notesSearch: document.getElementById('notes-search'),
@@ -885,9 +933,11 @@
         tasksList: document.getElementById('tasks-list'),
         tasksEmpty: document.getElementById('tasks-empty'),
         miniCalendar: document.getElementById('mini-calendar'),
+        tasksMiniCalendar: document.getElementById('tasks-mini-calendar'),
+        aiDebtCalendarList: document.getElementById('ai-debt-calendar-list'),
+        aiDebtCalendarRefresh: document.getElementById('ai-debt-calendar-refresh'),
         addCustomerBtn: document.getElementById('add-customer-btn'),
         addNoteBtn: document.getElementById('add-note-btn'),
-        addTaskBtn: document.getElementById('add-task-btn'),
         authOverlay: document.getElementById('auth-overlay'),
         authTabs: document.querySelectorAll('.auth-tab'),
         authLoginForm: document.getElementById('auth-login-form'),
@@ -922,8 +972,6 @@
         tasksSection: document.getElementById('tasks-section'),
         notesTabBtn: document.querySelector('[data-tab="notes"]'),
         tasksTabBtn: document.querySelector('[data-tab="tasks"]'),
-        currentPlan: document.getElementById('current-plan'),
-        subscriptionExpiry: document.getElementById('subscription-expiry'),
         activateProBtn: document.getElementById('activate-pro-btn'),
         activateMaxBtn: document.getElementById('activate-max-btn'),
         activateUltraBtn: document.getElementById('activate-ultra-btn'),
@@ -931,7 +979,9 @@
         couponMax: document.getElementById('coupon-max'),
         couponUltra: document.getElementById('coupon-ultra'),
         logoListContainer: document.getElementById('logo-list-container'),
-        addLogoBtn: document.getElementById('add-logo-btn')
+        addLogoBtn: document.getElementById('add-logo-btn'),
+        dockSizeInput: document.getElementById('dock-size-range'),
+        dockSizeValue: document.getElementById('dock-size-value')
     };
 
     const modals = {
@@ -945,9 +995,7 @@
         demand: document.getElementById('demand-modal'),
         profile: document.getElementById('profile-modal'),
         shopProfile: document.getElementById('shop-profile-modal'),
-        bill: document.getElementById('bill-modal'),
         monthlyWrap: document.getElementById('monthly-wrap-modal'),
-        trialPopup: document.getElementById('trial-popup-modal'),
         cardCustomize: document.getElementById('card-customize-modal'),
         logo: document.getElementById('logo-modal')
     };
@@ -962,7 +1010,6 @@
         demand: document.getElementById('demand-form'),
         profile: document.getElementById('profile-form'),
         shopProfile: document.getElementById('shop-profile-form'),
-        bill: document.getElementById('bill-form'),
         cardCustomize: document.getElementById('card-customize-form'),
         logo: document.getElementById('logo-form')
     };
@@ -988,6 +1035,8 @@
         applyLanguage(state.language, { initial: true });
         applyTheme(state.ui.theme, { initial: true });
         applyTextSize(state.ui.textSize || 3);
+        applyDockScale(state.ui.dockScale || 1);
+        applyPlanBranding();
         
         // Initialize text size button
         const currentSize = state.ui.textSize || 3;
@@ -999,11 +1048,10 @@
         
         // No initial auth overlay - login moved to settings
         renderAll();
-        updateSubscriptionDisplay();
+        setCustomersTab(state.ui.customersTab || 'customers', { save: false });
         
         startReminderLoop();
         refreshAISummary();
-        console.log('Debtx init complete');
         
         // Initialize notes/tasks tab on load
         if (state.ui.activeNotesTab) {
@@ -1023,9 +1071,10 @@
             }
             parsed.ui = Object.assign(defaultState().ui, parsed.ui || {});
             parsed.auth = Object.assign(defaultState().auth, parsed.auth || {});
-            parsed.subscription = Object.assign(defaultState().subscription, parsed.subscription || {});
+            parsed.language = parsed.language === 'bn' ? 'bn' : 'en';
             parsed.shopLogos = parsed.shopLogos || [];
             parsed.calculator = Object.assign(defaultState().calculator, parsed.calculator || {});
+            parsed.subscription = Object.assign(defaultState().subscription, parsed.subscription || {});
             // Guest users stay unlocked, password users need to re-authenticate
             const isGuest = parsed.auth?.isGuest || false;
             parsed.session = { unlocked: isGuest };
@@ -1069,15 +1118,17 @@
                 customers: state.customers,
                 notes: state.notes,
                 tasks: state.tasks,
-                subscription: {
-                    plan: state.subscription.plan,
-                    activatedAt: state.subscription.activatedAt,
-                    expiresAt: state.subscription.expiresAt
-                },
+                bills: state.bills || [],
+                shopLogos: state.shopLogos || [],
+                shop: state.shop || defaultState().shop,
+                subscription: state.subscription || defaultState().subscription,
+                ai: state.ai || defaultState().ai,
                 ui: {
                     theme: state.ui.theme,
                     haptics: state.ui.haptics,
-                    sounds: state.ui.sounds
+                    sounds: state.ui.sounds,
+                    textSize: state.ui.textSize,
+                    dockScale: state.ui.dockScale
                 }
             };
             const jsonString = JSON.stringify(exportData, null, 2);
@@ -1104,8 +1155,9 @@
             if (!imported || typeof imported !== 'object') {
                 throw new Error('Invalid JSON structure');
             }
-            // Validate minimum structure
-            if (!Array.isArray(imported.customers) && !Array.isArray(imported.notes) && !Array.isArray(imported.tasks)) {
+            const hasData = Array.isArray(imported.customers) || Array.isArray(imported.notes) || Array.isArray(imported.tasks) ||
+                Array.isArray(imported.bills) || (imported.shop && typeof imported.shop === 'object');
+            if (!hasData) {
                 throw new Error('No data found in file');
             }
             // Merge imported data - keep existing auth passwords
@@ -1144,35 +1196,81 @@
                 imported.tasks.forEach(task => {
                     if (existingIds.has(task.id)) {
                         const idx = state.tasks.findIndex(t => t.id === task.id);
-                        if (idx >= 0) state.tasks[idx] = task;
+                        if (idx >= 0) state.tasks[idx] = Object.assign({ reminderSent: false }, task);
                     } else {
-                        state.tasks.push(task);
+                        state.tasks.push(Object.assign({ reminderSent: false }, task));
                     }
                 });
+            }
+            if (imported.bills && Array.isArray(imported.bills)) {
+                const existingIds = new Set((state.bills || []).map(b => b.id));
+                state.bills = state.bills || [];
+                imported.bills.forEach(bill => {
+                    if (bill && bill.id != null) {
+                        if (existingIds.has(bill.id)) {
+                            const idx = state.bills.findIndex(b => b.id === bill.id);
+                            if (idx >= 0) state.bills[idx] = bill;
+                        } else {
+                            state.bills.push(bill);
+                        }
+                    } else {
+                        state.bills.push(bill);
+                    }
+                });
+            }
+            if (imported.shopLogos && Array.isArray(imported.shopLogos)) {
+                const existingIds = new Set((state.shopLogos || []).map(l => l.id));
+                state.shopLogos = state.shopLogos || [];
+                imported.shopLogos.forEach(logo => {
+                    if (logo && logo.id && existingIds.has(logo.id)) {
+                        const idx = state.shopLogos.findIndex(l => l.id === logo.id);
+                        if (idx >= 0) state.shopLogos[idx] = logo;
+                    } else {
+                        state.shopLogos.push(logo);
+                    }
+                });
+            }
+            if (imported.shop && typeof imported.shop === 'object') {
+                state.shop = Object.assign({}, defaultState().shop, state.shop, imported.shop);
+            }
+            if (imported.subscription && typeof imported.subscription === 'object') {
+                state.subscription = Object.assign({}, defaultState().subscription, state.subscription, imported.subscription);
+            }
+            if (imported.ai && typeof imported.ai === 'object') {
+                state.ai = Object.assign({}, defaultState().ai, state.ai, imported.ai);
             }
             if (imported.ui) {
                 if (imported.ui.theme) {
                     state.ui.theme = imported.ui.theme;
-                    applyTheme(state.ui.theme);
+                    applyTheme(imported.ui.theme);
                 }
                 if (typeof imported.ui.haptics === 'boolean') state.ui.haptics = imported.ui.haptics;
                 if (typeof imported.ui.sounds === 'boolean') state.ui.sounds = imported.ui.sounds;
+                if (typeof imported.ui.textSize === 'number' && imported.ui.textSize >= 1 && imported.ui.textSize <= 5) {
+                    state.ui.textSize = imported.ui.textSize;
+                    applyTextSize(state.ui.textSize);
+                }
+                if (typeof imported.ui.dockScale === 'number' && imported.ui.dockScale >= 0.2 && imported.ui.dockScale <= 1) {
+                    state.ui.dockScale = imported.ui.dockScale;
+                    applyDockScale(state.ui.dockScale);
+                    if (selectors.dockSizeInput) selectors.dockSizeInput.value = state.ui.dockScale;
+                    updateDockScaleDisplay();
+                }
             }
             if (imported.language) {
                 state.language = imported.language;
                 applyLanguage(state.language);
             }
-            // Import premium subscription if available
-            if (imported.subscription && imported.subscription.plan && imported.subscription.plan !== 'free') {
-                state.subscription.plan = imported.subscription.plan;
-                state.subscription.activatedAt = imported.subscription.activatedAt || state.subscription.activatedAt;
-                state.subscription.expiresAt = imported.subscription.expiresAt || state.subscription.expiresAt;
-                updateSubscriptionDisplay();
+            if (typeof imported.notificationsEnabled === 'boolean') {
+                state.notificationsEnabled = imported.notificationsEnabled;
             }
             saveState();
             renderAll();
             updateUserBadge();
             updateSettingsToggles();
+            updateSettingsDisplay();
+            if (typeof updateNewSettingsUI === 'function') updateNewSettingsUI();
+            if (typeof updateDockPremiumVisibility === 'function') updateDockPremiumVisibility();
             refreshAISummary();
             showDataStatus(translate('settings.importSuccess'), 'success');
         } catch (error) {
@@ -1204,17 +1302,47 @@
             customer
         );
 
-        prepared.debts = (prepared.debts || []).map(debt => Object.assign({ paidAmount: 0, reminders: {} }, debt));
+        const parsedRepaymentDays = parseInt(prepared.repaymentDays, 10);
+        prepared.repaymentDays = clampNumber(Number.isNaN(parsedRepaymentDays) ? 7 : parsedRepaymentDays, 1, 90);
+        prepared.debts = (prepared.debts || [])
+            .map(debt => normalizeDebtRecord(debt, prepared))
+            .filter(Boolean);
         prepared.payments = prepared.payments || [];
         prepared.history = prepared.history || [];
         return prepared;
     }
 
+    function normalizeDateInput(value) {
+        if (!value) return todayString();
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return value;
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return todayString();
+        return date.toISOString().slice(0, 10);
+    }
+
+    function normalizeDebtRecord(debt, customer) {
+        if (!debt || typeof debt !== 'object') return null;
+        debt.amount = Math.max(0, Number(debt.amount) || 0);
+        debt.paidAmount = Math.max(0, Number(debt.paidAmount) || 0);
+        debt.description = (debt.description || '').toString();
+        debt.date = normalizeDateInput(debt.date || debt.createdAt);
+        const dueDate = debt.dueDate ? normalizeDateInput(debt.dueDate) : '';
+        const hasValidDueDate = dueDate && !Number.isNaN(new Date(`${dueDate}T00:00`).getTime());
+        const repaymentDays = Number(customer?.repaymentDays) || 7;
+        debt.dueDate = hasValidDueDate ? dueDate : computeDueDate(debt.date, repaymentDays);
+        debt.reminders = Object.assign({ dueToday: false, overdue: false }, debt.reminders || {});
+        if (!debt.id) debt.id = generateId('debt');
+        return debt;
+    }
+
     function attachNavHandlers() {
         Object.entries(selectors.nav).forEach(([key, btn]) => {
             if (!btn) return;
-            btn.dataset.i18n = `nav.${key}`;
+            // Do not set data-i18n on the button: labels use data-i18n and applyLanguage would wipe icon+label
             btn.addEventListener('click', () => {
+                playFeedback();
                 setActivePanel(key);
             });
         });
@@ -1224,6 +1352,7 @@
     function attachModalHandlers() {
         document.querySelectorAll('[data-close]').forEach(btn => {
             btn.addEventListener('click', () => {
+                playFeedback();
                 const dialog = btn.closest('dialog');
                 if (dialog) dialog.close();
             });
@@ -1237,12 +1366,14 @@
         });
 
         selectors.addCustomerBtn?.addEventListener('click', () => {
+            playFeedback();
             forms.customer.reset();
             setModalMode(forms.customer, 'create');
             modals.customer.showModal();
         });
 
         selectors.addNoteBtn?.addEventListener('click', () => {
+            playFeedback();
             forms.note.reset();
             setModalMode(forms.note, 'create');
             forms.note.elements.noteId.value = '';
@@ -1251,16 +1382,7 @@
             modals.note.showModal();
         });
 
-        selectors.addTaskBtn?.addEventListener('click', () => {
-            forms.task.reset();
-            setModalMode(forms.task, 'create');
-            forms.task.elements.dueDate.value = todayString();
-            forms.task.elements.priority.value = 'medium';
-            forms.task.elements.recurring.checked = false;
-            const recurringOptions = document.getElementById('recurring-options');
-            if (recurringOptions) recurringOptions.style.display = 'none';
-            modals.task.showModal();
-        });
+        // FAB button handler moved to attachNewFeatureHandlers for context-aware behavior
         
         // Recurring task toggle
         const recurringCheckbox = forms.task?.elements.recurring;
@@ -1271,18 +1393,6 @@
             });
         }
         
-        // Subscription read more button
-        const readMoreBtn = document.getElementById('subscription-read-more-btn');
-        const subscriptionDetails = document.getElementById('subscription-details');
-        if (readMoreBtn && subscriptionDetails) {
-            readMoreBtn.addEventListener('click', () => {
-                const isHidden = subscriptionDetails.style.display === 'none';
-                subscriptionDetails.style.display = isHidden ? 'block' : 'none';
-                readMoreBtn.innerHTML = isHidden 
-                    ? '<span class="title-en">Read Less</span><span class="title-bn">কম পড়ুন</span>'
-                    : '<span class="title-en">Read More</span><span class="title-bn">আরও পড়ুন</span>';
-            });
-        }
     }
 
     function attachFormHandlers() {
@@ -1319,23 +1429,23 @@
 
         selectors.notificationToggle?.addEventListener('click', handleNotificationToggle);
 
-        selectors.customerSearch?.addEventListener('input', () => {
+        selectors.customerSearch?.addEventListener('input', debounce(() => {
             renderCustomers();
-        });
+        }, 150));
 
-        selectors.notesSearch?.addEventListener('input', event => {
-            state.ui.notesQuery = (event.target.value || '').trim().toLowerCase();
+        selectors.notesSearch?.addEventListener('input', debounce(() => {
+            state.ui.notesQuery = (selectors.notesSearch?.value || '').trim().toLowerCase();
             saveState();
             renderNotes();
-        });
+        }, 150));
 
-        // New filter button handlers
-        document.querySelectorAll('.filter-btn').forEach(btn => {
+        // Notes filter button handlers
+        document.querySelectorAll('#notes-section .filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const filter = btn.dataset.filter;
                 if (filter) {
                     // Update active state
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('#notes-section .filter-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     
                     state.ui.notesFilter = filter;
@@ -1346,8 +1456,8 @@
             });
         });
         
-        // Color filter buttons
-        document.querySelectorAll('.color-filter-btn').forEach(btn => {
+        // Color filter buttons (legacy)
+        document.querySelectorAll('#notes-section .color-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const color = btn.dataset.color;
                 if (color) {
@@ -1355,7 +1465,7 @@
                     btn.classList.toggle('active');
                     
                     // Update filter to show selected colors
-                    const activeColors = Array.from(document.querySelectorAll('.color-filter-btn.active')).map(b => b.dataset.color);
+                    const activeColors = Array.from(document.querySelectorAll('#notes-section .color-filter-btn.active')).map(b => b.dataset.color);
                     if (activeColors.length > 0) {
                         // Filter by active colors
                         state.ui.notesColorFilter = activeColors;
@@ -1367,6 +1477,34 @@
                     playFeedback();
                 }
             });
+        });
+        
+        // New Color Filter Pills (V2)
+        document.querySelectorAll('.color-filter-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const color = btn.dataset.color;
+                if (color) {
+                    // Update active state - single selection
+                    document.querySelectorAll('.color-filter-pill').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Update filter
+                    state.ui.notesColorFilter = color;
+                    saveState();
+                    renderNotes();
+                    playFeedback();
+                }
+            });
+        });
+        
+        // Empty state add note button
+        document.getElementById('empty-add-note-btn')?.addEventListener('click', () => {
+            setModalMode(forms.note, 'create');
+            forms.note.reset();
+            if (forms.note.elements.noteId) forms.note.elements.noteId.value = '';
+            if (forms.note.elements.color) forms.note.elements.color.value = 'yellow';
+            if (forms.note.elements.pinned) forms.note.elements.pinned.checked = false;
+            modals.note.showModal();
         });
         
         // Legacy select filter (if it exists)
@@ -1409,20 +1547,11 @@
         });
 
         selectors.exportDataBtn?.addEventListener('click', () => {
-            if (!canImportExport()) {
-                alert(state.language === 'bn' ? 'ইমপোর্ট/এক্সপোর্ট করতে সাবস্ক্রিপশন প্রয়োজন।' : 'Subscription required for import/export.');
-                return;
-            }
             exportDataAsJSON();
             playFeedback();
         });
 
         selectors.importDataInput?.addEventListener('change', async event => {
-            if (!canImportExport()) {
-                alert(state.language === 'bn' ? 'ইমপোর্ট/এক্সপোর্ট করতে সাবস্ক্রিপশন প্রয়োজন।' : 'Subscription required for import/export.');
-                event.target.value = '';
-                return;
-            }
             const file = event.target.files?.[0];
             if (file) {
                 await importDataFromJSON(file);
@@ -1430,6 +1559,94 @@
             }
             event.target.value = '';
         });
+        
+        // Notes FAB button handler
+        document.getElementById('notes-fab')?.addEventListener('click', () => {
+            playFeedback();
+            forms.note.reset();
+            setModalMode(forms.note, 'create');
+            if (forms.note.elements.noteId) forms.note.elements.noteId.value = '';
+            if (forms.note.elements.color) forms.note.elements.color.value = 'yellow';
+            if (forms.note.elements.pinned) forms.note.elements.pinned.checked = false;
+            modals.note.showModal();
+        });
+        
+        // Onboarding handlers
+        attachOnboardingHandlers();
+    }
+    
+    function attachOnboardingHandlers() {
+        const modal = document.getElementById('onboarding-modal');
+        const skipBtn = document.getElementById('onboarding-skip');
+        const prevBtn = document.getElementById('onboarding-prev');
+        const nextBtn = document.getElementById('onboarding-next');
+        const dots = document.querySelectorAll('.onboarding-dots .dot');
+        const slides = document.querySelectorAll('.onboarding-slide');
+        
+        if (!modal) return;
+        
+        let currentStep = 0;
+        const totalSteps = slides.length;
+        
+        function updateSlide() {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === currentStep);
+            });
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentStep);
+            });
+            
+            // Update prev button visibility
+            prevBtn.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+            
+            // Update next button text
+            const isLastStep = currentStep === totalSteps - 1;
+            const enText = isLastStep ? 'Get Started' : 'Next';
+            const bnText = isLastStep ? 'শুরু করুন' : 'পরবর্তী';
+            nextBtn.querySelector('.title-en').textContent = enText;
+            nextBtn.querySelector('.title-bn').textContent = bnText;
+        }
+        
+        function closeOnboarding() {
+            modal.close();
+            state.ui.hasSeenOnboarding = true;
+            saveState();
+        }
+        
+        skipBtn?.addEventListener('click', closeOnboarding);
+        
+        prevBtn?.addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                updateSlide();
+                playFeedback();
+            }
+        });
+        
+        nextBtn?.addEventListener('click', () => {
+            if (currentStep < totalSteps - 1) {
+                currentStep++;
+                updateSlide();
+                playFeedback();
+            } else {
+                closeOnboarding();
+            }
+        });
+        
+        dots.forEach((dot, i) => {
+            dot.addEventListener('click', () => {
+                currentStep = i;
+                updateSlide();
+                playFeedback();
+            });
+        });
+        
+        // Show onboarding on first visit (after a small delay to let app initialize)
+        if (!state.ui.hasSeenOnboarding) {
+            setTimeout(() => {
+                modal.showModal();
+            }, 500);
+        }
     }
 
     function attachAuthHandlers() {
@@ -1883,6 +2100,13 @@
         }
     }
 
+    function playFeedbackStrong() {
+        if (state.ui.haptics && 'vibrate' in navigator) {
+            navigator.vibrate([10, 60, 10]);
+        }
+        if (state.ui.sounds) playUISound();
+    }
+
     let uiAudio;
     function playUISound() {
         try {
@@ -1900,7 +2124,7 @@
         if (!('serviceWorker' in navigator)) return;
         window.addEventListener('load', () => {
             navigator.serviceWorker
-                .register('js/sw.js')
+                .register('sw.js')
                 .catch(error => console.error('Service worker registration failed', error));
         });
     }
@@ -1916,25 +2140,148 @@
             panelEl.classList.toggle('active', key === panel);
         });
         
-        // Show/hide AI subscription message
-        if (panel === 'ai') {
-            const aiMessage = document.getElementById('ai-subscription-message');
-            const aiContainer = document.getElementById('ai-chat-container');
-            if (aiMessage && aiContainer) {
-                const hasSubscription = canUseAI();
-                aiMessage.hidden = hasSubscription;
-                aiContainer.hidden = !hasSubscription;
-            }
+
+        if (panel === 'customers') {
+            setCustomersTab(state.ui.customersTab || 'customers', { save: false });
+        }
+        
+        // Re-render tasks when notes panel is shown
+        if (panel === 'notes') {
+            renderTasks();
+            renderNewTodoList();
+            updateTodoStats();
         }
         
         // Update settings display when settings panel is shown
         if (panel === 'settings') {
             setTimeout(() => {
                 updateSettingsDisplay();
+                updateNewSettingsUI();
             }, 100);
         }
         
+        // Update premium panel status when shown
+        if (panel === 'premium') {
+            updatePremiumPanelStatus();
+        }
+        if (panel === 'ai') {
+            ensureAIChatAccessible();
+        }
+
+        
         saveState();
+    }
+    
+    // Update dock premium button visibility based on subscription
+    function updateDockPremiumVisibility() {
+        const premiumBtn = document.getElementById('nav-premium');
+        if (!premiumBtn) return;
+        
+        const subscription = state.subscription || { plan: 'free' };
+        const now = Date.now();
+        const isExpired = subscription.expiresAt && now > subscription.expiresAt;
+        const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
+        
+        // Show premium button only for free users
+        if (activePlan === 'free') {
+            premiumBtn.classList.remove('hidden');
+        } else {
+            premiumBtn.classList.add('hidden');
+        }
+    }
+    
+    // Update premium panel status display
+    function updatePremiumPanelStatus() {
+        const statusEl = document.getElementById('premium-current-status');
+        if (!statusEl) return;
+        
+        const subscription = state.subscription || { plan: 'free' };
+        const now = Date.now();
+        const isExpired = subscription.expiresAt && now > subscription.expiresAt;
+        const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
+        
+        const planNames = {
+            free: state.language === 'bn' ? 'ফ্রি প্ল্যান' : 'Free Plan',
+            pro: 'PRO',
+            max: 'MAX',
+            ultra: 'ULTRA',
+            online: 'ONLINE'
+        };
+        
+        const badge = statusEl.querySelector('.status-badge');
+        if (badge) {
+            badge.textContent = state.language === 'bn' ? `বর্তমান: ${planNames[activePlan]}` : `Current: ${planNames[activePlan]}`;
+            badge.classList.toggle('free', activePlan === 'free');
+            badge.classList.toggle('active', activePlan !== 'free');
+        }
+    }
+    
+    // Get active subscription plan (handles expiry)
+    function getActivePlan() {
+        const sub = state.subscription || { plan: 'free' };
+        const now = Date.now();
+        if (sub.expiresAt && now > sub.expiresAt) return 'free';
+        return sub.plan || 'free';
+    }
+
+    // Apply DebtX plan branding: header logo, body data-attr, and settings plan section. free=black, pro/max=red, ultra=purple.
+    function applyPlanBranding() {
+        const plan = getActivePlan();
+        document.body.dataset.debtxPlan = plan;
+
+        const section = document.getElementById('settings-plan-section');
+        const badge = document.getElementById('settings-plan-badge');
+        const nameEl = document.getElementById('settings-debtx-name');
+        if (section) {
+            section.classList.remove('plan-free', 'plan-pro', 'plan-max', 'plan-ultra', 'plan-online');
+            section.classList.add('plan-' + plan);
+        }
+        const planLabels = { free: state.language === 'bn' ? 'ফ্রি' : 'Free', pro: 'Pro', max: 'Max', ultra: 'Ultra', online: 'Online' };
+        if (badge) badge.textContent = planLabels[plan] || planLabels.free;
+        if (nameEl) nameEl.textContent = 'DebtX';
+    }
+
+    // Update new settings UI elements
+    function updateNewSettingsUI() {
+        applyPlanBranding();
+        // Update language buttons
+        const langBtns = document.querySelectorAll('.lang-btn-new');
+        langBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === state.language);
+        });
+        
+        // Update text size buttons
+        const sizeBtns = document.querySelectorAll('.size-btn-new');
+        sizeBtns.forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.size) === state.ui.textSize);
+        });
+        
+        // Update theme tiles
+        const themeTiles = document.querySelectorAll('.theme-tile-new');
+        themeTiles.forEach(tile => {
+            tile.setAttribute('aria-checked', tile.dataset.theme === state.ui.theme ? 'true' : 'false');
+        });
+    }
+    
+    // Get customer limit based on subscription
+    function getCustomerLimit() {
+        const subscription = state.subscription || { plan: 'free' };
+        const now = Date.now();
+        const isExpired = subscription.expiresAt && now > subscription.expiresAt;
+        const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
+        
+        switch (activePlan) {
+            case 'free':
+                return Infinity; // Unlimited for free
+            case 'pro':
+                return 100; // 100 customers for Pro
+            case 'max':
+            case 'ultra':
+            case 'online':
+                return Infinity; // Unlimited for other plans
+            default:
+                return Infinity;
+        }
     }
 
     function setModalMode(form, mode) {
@@ -1944,52 +2291,46 @@
     function handleCustomerSubmit(event) {
         event.preventDefault();
         
-        if (!canAddCustomer()) {
-            const message = state.language === 'bn' 
-                ? 'ফ্রি ভার্সনে সর্বোচ্চ ৫ জন ক্রেতা যোগ করা যাবে। প্রো প্ল্যান নিন অথবা ৩ দিনের ফ্রি ট্রায়াল নিন।' 
-                : 'Free version allows maximum 5 customers. Buy Pro plan or take a free 3-day trial.';
+        try {
+            const form = event.target;
+            const data = new FormData(form);
+            const customerName = data.get('name')?.trim();
             
-            const action = confirm(message + (state.language === 'bn' ? '\n\nফ্রি ট্রায়াল নিতে চান?' : '\n\nWould you like to start a free trial?'));
-            if (action) {
-                // Start free trial
-                const now = new Date();
-                state.subscription.plan = 'trial';
-                state.subscription.activatedAt = now.toISOString();
-                const expiresAt = new Date(now);
-                expiresAt.setDate(expiresAt.getDate() + 3); // 3 days trial
-                state.subscription.expiresAt = expiresAt.toISOString();
-                saveState();
-                updateSubscriptionDisplay();
-                // Show trial popup
-                showTrialPopup();
-                // Allow customer to be added now - canAddCustomer will return true for trial
-            } else {
-                modals.customer?.close();
+            // Validate customer name
+            if (!customerName) {
+                alert(state.language === 'bn' ? 'ক্রেতার নাম প্রয়োজন' : 'Customer name is required');
                 return;
             }
-        }
-        
-        const form = event.target;
-        const data = new FormData(form);
-        const customer = {
-            id: generateId('cust'),
-            name: data.get('name').trim(),
-            phone: (data.get('phone') || '').trim(),
-            repaymentDays: clampNumber(parseInt(data.get('repaymentDays'), 10) || 7, 1, 90),
-            note: (data.get('note') || '').trim()
-        };
-        customer.createdAt = Date.now();
-        customer.updatedAt = Date.now();
-        customer.debts = [];
-        customer.payments = [];
-        customer.history = [];
-        customer.lastPaymentAt = null;
+            
+            // No customer limit for free version - users can add unlimited customers
+            
+            // Process customer addition
+            const customer = {
+                id: generateId('cust'),
+                name: customerName,
+                phone: (data.get('phone') || '').trim(),
+                repaymentDays: clampNumber(parseInt(data.get('repaymentDays'), 10) || 7, 1, 90),
+                note: (data.get('note') || '').trim()
+            };
+            customer.createdAt = Date.now();
+            customer.updatedAt = Date.now();
+            customer.debts = [];
+            customer.payments = [];
+            customer.history = [];
+            customer.lastPaymentAt = null;
 
-        state.customers.push(customer);
-        saveState();
-        renderCustomers();
-        populateCardCustomerSelect();
-        modals.customer.close();
+            state.customers.push(customer);
+            saveState();
+            renderCustomers();
+            renderDebtLedger();
+            renderAIDebtCalendar();
+            populateCardCustomerSelect();
+            modals.customer.close();
+            
+        } catch (error) {
+            console.error('Error in handleCustomerSubmit:', error);
+            alert(state.language === 'bn' ? 'ক্রেতা যোগ করতে ত্রুটি হয়েছে' : 'Error adding customer: ' + error.message);
+        }
     }
 
     function handleDebtSubmit(event) {
@@ -2027,6 +2368,8 @@
         customer.updatedAt = Date.now();
         saveState();
         renderCustomers();
+        renderDebtLedger();
+        renderAIDebtCalendar();
         renderTasks();
         modals.debt.close();
     }
@@ -2065,6 +2408,8 @@
         customer.updatedAt = Date.now();
         saveState();
         renderCustomers();
+        renderDebtLedger();
+        renderAIDebtCalendar();
         renderTasks();
         modals.payment.close();
     }
@@ -2139,6 +2484,15 @@
         saveState();
         renderTasks();
         modals.task.close();
+        
+        // Return to categories view if in detail view
+        const categoriesView = document.getElementById('todo-categories-view');
+        const detailView = document.getElementById('todo-detail-view');
+        if (categoriesView && detailView && !detailView.hidden) {
+            categoriesView.hidden = false;
+            detailView.hidden = true;
+        }
+        
         playFeedback();
     }
 
@@ -2189,7 +2543,10 @@
 
     function applyPaymentToDebts(customer, paymentAmount) {
         let remaining = paymentAmount;
-        const outstandingDebts = customer.debts.sort((a, b) => new Date(a.date) - new Date(b.date));
+        const outstandingDebts = (customer.debts || [])
+            .map(debt => normalizeDebtRecord(debt, customer))
+            .filter(Boolean)
+            .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
         for (const debt of outstandingDebts) {
             const debtRemaining = Math.max(0, debt.amount - (debt.paidAmount || 0));
             if (debtRemaining <= 0) continue;
@@ -2211,15 +2568,16 @@
     }
 
     function renderAll() {
-        console.log('renderAll running...');
         renderCustomers();
+        renderDebtLedger();
+        renderAIDebtCalendar();
         renderBills();
         renderNotes();
         renderTasks();
+        renderCalendar();
         updateNotificationToggle();
         updateSettingsToggles();
         // Shop profile display removed with settings panel
-        updateSubscriptionDisplay();
         refreshAISummary(true);
         
         // Initialize notes/tasks tab
@@ -2335,123 +2693,439 @@
                 prepareDebtModal(customer);
             });
 
+            card.querySelector('[data-action="delete"]').addEventListener('click', () => {
+                deleteCustomer(customer.id);
+            });
+
             customerList.appendChild(fragment);
         });
     }
 
-    function renderNotes() {
-        const { notesList, notesEmpty } = selectors;
-        if (!notesList) return;
+    function deleteCustomer(customerId) {
+        const customer = state.customers.find(c => c.id === customerId);
+        if (!customer) return;
 
-        notesList.innerHTML = '';
-        const query = (state.ui.notesQuery || '').toLowerCase();
-        const filter = state.ui.notesFilter || 'all';
-        if (selectors.notesSearch) selectors.notesSearch.value = state.ui.notesQuery || '';
-        if (selectors.notesFilter) selectors.notesFilter.value = filter;
-        
-        // Update filter button active states
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filter === filter);
+        const customerName = customer.name || 'this customer';
+        const confirmMessage = state.language === 'bn'
+            ? `আপনি কি নিশ্চিত যে আপনি "${customerName}" কে মুছে ফেলতে চান?\n\nএই ক্রেতার সব ডেটা (ঋণ, পেমেন্ট, ইতিহাস) চিরতরে মুছে যাবে।`
+            : `Are you sure you want to delete "${customerName}"?\n\nAll customer data (debts, payments, history) will be permanently deleted.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        // Remove customer from state
+        const customerIndex = state.customers.findIndex(c => c.id === customerId);
+        if (customerIndex !== -1) {
+            state.customers.splice(customerIndex, 1);
+            saveState();
+            renderCustomers();
+            renderDebtLedger();
+            renderAIDebtCalendar();
+            populateCardCustomerSelect();
+            
+            // Show success message
+            const successMessage = state.language === 'bn'
+                ? 'ক্রেতা সফলভাবে মুছে ফেলা হয়েছে'
+                : 'Customer deleted successfully';
+            
+            // Optional: Show a toast notification or simple alert
+            playFeedback();
+        }
+    }
+
+    function buildDebtLedgerEntries() {
+        const entries = [];
+        state.customers.forEach(customer => {
+            (customer.debts || []).forEach(debt => {
+                const normalized = normalizeDebtRecord(debt, customer);
+                if (!normalized) return;
+                entries.push({
+                    id: normalized.id,
+                    customer,
+                    debt: normalized,
+                    outstanding: getDebtOutstanding(normalized),
+                    status: getDebtStatus(normalized)
+                });
+            });
         });
-        
-        // Update color filter button active states
-        if (state.ui.notesColorFilter) {
-            document.querySelectorAll('.color-filter-btn').forEach(btn => {
-                btn.classList.toggle('active', state.ui.notesColorFilter.includes(btn.dataset.color));
+        return entries;
+    }
+
+    function updateDebtSummary(entries) {
+        let totalOutstanding = 0;
+        let totalDueSoon = 0;
+        let totalOverdue = 0;
+        let totalSettled = 0;
+
+        entries.forEach(entry => {
+            if (entry.status === 'settled') {
+                totalSettled += entry.debt.amount || 0;
+                return;
+            }
+            totalOutstanding += entry.outstanding;
+            if (entry.status === 'dueSoon') totalDueSoon += entry.outstanding;
+            if (entry.status === 'overdue') totalOverdue += entry.outstanding;
+        });
+
+        const totalOutstandingEl = document.getElementById('debt-total-outstanding');
+        const totalDueSoonEl = document.getElementById('debt-total-due-soon');
+        const totalOverdueEl = document.getElementById('debt-total-overdue');
+        const totalSettledEl = document.getElementById('debt-total-settled');
+
+        if (totalOutstandingEl) totalOutstandingEl.textContent = formatCurrency(totalOutstanding);
+        if (totalDueSoonEl) totalDueSoonEl.textContent = formatCurrency(totalDueSoon);
+        if (totalOverdueEl) totalOverdueEl.textContent = formatCurrency(totalOverdue);
+        if (totalSettledEl) totalSettledEl.textContent = formatCurrency(totalSettled);
+    }
+
+    function renderDebtLedger() {
+        const listEl = selectors.debtList;
+        if (!listEl) return;
+
+        listEl.innerHTML = '';
+        const entries = buildDebtLedgerEntries();
+        updateDebtSummary(entries);
+
+        const query = (state.ui.debtQuery || '').trim().toLowerCase();
+        if (selectors.debtSearch) selectors.debtSearch.value = state.ui.debtQuery || '';
+
+        let filtered = entries;
+        if (query) {
+            filtered = filtered.filter(entry => {
+                const nameMatch = entry.customer.name.toLowerCase().includes(query);
+                const phoneMatch = (entry.customer.phone || '').toLowerCase().includes(query);
+                const noteMatch = (entry.debt.description || '').toLowerCase().includes(query);
+                return nameMatch || phoneMatch || noteMatch;
             });
         }
 
-        const filtered = [...state.notes]
-            .filter(note => {
-                if (!query) return true;
-                return (
-                    note.title.toLowerCase().includes(query) ||
-                    (note.body || '').toLowerCase().includes(query)
-                );
-            })
-            .filter(note => {
-                if (filter === 'all') {
-                    // Check color filter if set
-                    if (state.ui.notesColorFilter && state.ui.notesColorFilter.length > 0) {
-                        return state.ui.notesColorFilter.includes(note.color || 'yellow');
-                    }
-                    return true;
-                }
-                if (filter === 'pinned') return note.pinned;
-                if (filter === 'recent') {
-                    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-                    const isRecent = (note.updatedAt || note.createdAt) > sevenDaysAgo;
-                    // Also check color filter if set
-                    if (state.ui.notesColorFilter && state.ui.notesColorFilter.length > 0) {
-                        return isRecent && state.ui.notesColorFilter.includes(note.color || 'yellow');
-                    }
-                    return isRecent;
-                }
-                return note.color === filter;
-            })
-            .sort((a, b) => (b.pinned - a.pinned) || (b.updatedAt - a.updatedAt) || (b.createdAt - a.createdAt));
+        const allowedFilters = new Set(['all', 'open', 'dueSoon', 'overdue', 'settled']);
+        const filter = allowedFilters.has(state.ui.debtFilter) ? state.ui.debtFilter : 'all';
+        document.querySelectorAll('.debt-filters .filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filter);
+        });
+
+        if (filter === 'open') {
+            filtered = filtered.filter(entry => entry.status !== 'settled');
+        } else if (filter === 'dueSoon') {
+            filtered = filtered.filter(entry => entry.status === 'dueSoon');
+        } else if (filter === 'overdue') {
+            filtered = filtered.filter(entry => entry.status === 'overdue');
+        } else if (filter === 'settled') {
+            filtered = filtered.filter(entry => entry.status === 'settled');
+        }
+
+        const statusOrder = { overdue: 0, dueSoon: 1, onTrack: 2, settled: 3 };
+        filtered.sort((a, b) => {
+            const rank = statusOrder[a.status] - statusOrder[b.status];
+            if (rank !== 0) return rank;
+            const dateA = new Date(a.debt.dueDate || a.debt.date || 0);
+            const dateB = new Date(b.debt.dueDate || b.debt.date || 0);
+            return dateA - dateB;
+        });
 
         if (!filtered.length) {
-            notesEmpty?.removeAttribute('hidden');
+            selectors.debtEmpty?.removeAttribute('hidden');
             return;
         }
-        notesEmpty?.setAttribute('hidden', 'hidden');
 
-        filtered.forEach(note => {
-            const fragment = document.importNode(templates.noteCard.content, true);
-            localizeFragment(fragment);
-            const card = fragment.querySelector('.note-card');
+        selectors.debtEmpty?.setAttribute('hidden', 'hidden');
+
+        filtered.forEach(entry => {
+            const card = document.createElement('article');
+            card.className = 'customer-card debt-card';
+            card.dataset.debtId = entry.id;
+            card.dataset.customerId = entry.customer.id;
+
+            const customerName = entry.customer.name || translate('customers.title');
+            const phoneText = entry.customer.phone || '\u2014';
+            const trimmedName = customerName.trim();
+            const avatarLetter = trimmedName ? trimmedName.charAt(0).toUpperCase() : '?';
+            const avatarColor = getColorForLetter(avatarLetter);
+
+            const statusText = translateStatus(entry.status);
+            const statusClass = `debt-status debt-status--${entry.status}`;
+            const dueDateText = entry.debt.dueDate ? formatDisplayDate(entry.debt.dueDate) : '\u2014';
+
+            const outstandingLabel = translate('debts.card.outstanding') || 'Outstanding';
+            const originalLabel = translate('debts.card.original') || 'Original';
+            const paidLabel = translate('debts.card.paid') || 'Paid';
+            const dueLabel = translate('debts.card.dueDate') || 'Due';
+            const paysOnLabel = translate('debts.card.paysOn') || 'Pays on';
+
+            card.innerHTML = `
+                <header class="debt-card-header">
+                    <div class="debt-customer">
+                        <div class="debt-avatar" style="background: ${avatarColor};">${avatarLetter}</div>
+                        <div>
+                            <h3 class="debt-customer-name">${escapeHtml(customerName)}</h3>
+                            <p class="debt-customer-phone">${escapeHtml(phoneText)}</p>
+                        </div>
+                    </div>
+                    <span class="${statusClass}">${statusText}</span>
+                </header>
+                <div class="debt-card-body">
+                    <div class="debt-pay-date-row">
+                        <span>${paysOnLabel}</span>
+                        <strong>${dueDateText}</strong>
+                    </div>
+                    <div class="debt-amount">
+                        <span>${outstandingLabel}</span>
+                        <strong>${formatCurrency(entry.outstanding)}</strong>
+                    </div>
+                    <div class="debt-meta">
+                        <div class="debt-meta-item">
+                            <span>${originalLabel}</span>
+                            <strong>${formatCurrency(entry.debt.amount || 0)}</strong>
+                        </div>
+                        <div class="debt-meta-item">
+                            <span>${paidLabel}</span>
+                            <strong>${formatCurrency(entry.debt.paidAmount || 0)}</strong>
+                        </div>
+                        <div class="debt-meta-item">
+                            <span>${dueLabel}</span>
+                            <strong>${dueDateText}</strong>
+                        </div>
+                    </div>
+                    ${entry.debt.description ? `<p class="debt-note">${escapeHtml(entry.debt.description)}</p>` : ''}
+                </div>
+                <footer class="debt-card-footer">
+                    <button class="secondary-btn" data-action="payment">${translate('debts.card.recordPayment') || 'Record Payment'}</button>
+                    <button class="secondary-btn" data-action="demand">${translate('debts.card.demandPayment') || 'Request Payment'}</button>
+                    <button class="primary-btn" data-action="debt">${translate('debts.card.addDebt') || 'Add Debt'}</button>
+                </footer>
+            `;
+
+            card.querySelector('[data-action="payment"]')?.addEventListener('click', () => {
+                playFeedbackStrong();
+                preparePaymentModal(entry.customer);
+            });
+            card.querySelector('[data-action="demand"]')?.addEventListener('click', () => {
+                playFeedbackStrong();
+                prepareDemandModal(entry.customer);
+            });
+            card.querySelector('[data-action="debt"]')?.addEventListener('click', () => {
+                playFeedbackStrong();
+                prepareDebtModal(entry.customer);
+            });
+
+            listEl.appendChild(card);
+        });
+    }
+
+    function renderAIDebtCalendar() {
+        const listEl = selectors.aiDebtCalendarList;
+        if (!listEl) return;
+
+        listEl.innerHTML = '';
+        const entries = buildDebtLedgerEntries()
+            .filter(entry => entry.status !== 'settled' && entry.debt.dueDate);
+
+        entries.sort((a, b) => new Date(a.debt.dueDate) - new Date(b.debt.dueDate));
+        const upcoming = entries.slice(0, 8);
+
+        if (!upcoming.length) {
+            const empty = document.createElement('p');
+            empty.className = 'ai-calendar-empty';
+            empty.textContent = translate('aiDebtCalendar.empty') || 'No upcoming debt payments yet.';
+            listEl.appendChild(empty);
+            return;
+        }
+
+        upcoming.forEach(entry => {
+            const item = document.createElement('div');
+            item.className = 'ai-calendar-item';
+
+            const dueDate = entry.debt.dueDate;
+            const daysLeft = daysUntil(dueDate);
+            const status = entry.status;
+            const badgeLabel = translateStatus(status);
+            const dueLabel = formatDisplayDate(dueDate);
+            const dayLabel = formatDaysLeftText(daysLeft);
+
+            item.innerHTML = `
+                <div class="ai-calendar-left">
+                    <div class="ai-calendar-date">${dueLabel}</div>
+                    <div class="ai-calendar-customer">${escapeHtml(entry.customer.name)} · ${dayLabel}</div>
+                </div>
+                <div class="ai-calendar-right">
+                    <div class="ai-calendar-amount">${formatCurrency(entry.outstanding)}</div>
+                    <div class="ai-calendar-badge ${status}">${badgeLabel}</div>
+                </div>
+            `;
+
+            listEl.appendChild(item);
+        });
+    }
+
+    function renderNotes() {
+        const { notesList, notesSearch, notesFilter } = selectors;
+        if (!notesList) return;
+
+        const query = (state.ui.notesQuery || '').toLowerCase();
+        const filter = state.ui.notesFilter || 'all';
+        const colorFilter = String(state.ui.notesColorFilter || 'all');
+
+        if (notesSearch) notesSearch.value = state.ui.notesQuery || '';
+        if (notesFilter) notesFilter.value = filter;
+
+        document.querySelectorAll('#notes-section .filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filter);
+        });
+        document.querySelectorAll('#notes-section .color-filter-btn').forEach(btn => {
+            btn.classList.toggle('active', Array.isArray(state.ui.notesColorFilter) && state.ui.notesColorFilter.includes(btn.dataset.color));
+        });
+        document.querySelectorAll('.color-filter-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.color === colorFilter);
+        });
+
+        renderNotesNewFormat();
+    }
+    
+    // Render notes in new modern format V2
+    function renderNotesNewFormat() {
+        const notesList = document.getElementById('notes-list');
+        const notesEmpty = document.getElementById('notes-empty');
+        const notesCountEl = document.getElementById('notes-total-count');
+        
+        if (!notesList) return;
+        
+        // Clear existing content
+        notesList.innerHTML = '';
+        
+        const query = (state.ui.notesQuery || '').toLowerCase();
+        const colorFilter = String(state.ui.notesColorFilter || 'all');
+        const filter = state.ui.notesFilter || 'all';
+        
+        const filtered = [...state.notes]
+            .filter(note => {
+                if (query && !(
+                    note.title.toLowerCase().includes(query) ||
+                    (note.body || '').toLowerCase().includes(query)
+                )) return false;
+                if (colorFilter !== 'all' && (note.color || 'yellow') !== colorFilter) return false;
+                if (filter === 'pinned') return !!note.pinned;
+                if (filter === 'recent') {
+                    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                    return (note.updatedAt || note.createdAt || 0) > sevenDaysAgo;
+                }
+                if (filter !== 'all' && filter !== 'pinned' && filter !== 'recent') {
+                    return (note.color || 'yellow') === filter;
+                }
+                return true;
+            })
+            .sort((a, b) => (b.pinned - a.pinned) || ((b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt)));
+        
+        // Update notes count
+        if (notesCountEl) {
+            notesCountEl.textContent = state.notes.length;
+        }
+        
+        if (!filtered.length) {
+            if (notesEmpty) notesEmpty.removeAttribute('hidden');
+            return;
+        }
+        
+        if (notesEmpty) notesEmpty.setAttribute('hidden', 'hidden');
+        
+        filtered.forEach((note, index) => {
+            const card = document.createElement('div');
+            card.className = `note-card-v2 color-${note.color || 'yellow'}`;
             card.dataset.noteId = note.id;
-            card.dataset.color = note.color || 'yellow';
+            card.style.animationDelay = `${index * 50}ms`;
             
-            // Mark as pinned
+            // Pin badge
             if (note.pinned) {
-                card.classList.add('pinned');
+                const pinBadge = document.createElement('div');
+                pinBadge.className = 'note-pin-badge';
+                pinBadge.textContent = '📌';
+                card.appendChild(pinBadge);
             }
             
-            card.querySelector('.note-title').textContent = note.title || translate('notes.addNote');
-            card.querySelector('.note-date').textContent = formatDateTime(note.updatedAt || note.createdAt);
-            card.querySelector('.note-body').textContent = note.body;
-
-            const colorIndicator = card.querySelector('.note-color-indicator');
-            if (colorIndicator) {
-                colorIndicator.classList.add(note.color || 'yellow');
-                colorIndicator.title = translate(`modals.note.color${(note.color || 'yellow')[0].toUpperCase()}${(note.color || 'yellow').slice(1)}`) || note.color;
-            }
-
-            const pinBtn = card.querySelector('.note-pin-btn');
-            if (pinBtn) {
-                pinBtn.title = note.pinned ? translate('notes.unpin') || 'Unpin' : translate('notes.pin') || 'Pin to top';
-                pinBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const existingNote = state.notes.find(n => n.id === note.id);
-                    if (existingNote) {
-                        existingNote.pinned = !existingNote.pinned;
-                        existingNote.updatedAt = Date.now();
-                        saveState();
-                        renderNotes();
-                        playFeedback();
-                    }
+            // Title
+            const title = document.createElement('h3');
+            title.className = 'note-title-v2';
+            title.textContent = note.title || (state.language === 'bn' ? 'শিরোনামহীন নোট' : 'Untitled Note');
+            
+            // Preview
+            const preview = document.createElement('p');
+            preview.className = 'note-preview-v2';
+            preview.textContent = note.body || '';
+            
+            // Footer
+            const footer = document.createElement('div');
+            footer.className = 'note-footer-v2';
+            
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'note-date-v2';
+            const noteDate = new Date(note.updatedAt || note.createdAt);
+            const today = new Date();
+            const isToday = noteDate.toDateString() === today.toDateString();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const isYesterday = noteDate.toDateString() === yesterday.toDateString();
+            
+            if (isToday) {
+                dateSpan.textContent = state.language === 'bn' ? 'আজ' : 'Today';
+            } else if (isYesterday) {
+                dateSpan.textContent = state.language === 'bn' ? 'গতকাল' : 'Yesterday';
+            } else {
+                dateSpan.textContent = noteDate.toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-US', {
+                    month: 'short',
+                    day: 'numeric'
                 });
             }
-
-            const tags = card.querySelector('.note-tags');
-            if (tags) {
-                tags.innerHTML = '';
-                if (note.pinned) {
-                    const tag = document.createElement('span');
-                    tag.className = 'note-tag';
-                    tag.innerHTML = '📌 ' + (translate('notes.filterPinned') || 'Pinned');
-                    tags.appendChild(tag);
+            
+            const actions = document.createElement('div');
+            actions.className = 'note-actions-v2';
+            
+            // Pin button
+            const pinBtn = document.createElement('button');
+            pinBtn.className = 'note-action-btn-v2';
+            pinBtn.innerHTML = note.pinned 
+                ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 17a2 2 0 0 0 2-2V9h3l-5-5-5 5h3v6a2 2 0 0 0 2 2z"/><line x1="12" y1="17" x2="12" y2="22"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17a2 2 0 0 0 2-2V9h3l-5-5-5 5h3v6a2 2 0 0 0 2 2z"/><line x1="12" y1="17" x2="12" y2="22"/></svg>';
+            pinBtn.title = note.pinned ? (state.language === 'bn' ? 'আনপিন' : 'Unpin') : (state.language === 'bn' ? 'পিন করুন' : 'Pin');
+            pinBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const existingNote = state.notes.find(n => n.id === note.id);
+                if (existingNote) {
+                    existingNote.pinned = !existingNote.pinned;
+                    existingNote.updatedAt = Date.now();
+                    saveState();
+                    renderNotes();
+                    playFeedback();
                 }
-                const colorTag = document.createElement('span');
-                colorTag.className = 'note-tag';
-                colorTag.textContent = translate(`modals.note.color${(note.color || 'yellow')[0].toUpperCase()}${(note.color || 'yellow').slice(1)}`) || note.color;
-                tags.appendChild(colorTag);
-            }
-
-            const editBtn = card.querySelector('[data-action="edit"]');
-            editBtn.addEventListener('click', () => {
+            });
+            
+            // Delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'note-action-btn-v2 delete';
+            deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
+            deleteBtn.title = state.language === 'bn' ? 'মুছে ফেলুন' : 'Delete';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(state.language === 'bn' ? 'এই নোটটি মুছে ফেলতে চান?' : 'Delete this note?')) {
+                    state.notes = state.notes.filter(n => n.id !== note.id);
+                    saveState();
+                    renderNotes();
+                    playFeedback();
+                }
+            });
+            
+            actions.appendChild(pinBtn);
+            actions.appendChild(deleteBtn);
+            
+            footer.appendChild(dateSpan);
+            footer.appendChild(actions);
+            
+            card.appendChild(title);
+            card.appendChild(preview);
+            card.appendChild(footer);
+            
+            // Click to edit
+            card.addEventListener('click', () => {
                 forms.note.reset();
                 setModalMode(forms.note, 'edit');
                 forms.note.elements.title.value = note.title;
@@ -2461,25 +3135,174 @@
                 forms.note.elements.noteId.value = note.id;
                 modals.note.showModal();
             });
-
-            const deleteBtn = card.querySelector('[data-action="delete"]');
-            deleteBtn.addEventListener('click', () => {
-                if (confirm(translate('notes.deleteConfirm') || 'Are you sure you want to delete this note?')) {
-                    state.notes = state.notes.filter(item => item.id !== note.id);
-                    saveState();
-                    renderNotes();
-                    playFeedback();
-                }
-            });
-
-            notesList.appendChild(fragment);
+            
+            notesList.appendChild(card);
         });
     }
 
     function renderTasks() {
-        renderCalendar();
-        updateTaskStats();
-        renderTaskCards();
+        renderTodoCategories();
+    }
+    
+    function renderTodoCategories() {
+        const categoriesGrid = document.getElementById('todo-categories-grid');
+        const categoriesEmpty = document.getElementById('categories-empty');
+        const detailView = document.getElementById('todo-detail-view');
+        const categoriesView = document.getElementById('todo-categories-view');
+
+        if (!categoriesGrid) return;
+
+        // Group tasks by category (using type as category for now)
+        const categories = {};
+        state.tasks.forEach(task => {
+            // Map old task types to new categories
+            let category = task.type || 'other';
+            if (['payment', 'delivery', 'purchase', 'meeting', 'reminder'].includes(category)) {
+                category = 'work'; // Map old types to work category
+            }
+            if (!categories[category]) {
+                categories[category] = {
+                    name: category,
+                    tasks: [],
+                    completed: 0
+                };
+            }
+            categories[category].tasks.push(task);
+            if (task.done) categories[category].completed++;
+        });
+        
+        // Add default categories if empty
+        const defaultCategories = ['work', 'personal', 'shopping', 'other'];
+        defaultCategories.forEach(cat => {
+            if (!categories[cat]) {
+                categories[cat] = {
+                    name: cat,
+                    tasks: [],
+                    completed: 0
+                };
+            }
+        });
+        
+        categoriesGrid.innerHTML = '';
+        
+        // Show empty state only if there are no tasks at all
+        if (state.tasks.length === 0) {
+            if (categoriesEmpty) categoriesEmpty.removeAttribute('hidden');
+            return;
+        }
+        
+        if (categoriesEmpty) categoriesEmpty.setAttribute('hidden', 'hidden');
+        
+        const categoryColors = {
+            work: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+            personal: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)',
+            shopping: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+            other: 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)'
+        };
+        
+        Object.values(categories).forEach(category => {
+            const card = document.createElement('div');
+            card.className = 'todo-category-card';
+            card.style.background = categoryColors[category.name] || categoryColors.other;
+            card.dataset.category = category.name;
+            
+            const nameEl = document.createElement('h3');
+            nameEl.className = 'todo-category-name';
+            nameEl.textContent = category.name.charAt(0).toUpperCase() + category.name.slice(1);
+            
+            const countEl = document.createElement('p');
+            countEl.className = 'todo-category-count';
+            countEl.textContent = `${category.completed} of ${category.tasks.length} Tasks`;
+            
+            const previewEl = document.createElement('div');
+            previewEl.className = 'todo-category-tasks-preview';
+            const previewTasks = category.tasks.slice(0, 3);
+            previewTasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.style.textDecoration = task.done ? 'line-through' : 'none';
+                taskItem.style.opacity = task.done ? '0.6' : '1';
+                taskItem.textContent = (task.done ? '✓ ' : '○ ') + task.name;
+                previewEl.appendChild(taskItem);
+            });
+            
+            card.appendChild(nameEl);
+            card.appendChild(countEl);
+            if (previewTasks.length > 0) {
+                card.appendChild(previewEl);
+            }
+            
+            card.addEventListener('click', () => {
+                if (categoriesView) categoriesView.hidden = true;
+                if (detailView) {
+                    detailView.hidden = false;
+                    renderTodoDetail(category.name);
+                }
+            });
+            
+            categoriesGrid.appendChild(card);
+        });
+    }
+    
+    function renderTodoDetail(categoryName) {
+        const tasksList = document.getElementById('todo-tasks-list');
+        const tasksEmpty = document.getElementById('todo-tasks-empty');
+        const categoryTitle = document.getElementById('todo-category-title');
+        const categoryCount = document.getElementById('todo-category-count');
+        
+        if (!tasksList) return;
+        
+        // Filter tasks by category, mapping old types to new categories
+        const categoryTasks = state.tasks.filter(t => {
+            let taskCategory = t.type || 'other';
+            // Map old task types to new categories
+            if (['payment', 'delivery', 'purchase', 'meeting', 'reminder'].includes(taskCategory)) {
+                taskCategory = 'work';
+            }
+            return taskCategory === categoryName;
+        });
+        const completed = categoryTasks.filter(t => t.done).length;
+        
+        if (categoryTitle) {
+            categoryTitle.textContent = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+        }
+        if (categoryCount) {
+            categoryCount.textContent = `${completed} of ${categoryTasks.length} Tasks`;
+        }
+        
+        tasksList.innerHTML = '';
+        
+        if (categoryTasks.length === 0) {
+            if (tasksEmpty) tasksEmpty.removeAttribute('hidden');
+            return;
+        }
+        
+        if (tasksEmpty) tasksEmpty.setAttribute('hidden', 'hidden');
+        
+        categoryTasks.forEach(task => {
+            const item = document.createElement('div');
+            item.className = 'todo-task-item';
+            if (task.done) item.classList.add('completed');
+            
+            const checkbox = document.createElement('div');
+            checkbox.className = 'todo-task-checkbox';
+            if (task.done) checkbox.classList.add('checked');
+            checkbox.innerHTML = task.done ? '✓' : '';
+            checkbox.addEventListener('click', () => {
+                task.done = !task.done;
+                saveState();
+                renderTasks();
+                renderTodoDetail(categoryName);
+                playFeedback();
+            });
+            
+            const text = document.createElement('div');
+            text.className = 'todo-task-text';
+            text.textContent = task.name;
+            
+            item.appendChild(checkbox);
+            item.appendChild(text);
+            tasksList.appendChild(item);
+        });
     }
     
     function updateTaskStats() {
@@ -2637,8 +3460,7 @@
         });
     }
 
-    function renderCalendar() {
-        const container = selectors.miniCalendar;
+    function renderCalendarToContainer(container) {
         if (!container) return;
         container.innerHTML = '';
 
@@ -2748,6 +3570,11 @@
 
             container.appendChild(button);
         }
+    }
+
+    function renderCalendar() {
+        renderCalendarToContainer(selectors.miniCalendar);
+        renderCalendarToContainer(selectors.tasksMiniCalendar);
     }
 
     function shiftCalendarMonth(offset) {
@@ -2881,11 +3708,17 @@
     }
 
     function getCustomerDueInfo(customer) {
-        const outstandingDebts = customer.debts.filter(debt => getDebtOutstanding(debt) > 0);
+        const outstandingDebts = (customer.debts || [])
+            .map(debt => normalizeDebtRecord(debt, customer))
+            .filter(debt => debt && getDebtOutstanding(debt) > 0);
         if (!outstandingDebts.length) {
             return { status: 'settled', nextDueDate: null };
         }
-        const nextDueDebt = outstandingDebts.reduce((earliest, current) => {
+        const withDueDate = outstandingDebts.filter(debt => debt.dueDate);
+        if (!withDueDate.length) {
+            return { status: 'onTrack', nextDueDate: null };
+        }
+        const nextDueDebt = withDueDate.reduce((earliest, current) => {
             if (!earliest) return current;
             return new Date(current.dueDate) < new Date(earliest.dueDate) ? current : earliest;
         }, null);
@@ -2901,6 +3734,30 @@
 
     function getDebtOutstanding(debt) {
         return roundMoney(Math.max(0, (debt.amount || 0) - (debt.paidAmount || 0)));
+    }
+
+    function getDebtStatus(debt) {
+        const outstanding = getDebtOutstanding(debt);
+        if (outstanding <= 0) return 'settled';
+        if (!debt.dueDate) return 'onTrack';
+        const daysLeft = daysUntil(debt.dueDate);
+        if (Number.isNaN(daysLeft)) return 'onTrack';
+        if (daysLeft < 0) return 'overdue';
+        if (daysLeft <= 2) return 'dueSoon';
+        return 'onTrack';
+    }
+
+    function formatDaysLeftText(daysLeft) {
+        if (state.language === 'bn') {
+            if (daysLeft === 0) return 'আজ';
+            if (daysLeft === 1) return '১ দিন বাকি';
+            if (daysLeft > 1) return `${daysLeft} দিন বাকি`;
+            return `${Math.abs(daysLeft)} দিন পেরিয়েছে`;
+        }
+        if (daysLeft === 0) return 'Today';
+        if (daysLeft === 1) return '1 day left';
+        if (daysLeft > 1) return `${daysLeft} days left`;
+        return `${Math.abs(daysLeft)} days overdue`;
     }
 
     function buildHistoryEntry(entry, customer) {
@@ -2922,8 +3779,9 @@
     }
 
     function applyLanguage(lang, options = {}) {
-        state.language = lang;
-        document.documentElement.lang = lang;
+        const nextLang = lang === 'bn' ? 'bn' : 'en';
+        state.language = nextLang;
+        document.documentElement.lang = nextLang;
         updateLanguageToggleLabel();
 
         document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -2943,8 +3801,10 @@
         });
 
         if (!options.initial) {
+            saveState();
             renderAll();
         }
+        updateLanguageButtons();
     }
 
     function translate(key) {
@@ -3004,6 +3864,7 @@
     }
 
     function handleNotificationToggle() {
+        playFeedback();
         if (!('Notification' in window)) return;
         if (Notification.permission === 'granted') {
             state.notificationsEnabled = !state.notificationsEnabled;
@@ -3320,6 +4181,132 @@
             showAuthOverlay();
         });
 
+        // Settings Menu Items
+        const showSettingsDetailedContent = () => {
+            const detailedContent = document.getElementById('settings-detailed-content');
+            const menuCards = document.querySelectorAll('.settings-menu-card');
+            if (detailedContent) {
+                detailedContent.hidden = false;
+                // Hide menu cards when showing detailed content
+                menuCards.forEach(card => card.style.display = 'none');
+                detailedContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Reinitialize language button handlers when settings panel is shown
+                setTimeout(() => {
+                    initLanguageButtons();
+                }, 100);
+            }
+            playFeedback();
+        };
+
+        document.getElementById('settings-language-item')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSettingsDetailedContent();
+            // Show language section, hide others
+            setTimeout(() => {
+                document.querySelectorAll('.settings-card').forEach(card => {
+                    card.style.display = card.id === 'settings-subscription-card' ? 'none' : 'block';
+                });
+            }, 100);
+        });
+
+        document.getElementById('settings-subscription-item')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSettingsDetailedContent();
+            // Show subscription section, hide others
+            setTimeout(() => {
+                document.querySelectorAll('.settings-card').forEach(card => {
+                    if (card.id === 'settings-subscription-card') {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                // Update premium status when shown
+                if (typeof updatePremiumStatus === 'function') {
+                    updatePremiumStatus();
+                }
+                if (typeof renderPremiumPlans === 'function') {
+                    renderPremiumPlans();
+                }
+            }, 100);
+        });
+
+        document.getElementById('settings-my-address-item')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSettingsDetailedContent();
+            // Show all sections except subscription
+            setTimeout(() => {
+                document.querySelectorAll('.settings-card').forEach(card => {
+                    card.style.display = card.id === 'settings-subscription-card' ? 'none' : 'block';
+                });
+            }, 100);
+        });
+
+        document.getElementById('settings-notifications-item')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            showSettingsDetailedContent();
+            // Show all sections except subscription
+            setTimeout(() => {
+                document.querySelectorAll('.settings-card').forEach(card => {
+                    card.style.display = card.id === 'settings-subscription-card' ? 'none' : 'block';
+                });
+            }, 100);
+        });
+
+        document.getElementById('settings-account-item')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            const detailedContent = document.getElementById('settings-detailed-content');
+            const menuCards = document.querySelectorAll('.settings-menu-card');
+            if (detailedContent) {
+                detailedContent.hidden = false;
+                // Hide menu cards when showing detailed content
+                menuCards.forEach(card => card.style.display = 'none');
+                detailedContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Show all sections except subscription
+                setTimeout(() => {
+                    document.querySelectorAll('.settings-card').forEach(card => {
+                        card.style.display = card.id === 'settings-subscription-card' ? 'none' : 'block';
+                    });
+                    initLanguageButtons();
+                }, 100);
+            }
+            playFeedback();
+        });
+
+        // Settings Back Button
+        document.getElementById('settings-back-btn')?.addEventListener('click', () => {
+            const detailedContent = document.getElementById('settings-detailed-content');
+            const menuCards = document.querySelectorAll('.settings-menu-card');
+            if (detailedContent) {
+                detailedContent.hidden = true;
+                // Show menu cards again
+                menuCards.forEach(card => card.style.display = '');
+                // Show all sections again
+                document.querySelectorAll('.settings-card').forEach(card => {
+                    card.style.display = card.id === 'settings-subscription-card' ? 'none' : 'block';
+                });
+                // Scroll back to top of settings
+                const settingsPanel = document.getElementById('panel-settings');
+                if (settingsPanel) {
+                    settingsPanel.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+            playFeedback();
+        });
+
+        // Todo List Navigation
+        document.getElementById('back-to-categories-btn')?.addEventListener('click', () => {
+            const categoriesView = document.getElementById('todo-categories-view');
+            const detailView = document.getElementById('todo-detail-view');
+            if (categoriesView && detailView) {
+                categoriesView.hidden = false;
+                detailView.hidden = true;
+            }
+            renderTasks();
+            playFeedback();
+        });
+        
+
         // Text Size
         document.querySelectorAll('.text-size-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -3338,10 +4325,10 @@
             openBillModal();
         });
 
-        // Bill search
-        document.getElementById('bill-search')?.addEventListener('input', () => {
+        // Bill search (debounced for perf)
+        document.getElementById('bill-search')?.addEventListener('input', debounce(() => {
             renderBills();
-        });
+        }, 150));
 
         // Bill filters
         document.querySelectorAll('.bill-filters .filter-btn').forEach(btn => {
@@ -3356,15 +4343,50 @@
         document.getElementById('apply-customize-btn')?.addEventListener('click', async () => {
             const bill = window.currentBillForCustomize;
             if (!bill) return;
-            const cardUrl = await generateBillCard(bill, getCustomizeSettings());
-            shareBillCard(cardUrl, bill);
-            modals.billCustomize?.close();
+            try {
+                const cardUrl = await generateBillCard(bill, getCustomizeSettings());
+                shareBillCard(cardUrl, bill);
+                modals.billCustomize?.close();
+            } catch (err) {
+                console.error('Bill PNG generation failed', err);
+                if (typeof alert !== 'undefined') alert(err?.message || 'Could not generate bill image. Please try again.');
+            }
         });
 
         document.getElementById('reset-customize-btn')?.addEventListener('click', () => {
             resetCustomizeSettings();
             if (window.currentBillForCustomize) {
                 updateBillPreview(window.currentBillForCustomize);
+            }
+        });
+
+        document.getElementById('preview-download-btn')?.addEventListener('click', async () => {
+            const bill = window.currentBillForCustomize;
+            if (!bill) {
+                if (typeof alert !== 'undefined') alert('Download requires a bill. Try opening a bill first.');
+                return;
+            }
+            try {
+                let dataUrl = null;
+                const container = document.getElementById('bill-card-preview');
+                const el = container?.querySelector('.bill-preview-card') || container?.firstElementChild;
+                if (el && typeof html2canvas !== 'undefined') {
+                    try {
+                        const canvas = await html2canvas(el, { useCORS: true, scale: 2, backgroundColor: null, logging: false });
+                        dataUrl = canvas.toDataURL('image/png');
+                    } catch (e) { /* fallback below */ }
+                }
+                if (!dataUrl) dataUrl = await generateBillCard(bill, getCustomizeSettings());
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = `bill-${bill.invoiceNumber || bill.id || 'preview'}.png`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (err) {
+                console.error('Preview download failed', err);
+                if (typeof alert !== 'undefined') alert(err?.message || 'Download failed. If using an external logo, try removing it.');
             }
         });
 
@@ -3440,6 +4462,7 @@
                 updateBillPreview(window.currentBillForCustomize);
             }
         });
+
 
         // AI Chat
         const aiInput = document.getElementById('ai-input');
@@ -3554,59 +4577,9 @@
         selectors.notesTabBtn?.addEventListener('click', () => switchNotesTab('notes'));
         selectors.tasksTabBtn?.addEventListener('click', () => switchNotesTab('tasks'));
 
-        // Subscription
-        selectors.activateProBtn?.addEventListener('click', () => activateSubscription('pro'));
-        selectors.activateMaxBtn?.addEventListener('click', () => activateSubscription('max'));
-        selectors.activateUltraBtn?.addEventListener('click', () => activateSubscription('ultra'));
-        
-        // Subscribe buttons - redirect to Facebook
-        document.getElementById('subscribe-pro-btn')?.addEventListener('click', () => handleSubscribe('pro'));
-        document.getElementById('subscribe-max-btn')?.addEventListener('click', () => handleSubscribe('max'));
-        document.getElementById('subscribe-ultra-btn')?.addEventListener('click', () => handleSubscribe('ultra'));
-        
-        // Coupon validation on input and redeem button handlers
-        ['pro', 'max', 'ultra'].forEach(plan => {
-            const couponInput = document.getElementById(`coupon-input-${plan}`);
-            const redeemBtn = document.getElementById(`redeem-coupon-${plan}`);
-            
-            if (redeemBtn) {
-                redeemBtn.addEventListener('click', () => {
-                    const value = couponInput?.value.trim() || '';
-                    if (!value) {
-                        showCouponFeedback(plan, false, translate('subscription.couponRequired') || 'Please enter a coupon code');
-                        playFeedback('error');
-                        return;
-                    }
-                    if (validateCoupon(plan, value)) {
-                        // Show success feedback immediately
-                        showCouponFeedback(plan, true);
-                        // Activate subscription
-                        activateSubscription(plan);
-                        // Show success message
-                        setTimeout(() => {
-                            alert(state.language === 'bn' 
-                                ? `সফলভাবে ${plan.toUpperCase()} প্ল্যান সক্রিয় করা হয়েছে!` 
-                                : `Successfully activated ${plan.toUpperCase()} plan!`);
-                        }, 100);
-                    } else {
-                        showCouponFeedback(plan, false, translate('subscription.invalidCoupon') || 'Invalid coupon code');
-                        playFeedback('error');
-                    }
-                });
-            }
-            
-            if (couponInput) {
-                couponInput.addEventListener('input', (e) => {
-                    const value = e.target.value.trim();
-                    if (value) {
-                        const isValid = validateCoupon(plan, value);
-                        showCouponFeedback(plan, isValid);
-                    } else {
-                        showCouponFeedback(plan, false, '');
-                    }
-                });
-            }
-        });
+        // Customers/Debts tabs
+        initDebtLedgerHandlers();
+
 
         // Logo management
         selectors.addLogoBtn?.addEventListener('click', () => {
@@ -3616,8 +4589,6 @@
         });
         forms.logo?.addEventListener('submit', handleLogoSubmit);
 
-        // Update subscription display
-        updateSubscriptionDisplay();
         renderLogoList();
 
         // Settings Handlers
@@ -3630,19 +4601,234 @@
                 openBillModal();
             });
         }
+
+        // Premium Plan Coupon Validation
+        initPremiumPlanHandlers();
+    }
+
+    // Premium Plan Coupon Validation
+    function initPremiumPlanHandlers() {
+        // Define valid coupon codes for each plan
+        const validCoupons = {
+            pro: ['TERENCEPROXOFCL', 'PRO2024', 'PRO50'],
+            max: ['TERENCEMAXO', 'MAX2024', 'MAX50'],
+            ultra: ['TERENCEULTRAOFCL'],
+            online: ['TERENCEONOX']
+        };
+
+        // Function to validate and activate a plan
+        function validateAndActivatePlan(plan) {
+            playFeedback();
+            const couponInput = document.getElementById(`premium-coupon-${plan}`);
+            const feedbackEl = document.getElementById(`premium-feedback-${plan}`);
+            const activateBtn = document.getElementById(`premium-activate-${plan}`);
+            
+            if (!couponInput || !feedbackEl || !activateBtn) return;
+
+            const couponCode = couponInput.value.trim().toUpperCase();
+            const validCodes = validCoupons[plan] || [];
+
+            // Clear previous feedback
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'premium-coupon-feedback';
+
+            // Check if coupon is valid
+            if (!couponCode) {
+                feedbackEl.textContent = state.language === 'bn' 
+                    ? 'কুপন কোড লিখুন' 
+                    : 'Please enter a coupon code';
+                feedbackEl.classList.add('error');
+                return false;
+            }
+
+            if (!validCodes.includes(couponCode)) {
+                feedbackEl.textContent = state.language === 'bn' 
+                    ? 'অবৈধ কুপন কোড' 
+                    : 'Invalid coupon code';
+                feedbackEl.classList.add('error');
+                return false;
+            }
+
+            // Valid coupon - activate plan
+            const now = Date.now();
+            let expiresAt = null;
+
+            // Calculate expiration based on plan
+            if (plan === 'pro') {
+                // Pro: 1 month
+                expiresAt = now + (30 * 24 * 60 * 60 * 1000);
+            } else {
+                // Max, Ultra, Online: 1 year
+                expiresAt = now + (365 * 24 * 60 * 60 * 1000);
+            }
+
+            // Update subscription state
+            state.subscription = {
+                plan: plan,
+                activatedAt: now,
+                expiresAt: expiresAt
+            };
+            saveState();
+
+            // Show success message
+            feedbackEl.textContent = state.language === 'bn' 
+                ? 'প্ল্যান সক্রিয় হয়েছে!' 
+                : 'Plan activated successfully!';
+            feedbackEl.classList.add('success');
+
+            // Clear coupon input
+            couponInput.value = '';
+            
+            // Update UI
+            updatePremiumStatus();
+            renderPremiumPlans();
+            ensureAIChatAccessible();
+
+            playFeedbackStrong();
+            return true;
+        }
+
+        // Attach event listeners to all activate buttons
+        ['pro', 'max', 'ultra', 'online'].forEach(plan => {
+            const activateBtn = document.getElementById(`premium-activate-${plan}`);
+            if (activateBtn) {
+                activateBtn.addEventListener('click', () => {
+                    validateAndActivatePlan(plan);
+                });
+            }
+
+            // Allow Enter key to activate
+            const couponInput = document.getElementById(`premium-coupon-${plan}`);
+            if (couponInput) {
+                couponInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        validateAndActivatePlan(plan);
+                    }
+                });
+            }
+        });
+
+        // Update premium status display
+        updatePremiumStatus();
+        renderPremiumPlans();
+
+        // Plan carousel: 1 plan at a time
+        initPremiumCarousel();
+
+        // Haptic on Buy link
+        document.querySelector('.premium-buy-button')?.addEventListener('click', () => playFeedback());
+        
+        // Ensure AI chat is always accessible (no restrictions for free version)
+        ensureAIChatAccessible();
+    }
+
+    function initPremiumCarousel() {
+        const track = document.getElementById('plan-carousel-track');
+        const prev = document.getElementById('plan-carousel-prev');
+        const next = document.getElementById('plan-carousel-next');
+        const dots = document.querySelectorAll('.plan-carousel-dot');
+        if (!track || !prev || !next) return;
+
+        let idx = 0;
+        const total = 4;
+
+        function go(i) {
+            idx = Math.max(0, Math.min(total - 1, i));
+            track.style.transform = `translateX(-${idx * 100}%)`;
+            dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+            playFeedback();
+        }
+
+        prev.addEventListener('click', () => { go(idx - 1); });
+        next.addEventListener('click', () => { go(idx + 1); });
+        dots.forEach(d => d.addEventListener('click', () => { go(parseInt(d.dataset.index, 10)); }));
+    }
+    
+    function ensureAIChatAccessible() {
+        const plan = getActivePlan();
+        const aiSubscriptionMessage = document.getElementById('ai-subscription-message');
+        const aiChatContainer = document.getElementById('ai-chat-container');
+        if (plan === 'ultra') {
+            if (aiSubscriptionMessage) aiSubscriptionMessage.setAttribute('hidden', 'hidden');
+            if (aiChatContainer) aiChatContainer.style.display = 'flex';
+        } else {
+            if (aiSubscriptionMessage) aiSubscriptionMessage.removeAttribute('hidden');
+            if (aiChatContainer) aiChatContainer.style.display = 'none';
+        }
+    }
+
+    function updatePremiumStatus() {
+        const currentPlanEl = document.getElementById('premium-current-plan');
+        const expiryEl = document.getElementById('premium-expiry');
+        
+        if (!currentPlanEl) return;
+
+        const subscription = state.subscription || { plan: 'free' };
+        const now = Date.now();
+
+        // Check if subscription is expired
+        if (subscription.expiresAt && now > subscription.expiresAt) {
+            subscription.plan = 'free';
+            subscription.activatedAt = null;
+            subscription.expiresAt = null;
+            saveState();
+        }
+
+        const planNames = {
+            free: state.language === 'bn' ? 'ফ্রি' : 'Free',
+            pro: 'PRO',
+            max: 'MAX',
+            ultra: 'ULTRA',
+            online: 'ONLINE'
+        };
+
+        currentPlanEl.textContent = planNames[subscription.plan] || planNames.free;
+
+        // Show expiry date if active subscription
+        if (expiryEl && subscription.expiresAt && subscription.plan !== 'free') {
+            const expiryDate = new Date(subscription.expiresAt);
+            const expiryText = state.language === 'bn' 
+                ? `মেয়াদ শেষ: ${expiryDate.toLocaleDateString('bn-BD')}`
+                : `Expires: ${expiryDate.toLocaleDateString('en-US')}`;
+            expiryEl.textContent = expiryText;
+            expiryEl.style.display = 'block';
+        } else if (expiryEl) {
+            expiryEl.style.display = 'none';
+        }
+        
+        // Ensure AI chat is always accessible regardless of subscription
+        ensureAIChatAccessible();
+        
+        // Update dock premium button visibility
+        updateDockPremiumVisibility();
+        
+        // Update premium panel status if shown
+        updatePremiumPanelStatus();
+
+        // Refresh DebtX plan branding (header + settings)
+        applyPlanBranding();
+    }
+
+    function renderPremiumPlans() {
+        const subscription = state.subscription || { plan: 'free' };
+        const now = Date.now();
+        const isExpired = subscription.expiresAt && now > subscription.expiresAt;
+        const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
+
+        // Update active state on plan cards
+        document.querySelectorAll('.premium-plan-card').forEach(card => {
+            const planType = card.dataset.plan;
+            if (planType === activePlan && activePlan !== 'free') {
+                card.classList.add('is-active');
+            } else {
+                card.classList.remove('is-active');
+            }
+        });
     }
 
     function initSettingsHandlers() {
-        // Language switching
-        document.querySelectorAll('.language-option-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const lang = btn.dataset.lang;
-                applyLanguage(lang);
-                saveState();
-                updateLanguageButtons();
-                playFeedback();
-            });
-        });
+        // Language switching - handled in initSettingsHandlers2 to avoid duplicate listeners
+        // This function is kept for other settings handlers
 
         // Shop Profile handlers
         const shopNameInput = document.getElementById('settings-shop-name-input');
@@ -3735,30 +4921,21 @@
             });
         });
 
-        // Theme export/import for premium users
+        // Theme export/import
         const exportThemeBtn = document.getElementById('export-theme-btn');
         const importThemeInput = document.getElementById('import-theme-input');
         const themeExportSection = document.getElementById('theme-export-section');
 
-        // Show theme export section for premium users
+        // Show theme export section for all users
         if (themeExportSection) {
-            const hasPremium = state.subscription.plan !== 'free';
-            themeExportSection.style.display = hasPremium ? 'block' : 'none';
+            themeExportSection.style.display = 'block';
         }
 
         exportThemeBtn?.addEventListener('click', () => {
-            if (state.subscription.plan === 'free') {
-                alert(translate('settings.premiumRequired') || 'Premium subscription required');
-                return;
-            }
             exportTheme();
         });
 
         importThemeInput?.addEventListener('change', (e) => {
-            if (state.subscription.plan === 'free') {
-                alert(translate('settings.premiumRequired') || 'Premium subscription required');
-                return;
-            }
             const file = e.target.files?.[0];
             if (file) {
                 importTheme(file);
@@ -3772,42 +4949,14 @@
             }, 100);
         });
 
-        // Subscription buttons - check for coupon code first
-        document.querySelectorAll('.plan-subscribe-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const plan = btn.dataset.plan;
-                handleSubscribe(plan);
-            });
-        });
-
-        // Coupon inputs
-        ['pro', 'max'].forEach(plan => {
-            const couponInput = document.getElementById(`coupon-input-${plan}`);
-            const couponFeedback = document.getElementById(`coupon-feedback-${plan}`);
-            
-            if (couponInput) {
-                couponInput.addEventListener('input', (e) => {
-                    const value = e.target.value.trim();
-                    if (value) {
-                        const isValid = validateCoupon(plan, value);
-                        showCouponFeedback(plan, isValid, couponFeedback);
-                    } else {
-                        if (couponFeedback) {
-                            couponFeedback.textContent = '';
-                            couponFeedback.className = 'coupon-feedback';
-                        }
-                    }
-                });
-            }
-        });
-
         // Initialize settings display
         updateSettingsDisplay();
         
         // Call additional settings handlers
         initSettingsHandlers2();
+        
+        // Also initialize language buttons in case settings panel is already visible
+        initLanguageButtons();
     }
 
     function updateLanguageButtons() {
@@ -3822,6 +4971,12 @@
             const size = parseInt(btn.dataset.size);
             btn.classList.toggle('active', size === currentSize);
         });
+    }
+
+    function updateDockScaleDisplay() {
+        if (!selectors.dockSizeValue) return;
+        const value = Math.round((state.ui.dockScale || 1) * 100);
+        selectors.dockSizeValue.textContent = `${value}%`;
     }
 
     function updateSettingsDisplay() {
@@ -3857,12 +5012,18 @@
         // Update text size buttons
         updateTextSizeButtons();
 
+        // Update dock custom slider
+        if (selectors.dockSizeInput) {
+            const dockScale = Math.max(0.2, Math.min(1.0, Number(state.ui.dockScale) || 1));
+            selectors.dockSizeInput.value = dockScale;
+            applyDockScale(dockScale);
+        }
+        updateDockScaleDisplay();
+
         // Update shop logo and photo previews
         updateShopLogoPreview();
         updateMyPhotoPreview();
 
-        // Update subscription display
-        updateSubscriptionDisplay();
 
         // Update monthly wrap
         updateMonthlyWrapPreview();
@@ -3958,61 +5119,6 @@
             reader.onerror = reject;
             reader.readAsDataURL(file);
         });
-    }
-
-    function showCouponFeedback(plan, isValid, feedbackEl) {
-        if (!feedbackEl) {
-            feedbackEl = document.getElementById(`coupon-feedback-${plan}`);
-        }
-        if (!feedbackEl) return;
-
-        if (isValid) {
-            feedbackEl.textContent = translate('settings.couponValid') || 'Coupon valid!';
-            feedbackEl.className = 'coupon-feedback success';
-        } else if (feedbackEl.textContent) {
-            feedbackEl.textContent = translate('settings.couponInvalid') || 'Invalid coupon';
-            feedbackEl.className = 'coupon-feedback error';
-        } else {
-            feedbackEl.textContent = '';
-            feedbackEl.className = 'coupon-feedback';
-        }
-    }
-
-    function validateCoupon(plan, code) {
-        // Simple validation - in production, this would check against a server
-        // You can add specific coupon codes here
-        const validCoupons = {
-            pro: ['TERENCEPROXOFCL', 'PRO2024', 'PRO50'],
-            max: ['TERENCEMAXO', 'MAX2024', 'MAX50'],
-            ultra: ['TERENCEULTRAOFCL']
-        };
-        
-        return validCoupons[plan]?.includes(code.toUpperCase()) || false;
-    }
-
-    function handleSubscribe(plan) {
-        // Redirect to Facebook page
-        const facebookUrl = 'https://www.facebook.com/profile.php?id=61560074175677';
-        window.open(facebookUrl, '_blank');
-    }
-
-    function updateSubscriptionDisplay() {
-        const currentPlanEl = document.getElementById('current-plan-display');
-        if (currentPlanEl) {
-            const planNames = {
-                free: translate('subscription.free') || 'Free',
-                pro: translate('subscription.pro') || 'Pro',
-                max: translate('subscription.max') || 'Max',
-                ultra: translate('subscription.ultra') || 'Ultra Pro'
-            };
-            currentPlanEl.textContent = planNames[state.subscription.plan] || 'Free';
-        }
-
-        // Show/hide theme export section based on subscription
-        const themeExportSection = document.getElementById('theme-export-section');
-        if (themeExportSection) {
-            themeExportSection.style.display = canImportExport() ? 'block' : 'none';
-        }
     }
 
     function exportTheme() {
@@ -4127,12 +5233,22 @@
         if (shopOwnerEl) shopOwnerEl.textContent = state.shop?.ownerName || '—';
     }
 
-    function initSettingsHandlers2() {
-        // Language switching - Using buttons
+    // Separate function for language buttons initialization
+    function initLanguageButtons() {
+        // Remove old listeners by cloning elements
         document.querySelectorAll('.language-option-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const lang = btn.dataset.lang;
+            const newBtn = btn.cloneNode(true);
+            if (btn.parentNode) {
+                btn.parentNode.replaceChild(newBtn, btn);
+            }
+            
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const lang = newBtn.dataset.lang;
+                console.log('Language button clicked:', lang, 'Current:', state.language);
                 if (lang) {
+                    console.log('Switching language to:', lang);
                     applyLanguage(lang);
                     saveState();
                     updateLanguageButtons();
@@ -4140,6 +5256,11 @@
                 }
             });
         });
+    }
+
+    function initSettingsHandlers2() {
+        // Language switching - Using buttons
+        initLanguageButtons();
 
         // Text size buttons
         document.querySelectorAll('.text-size-btn').forEach(btn => {
@@ -4155,6 +5276,44 @@
                 }
             });
         });
+
+        // Dock size custom slider (no presets, just custom slider)
+
+        // Dock size custom slider (range: 0.2 to 1.0 - really small to normal)
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4732',message:'Dock slider initialization check',data:{dockSizeInputFound:!!selectors.dockSizeInput,currentScale:state.ui.dockScale},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
+        if (selectors.dockSizeInput) {
+            console.log('Dock custom slider found, initializing...');
+            const currentScale = Math.max(0.2, Math.min(1.0, state.ui.dockScale || 1));
+            selectors.dockSizeInput.value = currentScale;
+            applyDockScale(currentScale);
+            updateDockScaleDisplay();
+            
+            // Add event listener (don't clone, just add if not already added)
+            if (!selectors.dockSizeInput.hasAttribute('data-listener-attached')) {
+                selectors.dockSizeInput.setAttribute('data-listener-attached', 'true');
+                selectors.dockSizeInput.addEventListener('input', (event) => {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4742',message:'Dock slider value changed',data:{newValue:event.target.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+                    // #endregion
+                    console.log('Dock size changed:', event.target.value);
+                    const value = applyDockScale(event.target.value);
+                    // #region agent log
+                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4745',message:'Dock scale applied',data:{appliedValue:value,cssVar:getComputedStyle(document.documentElement).getPropertyValue('--dock-scale')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+                    // #endregion
+                    console.log('Applied dock scale:', value);
+                    state.ui.dockScale = value;
+                    updateDockScaleDisplay();
+                    saveState();
+                });
+            }
+        } else {
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4752',message:'Dock slider NOT FOUND',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+            // #endregion
+            console.log('Dock custom slider NOT found');
+        }
 
         // Shop name input
         const shopNameInput = document.getElementById('settings-shop-name-input');
@@ -4282,17 +5441,308 @@
             });
         }
 
-        // Subscription chat
-        const subscriptionChatInput = document.getElementById('subscription-chat-input');
-        const subscriptionChatSendBtn = document.getElementById('subscription-chat-send-btn');
-        if (subscriptionChatSendBtn) {
-            subscriptionChatSendBtn.addEventListener('click', handleSubscriptionChat);
+        // New Settings UI Handlers
+        initNewSettingsUI();
+    }
+    
+    function initNewSettingsUI() {
+        // Language toggle buttons (new UI)
+        document.querySelectorAll('.lang-btn-new').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lang = btn.dataset.lang;
+                if (lang) {
+                    state.language = lang;
+                    applyLanguage(lang);
+                    document.querySelectorAll('.lang-btn-new').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    saveState();
+                    playFeedback();
+                }
+            });
+        });
+        
+        // Text size buttons (new UI)
+        document.querySelectorAll('.size-btn-new').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const size = parseInt(btn.dataset.size);
+                if (size >= 1 && size <= 5) {
+                    state.ui.textSize = size;
+                    applyTextSize(size);
+                    document.querySelectorAll('.size-btn-new').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    saveState();
+                    playFeedback();
+                }
+            });
+        });
+        
+        // Theme tiles (new UI)
+        document.querySelectorAll('.theme-tile-new').forEach(tile => {
+            tile.addEventListener('click', () => {
+                const theme = tile.dataset.theme;
+                if (theme) {
+                    state.ui.theme = theme;
+                    applyTheme(theme);
+                    document.querySelectorAll('.theme-tile-new').forEach(t => t.setAttribute('aria-checked', 'false'));
+                    tile.setAttribute('aria-checked', 'true');
+                    // Also update old theme grid if exists
+                    document.querySelectorAll('.theme-appearance-tile').forEach(t => {
+                        t.setAttribute('aria-checked', t.dataset.theme === theme ? 'true' : 'false');
+                    });
+                    saveState();
+                    playFeedback();
+                }
+            });
+        });
+        
+        // Avatar upload click
+        const avatarUpload = document.querySelector('.avatar-upload-new');
+        const shopLogoInputNew = document.getElementById('settings-shop-logo-input');
+        if (avatarUpload && shopLogoInputNew) {
+            avatarUpload.addEventListener('click', () => shopLogoInputNew.click());
         }
-        if (subscriptionChatInput) {
-            subscriptionChatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') handleSubscriptionChat();
+        
+        // Cancel Subscription button
+        const cancelSubBtn = document.getElementById('cancel-subscription-btn');
+        if (cancelSubBtn) {
+            cancelSubBtn.addEventListener('click', () => {
+                const subscription = state.subscription || { plan: 'free' };
+                if (subscription.plan === 'free') {
+                    alert(state.language === 'bn' 
+                        ? 'আপনি ইতিমধ্যে ফ্রি প্ল্যানে আছেন।' 
+                        : 'You are already on the free plan.');
+                    return;
+                }
+                
+                const confirmMsg = state.language === 'bn'
+                    ? `আপনি কি ${subscription.plan.toUpperCase()} সাবস্ক্রিপশন বাতিল করতে চান? এটি আপনাকে ফ্রি প্ল্যানে ফিরিয়ে দেবে।`
+                    : `Cancel your ${subscription.plan.toUpperCase()} subscription? This will return you to the free plan.`;
+                
+                if (confirm(confirmMsg)) {
+                    state.subscription = {
+                        plan: 'free',
+                        activatedAt: null,
+                        expiresAt: null,
+                        couponUsed: null
+                    };
+                    saveState();
+                    updatePremiumStatus();
+                    updateDockPremiumVisibility();
+                    updatePremiumPanelStatus();
+                    
+                    alert(state.language === 'bn' 
+                        ? 'সাবস্ক্রিপশন সফলভাবে বাতিল হয়েছে।' 
+                        : 'Subscription cancelled successfully.');
+                    playFeedback();
+                }
             });
         }
+        
+        // Initialize dock premium visibility
+        updateDockPremiumVisibility();
+        
+        // Update new settings UI elements
+        updateNewSettingsUI();
+        
+        // Initialize new Todo UI
+        initNewTodoUI();
+    }
+    
+    // New Todo UI Initialization
+    function initNewTodoUI() {
+        // Quick add task
+        const quickInput = document.getElementById('quick-task-input');
+        const quickCategory = document.getElementById('quick-task-category');
+        const quickAddBtn = document.getElementById('quick-add-task-btn');
+        
+        if (quickAddBtn && quickInput) {
+            quickAddBtn.addEventListener('click', () => {
+                addQuickTask();
+            });
+            
+            quickInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addQuickTask();
+                }
+            });
+        }
+        
+        function addQuickTask() {
+            const taskName = quickInput?.value.trim();
+            const category = quickCategory?.value || 'personal';
+            
+            if (!taskName) return;
+            
+            const newTask = {
+                id: generateId('task'),
+                name: taskName,
+                type: category,
+                done: false,
+                createdAt: Date.now(),
+                date: new Date().toISOString().split('T')[0]
+            };
+            
+            state.tasks.push(newTask);
+            saveState();
+            renderTasks();
+            renderNewTodoList();
+            updateTodoStats();
+            
+            if (quickInput) quickInput.value = '';
+            playFeedback();
+        }
+        
+        // Category tab filtering
+        document.querySelectorAll('.todo-tab-new').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.todo-tab-new').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderNewTodoList(tab.dataset.category);
+            });
+        });
+        
+        // Initial render
+        renderNewTodoList();
+        updateTodoStats();
+    }
+    
+    // Render new todo list
+    function renderNewTodoList(filterCategory = 'all') {
+        const listContainer = document.getElementById('todo-list-new');
+        const emptyState = document.getElementById('todo-empty-new');
+        
+        if (!listContainer) return;
+        
+        let tasks = [...(state.tasks || [])];
+        
+        // Filter by category
+        if (filterCategory !== 'all') {
+            tasks = tasks.filter(task => {
+                const taskCategory = task.type || 'other';
+                return taskCategory === filterCategory;
+            });
+        }
+        
+        // Sort: incomplete first, then by date
+        tasks.sort((a, b) => {
+            if (a.done !== b.done) return a.done ? 1 : -1;
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+        
+        listContainer.innerHTML = '';
+        
+        if (tasks.length === 0) {
+            if (emptyState) emptyState.removeAttribute('hidden');
+            return;
+        }
+        
+        if (emptyState) emptyState.setAttribute('hidden', 'hidden');
+        
+        const categoryEmojis = {
+            personal: '👤',
+            work: '💼',
+            shopping: '🛒',
+            health: '💪',
+            other: '📌'
+        };
+        
+        tasks.forEach(task => {
+            const item = document.createElement('div');
+            item.className = `todo-item-new${task.done ? ' completed' : ''}`;
+            item.dataset.taskId = task.id;
+            
+            const checkbox = document.createElement('div');
+            checkbox.className = `todo-checkbox-new${task.done ? ' checked' : ''}`;
+            checkbox.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
+            checkbox.addEventListener('click', () => toggleTaskComplete(task.id));
+            
+            const content = document.createElement('div');
+            content.className = 'todo-content-new';
+            
+            const text = document.createElement('div');
+            text.className = 'todo-text-new';
+            text.textContent = task.name;
+            
+            const meta = document.createElement('div');
+            meta.className = 'todo-meta-new';
+            
+            const categoryBadge = document.createElement('span');
+            categoryBadge.className = 'todo-category-badge';
+            const emoji = categoryEmojis[task.type] || categoryEmojis.other;
+            categoryBadge.textContent = `${emoji} ${(task.type || 'other').charAt(0).toUpperCase() + (task.type || 'other').slice(1)}`;
+            
+            const dateBadge = document.createElement('span');
+            dateBadge.className = 'todo-date-badge';
+            dateBadge.textContent = task.date ? new Date(task.date).toLocaleDateString() : '';
+            
+            meta.appendChild(categoryBadge);
+            if (task.date) meta.appendChild(dateBadge);
+            
+            content.appendChild(text);
+            content.appendChild(meta);
+            
+            const actions = document.createElement('div');
+            actions.className = 'todo-actions-new';
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'todo-action-btn delete';
+            deleteBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
+            deleteBtn.addEventListener('click', () => deleteTask(task.id));
+            
+            actions.appendChild(deleteBtn);
+            
+            item.appendChild(checkbox);
+            item.appendChild(content);
+            item.appendChild(actions);
+            
+            listContainer.appendChild(item);
+        });
+    }
+    
+    function toggleTaskComplete(taskId) {
+        const task = state.tasks.find(t => t.id === taskId);
+        if (task) {
+            task.done = !task.done;
+            task.updatedAt = Date.now();
+            saveState();
+            renderTasks();
+            renderNewTodoList(getCurrentTodoCategory());
+            updateTodoStats();
+            playFeedback();
+        }
+    }
+    
+    function deleteTask(taskId) {
+        const confirmMsg = state.language === 'bn' ? 'এই কাজটি মুছে ফেলতে চান?' : 'Delete this task?';
+        if (confirm(confirmMsg)) {
+            state.tasks = state.tasks.filter(t => t.id !== taskId);
+            saveState();
+            renderTasks();
+            renderNewTodoList(getCurrentTodoCategory());
+            updateTodoStats();
+            playFeedback();
+        }
+    }
+    
+    function getCurrentTodoCategory() {
+        const activeTab = document.querySelector('.todo-tab-new.active');
+        return activeTab?.dataset.category || 'all';
+    }
+    
+    function updateTodoStats() {
+        const totalEl = document.getElementById('total-tasks-count');
+        const completedEl = document.getElementById('completed-tasks-count');
+        const progressBar = document.getElementById('tasks-progress-bar');
+        const progressPercent = document.getElementById('tasks-progress-percent');
+        
+        const total = state.tasks?.length || 0;
+        const completed = state.tasks?.filter(t => t.done).length || 0;
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        if (totalEl) totalEl.textContent = total;
+        if (completedEl) completedEl.textContent = completed;
+        if (progressBar) progressBar.style.width = `${percent}%`;
+        if (progressPercent) progressPercent.textContent = `${percent}%`;
     }
 
     function updateSettingsFields() {
@@ -4382,81 +5832,6 @@
         if (customersEl) customersEl.textContent = totalCustomers;
     }
 
-    function handleSubscriptionChat() {
-        const input = document.getElementById('subscription-chat-input');
-        const messagesContainer = document.getElementById('subscription-chat-messages');
-        if (!input || !messagesContainer) return;
-
-        const message = input.value.trim();
-        if (!message) return;
-
-        // Add user message
-        const userMessage = document.createElement('div');
-        userMessage.className = 'subscription-chat-message subscription-chat-user';
-        userMessage.innerHTML = `
-            <div class="subscription-chat-avatar">👤</div>
-            <div class="subscription-chat-content">
-                <p>${escapeHtml(message)}</p>
-            </div>
-        `;
-        messagesContainer.appendChild(userMessage);
-
-        // Clear input
-        input.value = '';
-
-        // Scroll to bottom
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-        // Generate response
-        setTimeout(() => {
-            const response = generateSubscriptionChatResponse(message);
-            const assistantMessage = document.createElement('div');
-            assistantMessage.className = 'subscription-chat-message subscription-chat-assistant';
-            assistantMessage.innerHTML = `
-                <div class="subscription-chat-avatar">💬</div>
-                <div class="subscription-chat-content">
-                    <p>${response}</p>
-                </div>
-            `;
-            messagesContainer.appendChild(assistantMessage);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }, 500);
-    }
-
-    function generateSubscriptionChatResponse(message) {
-        const lowerMessage = message.toLowerCase();
-        const lang = state.language === 'bn' ? 'bn' : 'en';
-
-        if (lowerMessage.includes('pro') || lowerMessage.includes('প্রো')) {
-            return lang === 'bn' 
-                ? 'প্রো প্ল্যান ৩৫ ৳/মাসে। সীমাহীন ক্রেতা, এআই সহায়ক, এবং ডেটা ইমপোর্ট/এক্সপোর্ট সুবিধা পাবেন।'
-                : 'Pro plan is 35 ৳/month. You get unlimited customers, AI Assistant, and data import/export features.';
-        } else if (lowerMessage.includes('max') || lowerMessage.includes('ম্যাক্স')) {
-            return lang === 'bn'
-                ? 'ম্যাক্স প্ল্যান ২৮০ ৳/বছরে। সব প্রো ফিচার, ১ বছর অ্যাক্সেস, এবং অগ্রাধিকার সহায়তা পাবেন।'
-                : 'Max plan is 280 ৳/year. You get all Pro features, 1 year access, and priority support.';
-        } else if (lowerMessage.includes('ultra') || lowerMessage.includes('আল্ট্রা')) {
-            return lang === 'bn'
-                ? 'আল্ট্রা প্ল্যান ৫০০ ৳/বছরে। সব ম্যাক্স ফিচার, প্রিমিয়াম ফিচার, এবং বর্ধিত সহায়তা পাবেন।'
-                : 'Ultra plan is 500 ৳/year. You get all Max features, premium features, and extended support.';
-        } else if (lowerMessage.includes('price') || lowerMessage.includes('কত') || lowerMessage.includes('দাম')) {
-            return lang === 'bn'
-                ? 'প্রো: ৩৫ ৳/মাস, ম্যাক্স: ২৮০ ৳/বছর, আল্ট্রা: ৫০০ ৳/বছর। কুপন কোড দিয়ে সক্রিয় করতে পারেন।'
-                : 'Pro: 35 ৳/month, Max: 280 ৳/year, Ultra: 500 ৳/year. You can activate with a coupon code.';
-        } else if (lowerMessage.includes('coupon') || lowerMessage.includes('কুপন')) {
-            return lang === 'bn'
-                ? 'কুপন কোড দিয়ে প্ল্যান সক্রিয় করতে পারেন। কুপন কিনতে আমাদের Facebook পেজে যান।'
-                : 'You can activate plans with coupon codes. Visit our Facebook page to buy coupons.';
-        } else if (lowerMessage.includes('feature') || lowerMessage.includes('সুবিধা')) {
-            return lang === 'bn'
-                ? 'প্রো: সীমাহীন ক্রেতা, এআই সহায়ক, ডেটা ইমপোর্ট/এক্সপোর্ট। ম্যাক্স: সব প্রো + ১ বছর + অগ্রাধিকার সহায়তা। আল্ট্রা: সব ম্যাক্স + প্রিমিয়াম ফিচার।'
-                : 'Pro: Unlimited customers, AI Assistant, data import/export. Max: All Pro + 1 year + priority support. Ultra: All Max + premium features.';
-        } else {
-            return lang === 'bn'
-                ? 'আমি আপনাকে সাবস্ক্রিপশন প্ল্যান সম্পর্কে সাহায্য করতে পারি। প্রো, ম্যাক্স, বা আল্ট্রা প্ল্যান সম্পর্কে জানতে চান?'
-                : 'I can help you with subscription plans. Would you like to know about Pro, Max, or Ultra plans?';
-        }
-    }
 
     function showAuthOverlay() {
         const overlay = document.getElementById('auth-overlay');
@@ -4969,7 +6344,12 @@
             y = drawText(statusText, leftMargin, y, contentWidth, baseFontSize, statusColor, 'left', false);
         }
 
-        return canvas.toDataURL('image/png', 1.0);
+        try {
+            return canvas.toDataURL('image/png', 1.0);
+        } catch (e) {
+            console.warn('Canvas toDataURL failed (e.g. tainted by cross-origin image).', e);
+            throw new Error('Could not generate PNG. If using a logo from another website, try removing it.');
+        }
     }
 
     function loadImage(url) {
@@ -5128,18 +6508,36 @@
     }
 
     async function shareBillCard(dataUrl, bill) {
+        if (!dataUrl || typeof dataUrl !== 'string') return;
         try {
             if (navigator.share) {
                 const file = await dataUrlToFile(dataUrl, `bill-${bill.invoiceNumber || bill.id}.png`);
                 await navigator.share({ files: [file], text: `Bill for ${bill.customerName} - ${formatCurrency(bill.total)}` });
             } else {
+                const file = await dataUrlToFile(dataUrl, `bill-${bill.invoiceNumber || bill.id}.png`);
+                const url = URL.createObjectURL(file);
                 const link = document.createElement('a');
-                link.href = dataUrl;
+                link.href = url;
                 link.download = `bill-${bill.invoiceNumber || bill.id}.png`;
+                link.style.display = 'none';
+                document.body.appendChild(link);
                 link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
             }
         } catch (error) {
             console.error('Share failed', error);
+            try {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `bill-${bill.invoiceNumber || bill.id}.png`;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (e2) {
+                if (typeof alert !== 'undefined') alert('Download failed. Please try again.');
+            }
         }
     }
 
@@ -5308,6 +6706,23 @@
                         </svg>
                         <span>${translate('bills.view')}</span>
                     </button>
+                    <button class="bill-action-btn secondary" data-action="make-invoice" title="${translate('bills.makeInvoice')}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        <span>${translate('bills.makeInvoice')}</span>
+                    </button>
+                    <button class="bill-action-btn secondary" data-action="download-png" title="${translate('bills.downloadPng')}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>${translate('bills.downloadPng')}</span>
+                    </button>
                     <button class="bill-action-btn primary" data-action="share" title="${translate('bills.share')}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="18" cy="5" r="3"></circle>
@@ -5338,10 +6753,37 @@
                 e.stopPropagation();
                 openBillCustomizeModal(bill);
             });
+            card.querySelector('[data-action="make-invoice"]')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openBillCustomizeModal(bill);
+                playFeedback();
+            });
+            card.querySelector('[data-action="download-png"]')?.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    const cardUrl = await generateBillCard(bill);
+                    const a = document.createElement('a');
+                    a.href = cardUrl;
+                    a.download = `bill-${bill.invoiceNumber || bill.id}.png`;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    playFeedback();
+                } catch (err) {
+                    console.error('Bill PNG download failed', err);
+                    if (typeof alert !== 'undefined') alert(err?.message || 'Could not generate bill image. Please try again.');
+                }
+            });
             card.querySelector('[data-action="share"]')?.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const cardUrl = await generateBillCard(bill);
-                shareBillCard(cardUrl, bill);
+                try {
+                    const cardUrl = await generateBillCard(bill);
+                    shareBillCard(cardUrl, bill);
+                } catch (err) {
+                    console.error('Bill PNG generation failed', err);
+                    if (typeof alert !== 'undefined') alert(err?.message || 'Could not generate bill image. Please try again.');
+                }
             });
             
             billsList.appendChild(card);
@@ -5407,10 +6849,6 @@
     }
 
     async function handleAIMessage() {
-        if (!canUseAI()) {
-            alert(state.language === 'bn' ? 'এআই সহায়ক (অপ্টিচেইন) ব্যবহার করতে সাবস্ক্রিপশন প্রয়োজন।' : 'Subscription required to use AI Assistant (Optichain).');
-            return;
-        }
         
         const input = document.getElementById('ai-input');
         const messagesContainer = document.getElementById('ai-messages');
@@ -5458,8 +6896,28 @@
     }
 
     async function generateAIResponse(userMessage) {
+        if (getActivePlan() !== 'ultra') {
+            return state.language === 'bn'
+                ? 'AI চ্যাট শুধুমাত্র Ultra প্ল্যানে উপলব্ধ। এটি ব্যবহার করতে Ultra তে আপগ্রেড করুন।'
+                : 'AI Chat is only available on the Ultra plan. Upgrade to Ultra to use it.';
+        }
         const lower = userMessage.toLowerCase();
-        
+
+        // Trust ratio (Ultra only)
+        if (lower.includes('trust') || lower.includes('ratio') || lower.includes('reliability')) {
+            const customerName = extractCustomerName(userMessage);
+            if (customerName) {
+                const customer = state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()));
+                if (customer) {
+                    const trustRatio = calculateTrustRatio(customer);
+                    return `[AI Analysis] The trust ratio for ${customer.name} is ${trustRatio}%. ${getTrustRatioExplanation(trustRatio)} This is calculated based on payment history and timeliness.`;
+                }
+            }
+            return state.language === 'bn'
+                ? 'ক্রেতার ট্রাস্ট রেশিও জানতে "[ক্রেতার নাম]-এর ট্রাস্ট রেশিও কত?" বা "What is the trust ratio for [customer name]" লিখুন।'
+                : 'To see a customer\'s trust ratio, ask "What is the trust ratio for [customer name]" or "Calculate trust ratio for [customer name]".';
+        }
+
         // Task management queries
         if (lower.includes('show') && (lower.includes('task') || lower.includes('tasks'))) {
             const incompleteTasks = state.tasks.filter(t => !t.completed);
@@ -5499,19 +6957,6 @@
             return response;
         }
         
-        // Trust ratio query
-        if (lower.includes('trust') || lower.includes('ratio')) {
-            const customerName = extractCustomerName(userMessage);
-            if (customerName) {
-                const customer = state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()));
-                if (customer) {
-                    const trustRatio = calculateTrustRatio(customer);
-                    return `[AI Analysis] The trust ratio for ${customer.name} is ${trustRatio}% ${getTrustRatioExplanation(trustRatio)} This is calculated based on payment history and timeliness`;
-                }
-            }
-            return 'I can calculate trust ratios for your customers using AI analysis Try asking "What is the trust ratio for [customer name]" or "Calculate trust ratio for [customer name]"';
-        }
-
         // Generate card query
         if (lower.includes('card') || lower.includes('generate')) {
             const customerName = extractCustomerName(userMessage);
@@ -5800,20 +7245,22 @@
         modal.showModal();
     }
 
-    function showTrialPopup() {
-        const modal = modals.trialPopup;
-        if (!modal) return;
-        modal.showModal();
-        // Auto-close after 5 seconds if user doesn't interact
-        setTimeout(() => {
-            if (modal.open) {
-                modal.close();
-            }
-        }, 5000);
-    }
 
     function applyTextSize(size) {
         document.documentElement.dataset.textSize = size;
+    }
+
+    function applyDockScale(scale) {
+        const normalized = clampNumber(Number(scale) || 1, 0.2, 1.0); // Range: 0.2 (really small) to 1.0 (normal)
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:6423',message:'applyDockScale called',data:{input:scale,normalized},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
+        console.log('applyDockScale:', { input: scale, normalized });
+        document.documentElement.style.setProperty('--dock-scale', normalized);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:6427',message:'CSS variable set',data:{cssVarValue:getComputedStyle(document.documentElement).getPropertyValue('--dock-scale')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
+        return normalized;
     }
 
     // Calculator Functions
@@ -5891,6 +7338,9 @@
 
     // AI Tools Functions
     function initAITools() {
+        // AI Chat: Ultra only; ensureAIChatAccessible() shows chat for Ultra, subscription message for others
+        ensureAIChatAccessible();
+        
         // AI tools tab switching
         const aiTabBtns = document.querySelectorAll('.ai-tab-btn');
         const aiToolPanels = document.querySelectorAll('.ai-tool-panel');
@@ -5910,6 +7360,9 @@
                         panel.classList.add('active');
                     }
                 });
+                
+                // AI Chat tab: Ultra sees chat; non-Ultra sees subscription upsell (trust ratio available when user asks, in Ultra)
+                if (targetTab === 'chat') ensureAIChatAccessible();
             });
         });
         
@@ -5925,24 +7378,41 @@
                 if (customerId) {
                     const customer = state.customers.find(c => c.id === customerId);
                     if (customer) {
-                        const customerNameInput = document.querySelector('input[name="customerName"]');
-                        const debtAmountInput = document.querySelector('input[name="debtAmount"]');
-                        
-                        if (customerNameInput) customerNameInput.value = customer.name;
-                        if (debtAmountInput) {
-                            const totalDebt = customer.debts.reduce((sum, d) => sum + d.amount, 0);
-                            const totalPaid = customer.payments.reduce((sum, p) => sum + p.amount, 0);
-                            debtAmountInput.value = totalDebt - totalPaid;
-                        }
+                        prefillDebtCardForm(customer);
                     }
                 }
+                updateDebtCardPreview();
             });
         }
         
         // Debt card generator
         const debtCardForm = document.getElementById('debt-card-form');
         if (debtCardForm) {
+            const shopNameInput = debtCardForm.querySelector('input[name="shopName"]');
+            if (shopNameInput && !shopNameInput.value) {
+                shopNameInput.value = state.shop?.shopName || '';
+            }
+
+            const paymentMethodSelect = debtCardForm.querySelector('select[name="paymentMethod"]');
+            const paymentNumberInput = debtCardForm.querySelector('input[name="paymentNumber"]');
+            if (paymentMethodSelect) {
+                paymentMethodSelect.addEventListener('change', () => {
+                    if (paymentNumberInput && !paymentNumberInput.value) {
+                        paymentNumberInput.value = getPaymentNumberForMethod(paymentMethodSelect.value);
+                    }
+                    updateDebtCardPreview();
+                });
+            }
+
             debtCardForm.addEventListener('submit', generateDebtCard);
+            debtCardForm.addEventListener('input', debounce(() => {
+                updateDebtCardPreview();
+            }, 120));
+            debtCardForm.addEventListener('change', () => {
+                updateDebtCardPreview();
+            });
+
+            updateDebtCardPreview();
         }
         
         // Download and share buttons
@@ -5995,80 +7465,134 @@
         }
     }
 
-    function generateDebtCard(event) {
-        event.preventDefault();
-        
-        // Check if user has premium subscription
-        if (state.subscription.plan === 'free') {
-            alert(translate('ai.requiresPremium') || 'Card Generator requires a premium subscription. Please upgrade to Pro, Max, or Ultra to use this feature.');
-            // Scroll to settings subscription section
-            setTimeout(() => {
-                document.getElementById('nav-settings').click();
-                setTimeout(() => {
-                    const subscriptionSection = document.querySelector('.settings-card:has(#subscription-status)');
-                    if (subscriptionSection) {
-                        subscriptionSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 100);
-            }, 500);
-            return;
+    function getCustomerOutstandingBalance(customer) {
+        return roundMoney((customer.debts || []).reduce((sum, debt) => {
+            const normalized = normalizeDebtRecord(debt, customer);
+            return sum + getDebtOutstanding(normalized);
+        }, 0));
+    }
+
+    function getCustomerNextDueDate(customer) {
+        const dueInfo = getCustomerDueInfo(customer);
+        return dueInfo.nextDueDate || todayString();
+    }
+
+    function getPaymentNumberForMethod(method) {
+        const key = (method || '').toLowerCase();
+        const methodNumber = state.shop?.paymentMethods?.[key]?.number;
+        return methodNumber || state.shop?.paymentNumber || '';
+    }
+
+    function normalizePaymentMethodLabel(method) {
+        const key = (method || '').toLowerCase();
+        const map = {
+            bkash: 'bKash',
+            nagad: 'Nagad',
+            rocket: 'Rocket',
+            cash: 'Cash',
+            bank: 'Bank Transfer'
+        };
+        return map[key] || method || '';
+    }
+
+    function prefillDebtCardForm(customer) {
+        const customerNameInput = document.querySelector('#debt-card-form input[name="customerName"]');
+        const debtAmountInput = document.querySelector('#debt-card-form input[name="debtAmount"]');
+        const dueDateInput = document.querySelector('#debt-card-form input[name="dueDate"]');
+        const paymentMethodInput = document.querySelector('#debt-card-form select[name="paymentMethod"]');
+        const paymentNumberInput = document.querySelector('#debt-card-form input[name="paymentNumber"]');
+
+        if (customerNameInput) customerNameInput.value = customer.name;
+        if (debtAmountInput) debtAmountInput.value = getCustomerOutstandingBalance(customer) || '';
+        if (dueDateInput) dueDateInput.value = getCustomerNextDueDate(customer);
+        if (paymentMethodInput && !paymentMethodInput.value) {
+            paymentMethodInput.value = normalizePaymentMethodLabel(state.shop?.paymentOption || paymentMethodInput.value);
         }
-        
-        const formData = new FormData(event.target);
-        
+        if (paymentNumberInput && !paymentNumberInput.value) {
+            paymentNumberInput.value = getPaymentNumberForMethod(paymentMethodInput?.value || '');
+        }
+    }
+
+    function buildDebtCardPayload(formData) {
         const selectedCustomerId = formData.get('selectedCustomer');
         const selectedLogoId = formData.get('selectedLogo');
-        const customerName = formData.get('customerName');
-        const debtAmount = formData.get('debtAmount');
-        const shopName = formData.get('shopName') || state.shop.shopName || 'Your Shop';
-        const paymentMethod = formData.get('paymentMethod');
-        const paymentNumber = formData.get('paymentNumber') || '';
-        const dueDate = formData.get('dueDate');
-        const cardColor = formData.get('cardColor');
-        const customMessage = formData.get('customMessage') || '';
-        
-        // Get selected logo
-        let logoHTML = '<div class="card-logo">💳</div>';
-        if (selectedLogoId) {
-            const selectedLogo = state.shopLogos.find(l => l.id === selectedLogoId);
-            if (selectedLogo && selectedLogo.image) {
-                logoHTML = `<img src="${selectedLogo.image}" alt="Shop Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">`;
-            }
-        } else if (state.shop.shopLogo) {
-            logoHTML = `<img src="${state.shop.shopLogo}" alt="Shop Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">`;
+        const selectedCustomer = state.customers.find(c => c.id === selectedCustomerId);
+        const customerNameInput = (formData.get('customerName') || '').toString().trim();
+        const customerName = customerNameInput || selectedCustomer?.name || '';
+        const rawAmount = Number(formData.get('debtAmount')) || 0;
+        const outstandingAmount = selectedCustomer ? getCustomerOutstandingBalance(selectedCustomer) : 0;
+        const debtAmount = Math.max(0, rawAmount || outstandingAmount);
+        const shopName = (formData.get('shopName') || state.shop.shopName || 'Your Shop').toString();
+        const paymentMethod = normalizePaymentMethodLabel(formData.get('paymentMethod') || state.shop?.paymentOption || '');
+        const paymentNumber = (formData.get('paymentNumber') || getPaymentNumberForMethod(paymentMethod)).toString();
+        const dueDate = (formData.get('dueDate') || (selectedCustomer ? getCustomerNextDueDate(selectedCustomer) : '')).toString();
+        const cardColor = (formData.get('cardColor') || '#22c55e').toString();
+        const customMessage = (formData.get('customMessage') || '').toString();
+
+        return {
+            selectedLogoId,
+            selectedCustomer,
+            customerName,
+            debtAmount,
+            shopName,
+            paymentMethod,
+            paymentNumber,
+            dueDate,
+            cardColor,
+            customMessage
+        };
+    }
+
+    function updateDebtCardPreview() {
+        const debtCardForm = document.getElementById('debt-card-form');
+        if (!debtCardForm) return;
+        const payload = buildDebtCardPayload(new FormData(debtCardForm));
+        renderDebtCardPreview(payload, { scroll: false });
+    }
+
+    function renderDebtCardPreview(payload, { scroll } = {}) {
+        const cardContent = document.getElementById('generated-card-content');
+        const cardPreview = document.getElementById('debt-card-preview');
+        if (!cardContent || !cardPreview) return false;
+
+        const hasContent = payload.customerName || payload.debtAmount > 0;
+        if (!hasContent) {
+            cardPreview.hidden = true;
+            return false;
         }
-        
-        // Format date
-        let dueDateFormatted = '';
-        if (dueDate) {
-            const date = new Date(dueDate);
-            dueDateFormatted = date.toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-US', {
+
+        const logoHTML = resolveCardLogo(payload.selectedLogoId);
+        const dueDateFormatted = payload.dueDate
+            ? new Date(payload.dueDate).toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
-            });
-        }
-        
-        // Generate card HTML
+            })
+            : '';
+
+        const amountText = payload.debtAmount > 0 ? formatCurrency(payload.debtAmount) : '৳0';
+
         const cardHTML = `
             <div class="card-header">
                 <div>
-                    <p class="card-shop-name">${escapeHtml(shopName)}</p>
+                    <p class="card-shop-name">${escapeHtml(payload.shopName)}</p>
                 </div>
                 ${logoHTML}
             </div>
             <div class="card-body">
-                <p class="card-customer-name">${translate('ai.customerName')}: ${escapeHtml(customerName)}</p>
-                <p class="card-debt-amount">৳${escapeHtml(debtAmount)}</p>
+                <p class="card-customer-name">${translate('ai.customerName')}: ${escapeHtml(payload.customerName || '')}</p>
+                <p class="card-debt-amount">${escapeHtml(amountText)}</p>
                 <div class="card-details">
+                    ${payload.paymentMethod ? `
                     <div class="card-detail-row">
                         <span>${translate('ai.paymentMethod')}:</span>
-                        <strong>${escapeHtml(paymentMethod)}</strong>
+                        <strong>${escapeHtml(payload.paymentMethod)}</strong>
                     </div>
-                    ${paymentNumber ? `
+                    ` : ''}
+                    ${payload.paymentNumber ? `
                     <div class="card-detail-row">
                         <span>${translate('ai.paymentNumber')}:</span>
-                        <strong>${escapeHtml(paymentNumber)}</strong>
+                        <strong>${escapeHtml(payload.paymentNumber)}</strong>
                     </div>
                     ` : ''}
                     ${dueDateFormatted ? `
@@ -6078,22 +7602,38 @@
                     </div>
                     ` : ''}
                 </div>
-                ${customMessage ? `<p class="card-message">"${escapeHtml(customMessage)}"</p>` : ''}
+                ${payload.customMessage ? `<p class="card-message">"${escapeHtml(payload.customMessage)}"</p>` : ''}
             </div>
         `;
-        
-        // Update card content and apply color
-        const cardContent = document.getElementById('generated-card-content');
-        const cardPreview = document.getElementById('debt-card-preview');
-        
-        if (cardContent && cardPreview) {
-            cardContent.innerHTML = cardHTML;
-            cardContent.style.background = `linear-gradient(135deg, ${cardColor}, ${adjustColor(cardColor, -20)})`;
-            cardPreview.hidden = false;
-            
-            // Scroll to preview
+
+        cardContent.innerHTML = cardHTML;
+        cardContent.style.background = `linear-gradient(135deg, ${payload.cardColor}, ${adjustColor(payload.cardColor, -20)})`;
+        cardPreview.hidden = false;
+        if (scroll) {
             cardPreview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+        return true;
+    }
+
+    function resolveCardLogo(selectedLogoId) {
+        if (selectedLogoId) {
+            const selectedLogo = state.shopLogos.find(l => l.id === selectedLogoId);
+            if (selectedLogo && selectedLogo.image) {
+                return `<img src="${selectedLogo.image}" alt="Shop Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">`;
+            }
+        }
+        if (state.shop.shopLogo) {
+            return `<img src="${state.shop.shopLogo}" alt="Shop Logo" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">`;
+        }
+        return '<div class="card-logo">💳</div>';
+    }
+
+    function generateDebtCard(event) {
+        event.preventDefault();
+        
+        
+        const payload = buildDebtCardPayload(new FormData(event.target));
+        renderDebtCardPreview(payload, { scroll: true });
     }
 
     function adjustColor(color, percent) {
@@ -6151,226 +7691,13 @@
         return div.innerHTML;
     }
 
-    // Subscription Functions
-    function checkSubscription() {
-        const sub = state.subscription || { plan: 'free', expiresAt: null };
-        if (sub.plan === 'free') {
-            updateSubscriptionDisplay();
-            return false;
-        }
-        if (sub.plan === 'trial' && sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
-            // Trial expired, revert to free
-            state.subscription.plan = 'free';
-            state.subscription.activatedAt = null;
-            state.subscription.expiresAt = null;
-            saveState();
-            updateSubscriptionDisplay();
-            alert(state.language === 'bn' 
-                ? 'ফ্রি ট্রায়াল শেষ হয়ে গেছে। প্রো, ম্যাক্স বা আল্ট্রা প্ল্যান কিনুন অথবা ফ্রি প্ল্যানে ফিরে যান।' 
-                : 'Free trial has expired. Please buy Pro, Max, or Ultra plan, or continue with free plan.');
-            return false;
-        }
-        if (sub.expiresAt && new Date(sub.expiresAt) < new Date()) {
-            state.subscription.plan = 'free';
-            state.subscription.expiresAt = null;
-            saveState();
-            updateSubscriptionDisplay();
-            return false;
-        }
-        updateSubscriptionDisplay();
-        return true;
-    }
-
-    function getSubscriptionPlan() {
-        checkSubscription();
-        return state.subscription?.plan || 'free';
-    }
-
-    function validateCoupon(plan, couponCode) {
-        const coupons = {
-            pro: ['terenceproxofcl', 'TERENCEPROXOFCL'],
-            max: ['terencemaxo', 'TERENCEMAXO'],
-            ultra: ['terenceultraofcl', 'TERENCEULTRAOFCL']
-        };
-        
-        const enteredCoupon = couponCode.trim();
-        const validCoupons = coupons[plan] || [];
-        
-        return validCoupons.some(c => c.toLowerCase() === enteredCoupon.toLowerCase());
-    }
-    
-    function showCouponFeedback(plan, isValid, message) {
-        const feedbackEl = document.getElementById(`coupon-feedback-${plan}`);
-        if (!feedbackEl) return;
-        
-        feedbackEl.textContent = message || '';
-        feedbackEl.className = 'coupon-feedback';
-        
-        if (isValid) {
-            feedbackEl.classList.add('success');
-            feedbackEl.textContent = translate('subscription.couponValid') || '✓ Valid coupon code';
-        } else if (message) {
-            feedbackEl.classList.add('error');
-        }
-    }
-    
-    function activateSubscription(plan) {
-        activateSubscriptionWithCongratulations(plan);
-    }
-    
-    function handleSubscribe(plan) {
-        // Check if there's a valid coupon code first
-        const couponInput = document.getElementById(`coupon-input-${plan}`);
-        const enteredCoupon = couponInput?.value.trim() || '';
-        
-        // If coupon code is entered and valid, activate subscription
-        if (enteredCoupon && validateCoupon(plan, enteredCoupon)) {
-            activateSubscriptionWithCongratulations(plan);
-        } else {
-            // No coupon or invalid coupon - redirect to Facebook page for payment
-            window.open('https://www.facebook.com/profile.php?id=61560074175677', '_blank');
-        }
-    }
-    
-    function activateSubscriptionWithCongratulations(plan) {
-        const couponInput = document.getElementById(`coupon-input-${plan}`);
-        const enteredCoupon = couponInput?.value.trim() || '';
-        
-        if (!enteredCoupon || !validateCoupon(plan, enteredCoupon)) {
-            showCouponFeedback(plan, false, translate('subscription.invalidCoupon'));
-            playFeedback('error');
-            return;
-        }
-        
-        const now = new Date();
-        state.subscription.plan = plan;
-        state.subscription.activatedAt = now.toISOString();
-        
-        if (plan === 'pro') {
-            const expiresAt = new Date(now);
-            expiresAt.setMonth(expiresAt.getMonth() + 1);
-            state.subscription.expiresAt = expiresAt.toISOString();
-        } else if (plan === 'max' || plan === 'ultra') {
-            const expiresAt = new Date(now);
-            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-            state.subscription.expiresAt = expiresAt.toISOString();
-        }
-        
-        saveState();
-        updateSubscriptionDisplay();
-        renderAll();
-        showCouponFeedback(plan, true, translate('subscription.activated'));
-        couponInput.value = '';
-        playFeedback();
-        
-        // Show congratulations message
-        showCongratulationsMessage(plan);
-    }
-    
-    function showCongratulationsMessage(plan) {
-        const planNames = {
-            pro: translate('subscription.pro') || 'Pro',
-            max: translate('subscription.max') || 'Max',
-            ultra: translate('subscription.ultra') || 'Ultra Pro'
-        };
-        
-        const planName = planNames[plan] || plan.toUpperCase();
-        const isBangla = state.language === 'bn';
-        
-        const message = isBangla 
-            ? `🎉 অভিনন্দন! 🎉\n\nআপনার ${planName} প্ল্যান সফলভাবে সক্রিয় করা হয়েছে!\n\nআপনি এখন সমস্ত প্রিমিয়াম ফিচার ব্যবহার করতে পারবেন।`
-            : `🎉 Congratulations! 🎉\n\nYour ${planName} plan has been successfully activated!\n\nYou can now enjoy all premium features.`;
-        
-        // Create a nice modal-style alert
-        const congratsModal = document.createElement('div');
-        congratsModal.className = 'congratulations-modal';
-        congratsModal.innerHTML = `
-            <div class="congratulations-content">
-                <div class="congratulations-icon">🎉</div>
-                <h2 class="congratulations-title">${isBangla ? 'অভিনন্দন!' : 'Congratulations!'}</h2>
-                <p class="congratulations-message">${isBangla 
-                    ? `আপনার ${planName} প্ল্যান সফলভাবে সক্রিয় করা হয়েছে!` 
-                    : `Your ${planName} plan has been successfully activated!`}</p>
-                <p class="congratulations-submessage">${isBangla 
-                    ? 'আপনি এখন সমস্ত প্রিমিয়াম ফিচার ব্যবহার করতে পারবেন।' 
-                    : 'You can now enjoy all premium features.'}</p>
-                <button class="primary-btn congratulations-close-btn">${isBangla ? 'ঠিক আছে' : 'Got it!'}</button>
-            </div>
-        `;
-        
-        document.body.appendChild(congratsModal);
-        
-        // Animate in
-        setTimeout(() => {
-            congratsModal.classList.add('show');
-        }, 10);
-        
-        // Close button handler
-        const closeBtn = congratsModal.querySelector('.congratulations-close-btn');
-        const closeModal = () => {
-            congratsModal.classList.remove('show');
-            setTimeout(() => {
-                document.body.removeChild(congratsModal);
-            }, 300);
-        };
-        
-        closeBtn.addEventListener('click', closeModal);
-        congratsModal.addEventListener('click', (e) => {
-            if (e.target === congratsModal) closeModal();
-        });
-    }
-
-    function updateSubscriptionDisplay() {
-        const plan = getSubscriptionPlan();
-        if (selectors.currentPlan) {
-            let planDisplay = plan.charAt(0).toUpperCase() + plan.slice(1);
-            if (plan === 'trial') {
-                planDisplay = state.language === 'bn' ? 'ট্রায়াল (৩ দিন)' : 'Trial (3 days)';
-            }
-            selectors.currentPlan.textContent = planDisplay;
-        }
-        
-        if (selectors.subscriptionExpiry && state.subscription?.expiresAt) {
-            const expiry = new Date(state.subscription.expiresAt);
-            const expiryStr = expiry.toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-GB');
-            const daysLeft = Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24));
-            if (plan === 'trial' && daysLeft >= 0) {
-                selectors.subscriptionExpiry.textContent = state.language === 'bn' 
-                    ? `ট্রায়াল শেষ: ${expiryStr} (${daysLeft} দিন বাকি)`
-                    : `Trial expires: ${expiryStr} (${daysLeft} days left)`;
-            } else {
-                selectors.subscriptionExpiry.textContent = `Expires: ${expiryStr}`;
-            }
-            selectors.subscriptionExpiry.hidden = false;
-        } else if (selectors.subscriptionExpiry) {
-            selectors.subscriptionExpiry.hidden = true;
-        }
-    }
-
-    function canUseAI() {
-        return checkSubscription() && getSubscriptionPlan() !== 'free';
-    }
-
-    function canImportExport() {
-        const plan = getSubscriptionPlan();
-        return plan === 'pro' || plan === 'max' || plan === 'ultra';
-    }
-
-    function canAddCustomer() {
-        const plan = getSubscriptionPlan();
-        // Trial and paid plans allow unlimited customers
-        if (plan === 'trial' || plan === 'pro' || plan === 'max' || plan === 'ultra') return true;
-        // Free plan allows up to 5 customers (0-4, so length < 5 means can add)
-        // When length is 5, that's the 6th customer, so block it
-        return state.customers.length < 5;
-    }
-
     // Notes/Tasks Tab Switching
     function switchNotesTab(tab) {
+        if (state.ui.activeNotesTab !== tab) playFeedback();
         state.ui.activeNotesTab = tab;
         saveState();
         
-        document.querySelectorAll('.tab-btn').forEach(btn => {
+        document.querySelectorAll('[data-tab]').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tab);
         });
         
@@ -6380,11 +7707,65 @@
         if (selectors.tasksSection) {
             selectors.tasksSection.hidden = tab !== 'tasks';
         }
-        
+
         if (tab === 'tasks') {
             renderCalendar();
             renderTaskCards();
+        } else {
+            renderNotes();
         }
+    }
+
+    function setCustomersTab(tab, options = {}) {
+        const nextTab = tab === 'debts' ? 'debts' : 'customers';
+        state.ui.customersTab = nextTab;
+        if (options.save !== false) {
+            saveState();
+        }
+
+        selectors.customersTabs?.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.customersTab === nextTab);
+        });
+
+        if (selectors.customersView) selectors.customersView.hidden = nextTab !== 'customers';
+        if (selectors.debtsView) selectors.debtsView.hidden = nextTab !== 'debts';
+
+        if (nextTab === 'customers') {
+            renderCustomers();
+        } else {
+            renderDebtLedger();
+        }
+    }
+
+    function initDebtLedgerHandlers() {
+        selectors.customersTabs?.forEach(btn => {
+            btn.addEventListener('click', () => {
+                setCustomersTab(btn.dataset.customersTab);
+                playFeedback();
+            });
+        });
+
+        selectors.debtSearch?.addEventListener('input', debounce(() => {
+            state.ui.debtQuery = (selectors.debtSearch?.value || '').trim();
+            saveState();
+            renderDebtLedger();
+        }, 150));
+
+        document.querySelectorAll('.debt-filters .filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.debt-filters .filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.ui.debtFilter = btn.dataset.filter || 'all';
+                saveState();
+                renderDebtLedger();
+                playFeedback();
+            });
+        });
+
+        selectors.aiDebtCalendarRefresh?.addEventListener('click', () => {
+            renderAIDebtCalendar();
+            playFeedback();
+        });
     }
 
     // Logo Management
