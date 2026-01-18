@@ -9,7 +9,7 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
         // Apply theme early to prevent flash of unstyled content
         (function() {
@@ -17,21 +17,21 @@
                 const stored = localStorage.getItem('debtx-data-v1');
                 if (stored) {
                     const data = JSON.parse(stored);
-                    const theme = data?.ui?.theme || 'cozy-ledger';
+                    const theme = data?.ui?.theme || 'studio-pro';
                     const validThemes = [
                         'light', 'dark', 'ocean', 'rose',
-                        'cozy-ledger', 'clean-business', 'night-shop', 
+                        'studio-pro', 'cozy-ledger', 'clean-business', 'night-shop', 
                         'zen-finance', 'street-ledger', 'classic-paper'
                     ];
                     if (validThemes.includes(theme)) {
                         document.documentElement.setAttribute('data-theme', theme);
                     } else {
-                        document.documentElement.setAttribute('data-theme', 'cozy-ledger');
+                        document.documentElement.setAttribute('data-theme', 'studio-pro');
                     }
                 }
             } catch (e) {
-                // Fallback to cozy-ledger theme
-                document.documentElement.setAttribute('data-theme', 'cozy-ledger');
+                // Fallback to studio-pro theme
+                document.documentElement.setAttribute('data-theme', 'studio-pro');
             }
         })();
     </script>
@@ -397,101 +397,172 @@
                 <!-- Debt Card Generator -->
                 <div class="ai-tool-panel active" id="ai-cardgen-panel">
                     <div class="card-generator-container">
-                        <div class="premium-header">
-                            <div>
-                                <h2 data-i18n="ai.debtCardTitle">Debt Card Generator</h2>
-                                <p class="settings-muted" data-i18n="ai.debtCardHint">Create custom debt reminder cards for your customers</p>
+                        <div class="card-generator-header">
+                            <div class="card-generator-title">
+                                <span class="card-generator-badge">Pro</span>
+                                <h2 data-i18n="ai.debtCardTitle">Debt Card Generator Pro</h2>
+                                <p class="settings-muted" data-i18n="ai.debtCardHint">Build polished reminder cards with live preview and pro templates.</p>
+                            </div>
+                            <div class="card-generator-pills">
+                                <span class="generator-pill" data-i18n="ai.cardGenPillAuto">Auto-fill</span>
+                                <span class="generator-pill" data-i18n="ai.cardGenPillPreview">Live Preview</span>
+                                <span class="generator-pill" data-i18n="ai.cardGenPillShare">Share Ready</span>
                             </div>
                         </div>
                         
-                        <form class="card-gen-form" id="debt-card-form">
-                            <label>
-                                <span data-i18n="ai.selectCustomer">Select Customer</span>
-                                <select name="selectedCustomer" id="card-customer-select">
-                                    <option value="">-- Select a customer --</option>
-                                </select>
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.customerName">Customer Name (or enter manually)</span>
-                                <input type="text" name="customerName" placeholder="Enter customer name" />
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.debtAmount">Debt Amount (৳)</span>
-                                <input type="number" name="debtAmount" placeholder="1000" min="1" required />
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.selectLogo">Select Shop Logo</span>
-                                <select name="selectedLogo" id="card-logo-select">
-                                    <option value="">-- Select a logo (optional) --</option>
-                                </select>
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.shopName">Shop Name</span>
-                                <input type="text" name="shopName" placeholder="Your shop name" />
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.paymentMethod">Payment Method</span>
-                                <select name="paymentMethod">
-                                    <option value="bKash">bKash</option>
-                                    <option value="Nagad">Nagad</option>
-                                    <option value="Rocket">Rocket</option>
-                                    <option value="Cash">Cash</option>
-                                    <option value="Bank">Bank Transfer</option>
-                                </select>
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.paymentNumber">Payment Number/Details</span>
-                                <input type="text" name="paymentNumber" placeholder="01XXXXXXXXX" />
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.dueDate">Due Date</span>
-                                <input type="date" name="dueDate" />
-                            </label>
-                            
-                            <label>
-                                <span data-i18n="ai.cardColor">Card Color</span>
-                                <div class="color-picker">
-                                    <input type="radio" name="cardColor" value="#ff6b6b" id="color1" checked />
-                                    <label for="color1" class="color-option" style="background: #ff6b6b;"></label>
-                                    
-                                    <input type="radio" name="cardColor" value="#4ecdc4" id="color2" />
-                                    <label for="color2" class="color-option" style="background: #4ecdc4;"></label>
-                                    
-                                    <input type="radio" name="cardColor" value="#45b7d1" id="color3" />
-                                    <label for="color3" class="color-option" style="background: #45b7d1;"></label>
-                                    
-                                    <input type="radio" name="cardColor" value="#f9ca24" id="color4" />
-                                    <label for="color4" class="color-option" style="background: #f9ca24;"></label>
-                                    
-                                    <input type="radio" name="cardColor" value="#6c5ce7" id="color5" />
-                                    <label for="color5" class="color-option" style="background: #6c5ce7;"></label>
-                                    
-                                    <input type="radio" name="cardColor" value="#a29bfe" id="color6" />
-                                    <label for="color6" class="color-option" style="background: #a29bfe;"></label>
+                        <div class="card-generator-grid">
+                            <form class="card-gen-form" id="debt-card-form">
+                                <div class="card-gen-section">
+                                    <div class="card-gen-section-title" data-i18n="ai.cardSectionCustomer">Customer Details</div>
+                                    <div class="card-gen-grid">
+                                        <label>
+                                            <span data-i18n="ai.selectCustomer">Select Customer</span>
+                                            <select name="selectedCustomer" id="card-customer-select">
+                                                <option value="">-- Select a customer --</option>
+                                            </select>
+                                        </label>
+                                        
+                                        <label>
+                                            <span data-i18n="ai.customerNameField">Customer Name (or enter manually)</span>
+                                            <input type="text" name="customerName" placeholder="Enter customer name" />
+                                        </label>
+                                        
+                                        <label>
+                                            <span data-i18n="ai.debtAmount">Debt Amount (৳)</span>
+                                            <input type="number" name="debtAmount" placeholder="1000" min="1" required />
+                                        </label>
+                                        
+                                        <label>
+                                            <span data-i18n="ai.dueDate">Due Date</span>
+                                            <input type="date" name="dueDate" />
+                                        </label>
+                                    </div>
                                 </div>
-                            </label>
+
+                                <div class="card-gen-section">
+                                    <div class="card-gen-section-title" data-i18n="ai.cardSectionPayment">Shop & Payment</div>
+                                    <div class="card-gen-grid">
+                                        <label>
+                                            <span data-i18n="ai.shopName">Shop Name</span>
+                                            <input type="text" name="shopName" placeholder="Your shop name" />
+                                        </label>
+                                        
+                                        <label>
+                                            <span data-i18n="ai.selectLogo">Select Shop Logo</span>
+                                            <select name="selectedLogo" id="card-logo-select">
+                                                <option value="">-- Select a logo (optional) --</option>
+                                            </select>
+                                        </label>
+                                        
+                                        <label>
+                                            <span data-i18n="ai.paymentMethod">Payment Method</span>
+                                            <select name="paymentMethod">
+                                                <option value="bKash">bKash</option>
+                                                <option value="Nagad">Nagad</option>
+                                                <option value="Rocket">Rocket</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Bank">Bank Transfer</option>
+                                            </select>
+                                        </label>
+                                        
+                                        <label>
+                                            <span data-i18n="ai.paymentNumber">Payment Number/Details</span>
+                                            <input type="text" name="paymentNumber" placeholder="01XXXXXXXXX" />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="card-gen-section">
+                                    <div class="card-gen-section-title" data-i18n="ai.cardSectionStyle">Style & Message</div>
+                                    <div class="card-gen-grid">
+                                        <label class="span-2">
+                                            <span data-i18n="ai.cardStyle">Card Style</span>
+                                            <div class="card-style-picker">
+                                                <input type="radio" name="cardStyle" value="classic" id="style-classic" checked />
+                                                <label for="style-classic" class="card-style-option">
+                                                    <span class="style-title" data-i18n="ai.styleClassic">Classic</span>
+                                                    <span class="style-sub">
+                                                        <span class="title-en">Gradient</span>
+                                                        <span class="title-bn">গ্রেডিয়েন্ট</span>
+                                                    </span>
+                                                </label>
+                                                
+                                                <input type="radio" name="cardStyle" value="modern" id="style-modern" />
+                                                <label for="style-modern" class="card-style-option">
+                                                    <span class="style-title" data-i18n="ai.styleModern">Modern</span>
+                                                    <span class="style-sub">
+                                                        <span class="title-en">Bold</span>
+                                                        <span class="title-bn">বোল্ড</span>
+                                                    </span>
+                                                </label>
+                                                
+                                                <input type="radio" name="cardStyle" value="minimal" id="style-minimal" />
+                                                <label for="style-minimal" class="card-style-option">
+                                                    <span class="style-title" data-i18n="ai.styleMinimal">Minimal</span>
+                                                    <span class="style-sub">
+                                                        <span class="title-en">Clean</span>
+                                                        <span class="title-bn">সিম্পল</span>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </label>
+
+                                        <label class="span-2">
+                                            <span data-i18n="ai.cardColor">Card Color</span>
+                                            <div class="color-picker">
+                                                <input type="radio" name="cardColor" value="#ff6b6b" id="color1" checked />
+                                                <label for="color1" class="color-option" style="background: #ff6b6b;"></label>
+                                                
+                                                <input type="radio" name="cardColor" value="#4ecdc4" id="color2" />
+                                                <label for="color2" class="color-option" style="background: #4ecdc4;"></label>
+                                                
+                                                <input type="radio" name="cardColor" value="#45b7d1" id="color3" />
+                                                <label for="color3" class="color-option" style="background: #45b7d1;"></label>
+                                                
+                                                <input type="radio" name="cardColor" value="#f9ca24" id="color4" />
+                                                <label for="color4" class="color-option" style="background: #f9ca24;"></label>
+                                                
+                                                <input type="radio" name="cardColor" value="#6c5ce7" id="color5" />
+                                                <label for="color5" class="color-option" style="background: #6c5ce7;"></label>
+                                                
+                                                <input type="radio" name="cardColor" value="#a29bfe" id="color6" />
+                                                <label for="color6" class="color-option" style="background: #a29bfe;"></label>
+                                            </div>
+                                        </label>
+                                        
+                                        <label class="span-2">
+                                            <span data-i18n="ai.customMessage">Custom Message (optional)</span>
+                                            <textarea name="customMessage" rows="2" placeholder="Please pay at your earliest convenience..."></textarea>
+                                        </label>
+                                        <div class="message-presets span-2">
+                                            <button type="button" class="message-preset-btn" data-message="Please pay at your earliest convenience. Thank you!" data-message-bn="দয়া করে সুবিধামতো দ্রুত পরিশোধ করুন। ধন্যবাদ!">
+                                                <span class="title-en">Gentle</span>
+                                                <span class="title-bn">নরম</span>
+                                            </button>
+                                            <button type="button" class="message-preset-btn" data-message="Your payment is due. Please settle the balance today." data-message-bn="আপনার পেমেন্টের সময় হয়েছে। আজই বাকি পরিশোধ করুন।">
+                                                <span class="title-en">Due Today</span>
+                                                <span class="title-bn">আজ বাকি</span>
+                                            </button>
+                                            <button type="button" class="message-preset-btn" data-message="This is a reminder about your outstanding payment. Kindly clear it soon." data-message-bn="আপনার বকেয়া পেমেন্টের একটি রিমাইন্ডার। অনুগ্রহ করে দ্রুত পরিশোধ করুন।">
+                                                <span class="title-en">Reminder</span>
+                                                <span class="title-bn">রিমাইন্ডার</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card-gen-actions">
+                                    <button type="submit" class="primary-btn" data-i18n="ai.generateCard">Generate Card</button>
+                                </div>
+                            </form>
                             
-                            <label>
-                                <span data-i18n="ai.customMessage">Custom Message (optional)</span>
-                                <textarea name="customMessage" rows="2" placeholder="Please pay at your earliest convenience..."></textarea>
-                            </label>
-                            
-                            <button type="submit" class="primary-btn" data-i18n="ai.generateCard">Generate Card</button>
-                        </form>
-                        
-                        <div class="card-preview" id="debt-card-preview" hidden>
-                            <h3 data-i18n="ai.preview">Preview</h3>
-                            <div class="generated-debt-card" id="generated-card-content"></div>
-                            <div class="card-actions">
-                                <button class="secondary-btn" id="download-debt-card-btn" data-i18n="ai.downloadCard">📥 Download</button>
-                                <button class="secondary-btn" id="share-debt-card-btn" data-i18n="ai.shareCard">📤 Share</button>
+                            <div class="card-preview card-preview-pro" id="debt-card-preview" hidden>
+                                <h3 data-i18n="ai.preview">Preview</h3>
+                                <div class="generated-debt-card" id="generated-card-content"></div>
+                                <div class="card-actions">
+                                    <button class="secondary-btn" id="download-debt-card-btn" data-i18n="ai.downloadCard">📥 Download</button>
+                                    <button class="secondary-btn" id="share-debt-card-btn" data-i18n="ai.shareCard">📤 Share</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -605,8 +676,30 @@
                     </button>
                 </div>
                 <div id="tasks-section" hidden>
+                <!-- Simple Todo App UI -->
+                <div class="todo-simple" id="todo-simple" hidden>
+                    <div class="todo-simple-header">
+                        <h2>
+                            <span class="title-en">Simple Tasks</span>
+                            <span class="title-bn">সহজ কাজ</span>
+                        </h2>
+                        <p>
+                            <span class="title-en">Fast and easy to use</span>
+                            <span class="title-bn">দ্রুত এবং সহজ</span>
+                        </p>
+                    </div>
+                    <div class="todo-simple-input">
+                        <input type="text" id="simple-task-input" placeholder="Add a task...">
+                        <button type="button" id="simple-add-task-btn" aria-label="Add Task">+</button>
+                    </div>
+                    <div class="todo-simple-list" id="todo-simple-list"></div>
+                    <div class="todo-simple-empty" id="todo-simple-empty" hidden>
+                        <span class="title-en">No tasks yet</span>
+                        <span class="title-bn">এখনও কোন কাজ নেই</span>
+                    </div>
+                </div>
                 <!-- New Modern Todo App UI -->
-                <div class="todo-app-new">
+                <div class="todo-app-new" id="todo-app-advanced">
                     <!-- Header -->
                     <div class="todo-header-new">
                         <div class="todo-header-content">
@@ -619,21 +712,31 @@
                                 <span class="title-bn">সংগঠিত এবং উৎপাদনশীল থাকুন</span>
                             </p>
                         </div>
-                        <div class="todo-header-stats">
-                            <div class="todo-stat-badge">
-                                <span class="todo-stat-number" id="total-tasks-count">0</span>
-                                <span class="todo-stat-label">
-                                    <span class="title-en">Total</span>
-                                    <span class="title-bn">মোট</span>
-                                </span>
+                        <div class="todo-header-right">
+                            <div class="todo-header-stats">
+                                <div class="todo-stat-badge">
+                                    <span class="todo-stat-number" id="total-tasks-count">0</span>
+                                    <span class="todo-stat-label">
+                                        <span class="title-en">Total</span>
+                                        <span class="title-bn">মোট</span>
+                                    </span>
+                                </div>
+                                <div class="todo-stat-badge completed">
+                                    <span class="todo-stat-number" id="completed-tasks-count">0</span>
+                                    <span class="todo-stat-label">
+                                        <span class="title-en">Done</span>
+                                        <span class="title-bn">সম্পন্ন</span>
+                                    </span>
+                                </div>
                             </div>
-                            <div class="todo-stat-badge completed">
-                                <span class="todo-stat-number" id="completed-tasks-count">0</span>
-                                <span class="todo-stat-label">
-                                    <span class="title-en">Done</span>
-                                    <span class="title-bn">সম্পন্ন</span>
-                                </span>
-                            </div>
+                            <button type="button" class="todo-add-task-btn" id="add-task-btn" aria-label="Add Task">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span class="title-en">Add Task</span>
+                                <span class="title-bn">নতুন কাজ</span>
+                            </button>
                         </div>
                     </div>
 
@@ -793,8 +896,8 @@
                                         <span class="title-bn">আমার নোট</span>
                                     </h2>
                                     <p class="notes-subtitle-v2">
-                                        <span class="title-en">Quick thoughts & ideas</span>
-                                        <span class="title-bn">দ্রুত চিন্তা ও ধারণা</span>
+                                        <span class="title-en">Capture ideas, payment reminders, and follow-ups</span>
+                                        <span class="title-bn">আইডিয়া, পেমেন্ট রিমাইন্ডার ও ফলো-আপ সংরক্ষণ করুন</span>
                                     </p>
                                 </div>
                             </div>
@@ -802,8 +905,22 @@
                                 <div class="note-stat-pill" id="notes-count-pill">
                                     <span class="note-stat-num" id="notes-total-count">0</span>
                                     <span class="note-stat-text">
-                                        <span class="title-en">Notes</span>
-                                        <span class="title-bn">নোট</span>
+                                        <span class="title-en">Total</span>
+                                        <span class="title-bn">মোট</span>
+                                    </span>
+                                </div>
+                                <div class="note-stat-pill">
+                                    <span class="note-stat-num" id="notes-pinned-count">0</span>
+                                    <span class="note-stat-text">
+                                        <span class="title-en">Pinned</span>
+                                        <span class="title-bn">পিন করা</span>
+                                    </span>
+                                </div>
+                                <div class="note-stat-pill">
+                                    <span class="note-stat-num" id="notes-recent-count">0</span>
+                                    <span class="note-stat-text">
+                                        <span class="title-en">This Week</span>
+                                        <span class="title-bn">এই সপ্তাহ</span>
                                     </span>
                                 </div>
                             </div>
@@ -816,7 +933,7 @@
                                     <circle cx="11" cy="11" r="8"></circle>
                                     <path d="m21 21-4.35-4.35"></path>
                                 </svg>
-                                <input type="search" id="notes-search" placeholder="Search notes..." data-i18n-placeholder="notes.searchPlaceholder">
+                                <input type="search" id="notes-search" placeholder="Search titles or keywords..." data-i18n-placeholder="notes.searchPlaceholder">
                             </div>
                             <button class="notes-add-btn-v2" id="add-note-btn" aria-label="Add Note">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -892,20 +1009,20 @@
                                 </svg>
                             </div>
                             <h4>
-                                <span class="title-en">Start capturing ideas</span>
-                                <span class="title-bn">আইডিয়া সংরক্ষণ শুরু করুন</span>
+                                <span class="title-en">Create your first note</span>
+                                <span class="title-bn">আপনার প্রথম নোট তৈরি করুন</span>
                             </h4>
                             <p>
-                                <span class="title-en">Your notes will appear here. Tap the button to create your first note.</span>
-                                <span class="title-bn">আপনার নোটগুলো এখানে দেখা যাবে। প্রথম নোট তৈরি করতে বোতামে ট্যাপ করুন।</span>
+                                <span class="title-en">Save payment terms, customer follow-ups, or quick ideas. Tap below to get started.</span>
+                                <span class="title-bn">পেমেন্ট শর্ত, কাস্টমার ফলো-আপ বা দ্রুত আইডিয়া লিখে রাখুন। শুরু করতে নিচে ট্যাপ করুন।</span>
                             </p>
                             <button class="empty-create-btn" id="empty-add-note-btn">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
-                                <span class="title-en">Create Note</span>
-                                <span class="title-bn">নোট তৈরি করুন</span>
+                                <span class="title-en">Create first note</span>
+                                <span class="title-bn">প্রথম নোট তৈরি করুন</span>
                             </button>
                         </div>
                         
@@ -1237,10 +1354,38 @@
                                         <span class="dock-value-new" id="dock-size-value">100%</span>
                                     </div>
                                 </div>
+
+                                <!-- UI Size -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">UI Size</span>
+                                        <span class="title-bn">ইউআই সাইজ</span>
+                                    </span>
+                                    <div class="dock-slider-new">
+                                        <input type="range" id="ui-scale-range" min="0.8" max="1.0" step="0.01" value="1" />
+                                        <span class="dock-value-new" id="ui-scale-value">100%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Simple To-Do Mode -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Simple To-Do</span>
+                                        <span class="title-bn">সহজ টু-ডু</span>
+                                    </span>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="simple-todo-toggle">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
                                 
                                 <!-- Themes -->
                                 <div class="themes-grid-new" id="theme-grid">
-                                    <div class="theme-tile-new" data-theme="cozy-ledger" aria-checked="true">
+                                    <div class="theme-tile-new" data-theme="studio-pro" aria-checked="true">
+                                        <div class="theme-preview-new pro"></div>
+                                        <span>Pro</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="cozy-ledger" aria-checked="false">
                                         <div class="theme-preview-new cozy"></div>
                                         <span>Cozy</span>
                                     </div>
@@ -1601,7 +1746,7 @@
 
     <dialog class="modal" id="note-modal" aria-labelledby="note-modal-title">
         <form class="modal-form" id="note-form">
-            <h2 id="note-modal-title" data-i18n="modals.note.title">New Todo</h2>
+            <h2 id="note-modal-title" data-i18n="modals.note.title">New Note</h2>
             <label>
                 <span data-i18n="modals.note.titleLabel">Title</span>
                 <input type="text" name="title" maxlength="80" required />
