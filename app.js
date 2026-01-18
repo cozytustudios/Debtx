@@ -59,10 +59,12 @@
             debtQuery: '',
             debtFilter: 'all',
             dockScale: 1,
-            theme: 'cozy-ledger', // Default theme - warm and calming
+            uiScale: 1,
+            theme: 'studio-pro', // Default theme - premium and crisp
             haptics: true,
             sounds: true,
             textSize: 3,
+            simpleTodo: false,
             hasSeenOnboarding: false
         },
         ai: {
@@ -95,16 +97,29 @@
             'ai.cardGenerator': 'Card Generator',
             'ai.calculator': 'Calculator',
             'ai.chat': 'AI Chat',
-            'ai.debtCardTitle': 'Debt Reminder Card Generator',
-            'ai.debtCardHint': 'Create beautiful payment reminder cards for your customers',
+            'ai.debtCardTitle': 'Debt Card Generator Pro',
+            'ai.debtCardHint': 'Build polished reminder cards with live preview and pro templates.',
+            'ai.cardGenPillAuto': 'Auto-fill',
+            'ai.cardGenPillPreview': 'Live Preview',
+            'ai.cardGenPillShare': 'Share Ready',
+            'ai.cardSectionCustomer': 'Customer Details',
+            'ai.cardSectionPayment': 'Shop & Payment',
+            'ai.cardSectionStyle': 'Style & Message',
             'ai.selectCustomer': 'Select Customer',
             'ai.selectLogo': 'Select Shop Logo',
-            'ai.customerName': 'Customer Name',
+            'ai.customerNameField': 'Customer Name (or enter manually)',
+            'ai.customerName': 'Customer',
             'ai.debtAmount': 'Debt Amount (৳)',
             'ai.shopName': 'Shop Name',
             'ai.paymentMethod': 'Payment Method',
             'ai.paymentNumber': 'Payment Number/Details',
             'ai.dueDate': 'Due Date',
+            'ai.cardStyle': 'Card Style',
+            'ai.styleClassic': 'Classic',
+            'ai.styleModern': 'Modern',
+            'ai.styleMinimal': 'Minimal',
+            'ai.reminderBadge': 'Payment Reminder',
+            'ai.reminderTagline': 'Please settle the balance by the due date.',
             'ai.cardColor': 'Card Color',
             'ai.customMessage': 'Custom Message (optional)',
             'ai.generateCard': 'Generate Card',
@@ -164,12 +179,12 @@
             'debts.card.recordPayment': 'Record Payment',
             'debts.card.demandPayment': 'Request Payment',
             'debts.card.addDebt': 'Add Debt',
-            'notes.title': 'Todos',
-            'notes.subtitle': 'Keep quick reminders in one place',
-            'notesTasks.title': 'Todos & Tasks',
-            'notesTasks.subtitle': 'Keep todos and track your tasks',
-            'notes.addNote': '+ New Todo',
-            'notes.searchPlaceholder': 'Search notes',
+            'notes.title': 'Notes',
+            'notes.subtitle': 'Capture ideas, payment reminders, and follow-ups',
+            'notesTasks.title': 'Notes & Tasks',
+            'notesTasks.subtitle': 'Keep notes and track your tasks in one place',
+            'notes.addNote': '+ New Note',
+            'notes.searchPlaceholder': 'Search titles or keywords...',
             'notes.filterAll': 'All',
             'notes.filterPinned': 'Pinned',
             'notes.filterRecent': 'Recent',
@@ -178,7 +193,7 @@
             'notes.filterBlue': 'Blue',
             'notes.filterPink': 'Pink',
             'notes.filterGray': 'Gray',
-            'notes.empty': 'No notes yet. Create your first note to get started.',
+            'notes.empty': 'No notes yet. Add your first note to start capturing ideas.',
             'notes.pin': 'Pin to top',
             'notes.unpin': 'Unpin',
             'notes.deleteConfirm': 'Are you sure you want to delete this note?',
@@ -220,6 +235,7 @@
             'settings.monthlyWrapHint': 'Overview of your monthly activity',
             'settings.pendingAmount': 'Pending Payments',
             'settings.overallPerformance': 'Overall Performance',
+            'themes.studioPro': 'Studio Pro',
             'themes.light': 'Light',
             'themes.dark': 'Dark',
             'themes.ocean': 'Ocean',
@@ -327,7 +343,7 @@
             'modals.payment.amount': 'Payment Amount (৳)',
             'modals.payment.date': 'Date',
             'modals.payment.note': 'Note',
-            'modals.note.title': 'New Todo',
+            'modals.note.title': 'New Note',
             'modals.note.titleLabel': 'Title',
             'modals.note.color': 'Color',
             'modals.note.colorYellow': 'Yellow',
@@ -496,16 +512,29 @@
             'ai.cardGenerator': 'কার্ড জেনারেটর',
             'ai.calculator': 'ক্যালকুলেটর',
             'ai.chat': 'এআই চ্যাট',
-            'ai.debtCardTitle': 'ঋণ কার্ড জেনারেটর',
-            'ai.debtCardHint': 'আপনার ক্রেতাদের জন্য কাস্টম ঋণ অনুস্মারক কার্ড তৈরি করুন',
+            'ai.debtCardTitle': 'প্রো ঋণ কার্ড জেনারেটর',
+            'ai.debtCardHint': 'লাইভ প্রিভিউ ও প্রো টেমপ্লেট দিয়ে সুন্দর কার্ড তৈরি করুন।',
+            'ai.cardGenPillAuto': 'অটো-ফিল',
+            'ai.cardGenPillPreview': 'লাইভ প্রিভিউ',
+            'ai.cardGenPillShare': 'শেয়ার রেডি',
+            'ai.cardSectionCustomer': 'ক্রেতার তথ্য',
+            'ai.cardSectionPayment': 'দোকান ও পেমেন্ট',
+            'ai.cardSectionStyle': 'স্টাইল ও বার্তা',
             'ai.selectCustomer': 'ক্রেতা নির্বাচন করুন',
             'ai.selectLogo': 'দোকানের লোগো নির্বাচন করুন',
-            'ai.customerName': 'ক্রেতার নাম',
+            'ai.customerNameField': 'ক্রেতার নাম (বা নিজে লিখুন)',
+            'ai.customerName': 'ক্রেতা',
             'ai.debtAmount': 'ঋণের পরিমাণ (৳)',
             'ai.shopName': 'দোকানের নাম',
             'ai.paymentMethod': 'পেমেন্ট পদ্ধতি',
             'ai.paymentNumber': 'পেমেন্ট নম্বর/বিবরণ',
             'ai.dueDate': 'শেষ তারিখ',
+            'ai.cardStyle': 'কার্ড স্টাইল',
+            'ai.styleClassic': 'ক্লাসিক',
+            'ai.styleModern': 'মডার্ন',
+            'ai.styleMinimal': 'মিনিমাল',
+            'ai.reminderBadge': 'পেমেন্ট রিমাইন্ডার',
+            'ai.reminderTagline': 'দয়া করে শেষ তারিখের মধ্যে বাকি পরিশোধ করুন।',
             'ai.cardColor': 'কার্ডের রঙ',
             'ai.customMessage': 'কাস্টম বার্তা (ঐচ্ছিক)',
             'ai.generateCard': 'কার্ড তৈরি করুন',
@@ -565,12 +594,12 @@
             'debts.card.recordPayment': 'পেমেন্ট নিন',
             'debts.card.demandPayment': 'পেমেন্ট দাবি',
             'debts.card.addDebt': 'নতুন দেনা যোগ করুন',
-            'notes.title': 'টুডু',
-            'notes.subtitle': 'দ্রুত নোট এক জায়গায় রাখুন',
-            'notesTasks.title': 'টুডু ও কাজ',
-            'notesTasks.subtitle': 'টুডু রাখুন এবং কাজ ট্র্যাক করুন',
-            'notes.addNote': '+ নতুন টুডু',
-            'notes.searchPlaceholder': 'নোট খুঁজুন',
+            'notes.title': 'নোট',
+            'notes.subtitle': 'আইডিয়া, পেমেন্ট রিমাইন্ডার ও ফলো-আপ সংরক্ষণ করুন',
+            'notesTasks.title': 'নোট ও কাজ',
+            'notesTasks.subtitle': 'এক জায়গায় নোট রাখুন এবং কাজ ট্র্যাক করুন',
+            'notes.addNote': '+ নতুন নোট',
+            'notes.searchPlaceholder': 'শিরোনাম বা লেখা খুঁজুন...',
             'notes.filterAll': 'সব',
             'notes.filterPinned': 'পিন করা',
             'notes.filterRecent': 'সাম্প্রতিক',
@@ -579,7 +608,7 @@
             'notes.filterBlue': 'নীল',
             'notes.filterPink': 'গোলাপি',
             'notes.filterGray': 'ধূসর',
-            'notes.empty': 'এখনও কোনো নোট নেই লেখা শুরু করুন',
+            'notes.empty': 'এখনও কোনো নোট নেই। আপনার প্রথম নোট তৈরি করুন।',
             'notes.pin': 'উপরে পিন করুন',
             'notes.unpin': 'আনপিন করুন',
             'notes.deleteConfirm': 'আপনি কি নিশ্চিত যে আপনি এই নোটটি মুছে ফেলতে চান?',
@@ -623,6 +652,7 @@
             'settings.monthlyWrapHint': 'আপনার মাসিক কার্যক্রমের ভিজ্যুয়াল সারাংশ',
             'settings.pendingAmount': 'বকেয়া পরিমাণ',
             'settings.overallPerformance': 'সামগ্রিক পারফরম্যান্স',
+            'themes.studioPro': 'স্টুডিও প্রো',
             'themes.light': 'লাইট',
             'themes.dark': 'ডার্ক',
             'themes.ocean': 'ওশান',
@@ -728,7 +758,7 @@
             'modals.payment.amount': 'পেমেন্টের পরিমাণ (৳)',
             'modals.payment.date': 'তারিখ',
             'modals.payment.note': 'নোট',
-            'modals.note.title': 'নতুন টুডু',
+            'modals.note.title': 'নতুন নোট',
             'modals.note.titleLabel': 'শিরোনাম',
             'modals.note.color': 'রং',
             'modals.note.colorYellow': 'হলুদ',
@@ -981,7 +1011,10 @@
         logoListContainer: document.getElementById('logo-list-container'),
         addLogoBtn: document.getElementById('add-logo-btn'),
         dockSizeInput: document.getElementById('dock-size-range'),
-        dockSizeValue: document.getElementById('dock-size-value')
+        dockSizeValue: document.getElementById('dock-size-value'),
+        uiScaleInput: document.getElementById('ui-scale-range'),
+        uiScaleValue: document.getElementById('ui-scale-value'),
+        simpleTodoToggle: document.getElementById('simple-todo-toggle')
     };
 
     const modals = {
@@ -1036,6 +1069,8 @@
         applyTheme(state.ui.theme, { initial: true });
         applyTextSize(state.ui.textSize || 3);
         applyDockScale(state.ui.dockScale || 1);
+        applyUiScale(state.ui.uiScale || 1);
+        applyTodoMode(state.ui.simpleTodo);
         applyPlanBranding();
         
         // Initialize text size button
@@ -1256,6 +1291,16 @@
                     if (selectors.dockSizeInput) selectors.dockSizeInput.value = state.ui.dockScale;
                     updateDockScaleDisplay();
                 }
+                if (typeof imported.ui.uiScale === 'number' && imported.ui.uiScale >= 0.8 && imported.ui.uiScale <= 1) {
+                    state.ui.uiScale = imported.ui.uiScale;
+                    applyUiScale(state.ui.uiScale);
+                    if (selectors.uiScaleInput) selectors.uiScaleInput.value = state.ui.uiScale;
+                    updateUiScaleDisplay();
+                }
+                if (typeof imported.ui.simpleTodo === 'boolean') {
+                    state.ui.simpleTodo = imported.ui.simpleTodo;
+                    applyTodoMode(state.ui.simpleTodo);
+                }
             }
             if (imported.language) {
                 state.language = imported.language;
@@ -1380,6 +1425,19 @@
             forms.note.elements.color.value = 'yellow';
             forms.note.elements.pinned.checked = false;
             modals.note.showModal();
+        });
+
+        document.getElementById('add-task-btn')?.addEventListener('click', () => {
+            playFeedback();
+            forms.task.reset();
+            setModalMode(forms.task, 'create');
+            if (forms.task.elements.taskId) forms.task.elements.taskId.value = '';
+            if (forms.task.elements.type) forms.task.elements.type.value = 'personal';
+            if (forms.task.elements.priority) forms.task.elements.priority.value = 'medium';
+            if (forms.task.elements.recurring) forms.task.elements.recurring.checked = false;
+            const recurringOptions = document.getElementById('recurring-options');
+            if (recurringOptions) recurringOptions.style.display = 'none';
+            modals.task.showModal();
         });
 
         // FAB button handler moved to attachNewFeatureHandlers for context-aware behavior
@@ -1967,9 +2025,10 @@
     }
 
     function applyTheme(theme, options = {}) {
-        // All available themes - 6 new professional themes + legacy themes
+        // All available themes - 7 new professional themes + legacy themes
         const allThemes = [
             // New professional themes
+            'studio-pro',      // Crisp & premium
             'cozy-ledger',      // Warm & calming
             'clean-business',   // Minimal high-contrast
             'night-shop',       // Dark mode optimized
@@ -1982,7 +2041,7 @@
         
         // Map old theme names to new themes
         const themeMap = {
-            'default': 'cozy-ledger',
+            'default': 'studio-pro',
             'mint': 'cozy-ledger',
             'light': 'clean-business',
             'midnight': 'night-shop',
@@ -2004,6 +2063,7 @@
         
         // Theme descriptions for UI
         const themeDescriptions = {
+            'studio-pro': 'Crisp professional palette — refined neutrals with a premium teal focus.',
             'cozy-ledger': 'Warm, calming tones with soft shadows — designed to reduce stress during long daily use.',
             'clean-business': 'Minimal high-contrast layout — prioritizes clarity and speed for professional use.',
             'night-shop': 'Dark theme with eye-friendly highlights — perfect for night-time use.',
@@ -2016,7 +2076,7 @@
         if (themeMap[theme]) {
             safe = themeMap[theme];
         } else if (!allThemes.includes(theme)) {
-            safe = 'cozy-ledger'; // Default to cozy-ledger
+            safe = 'studio-pro'; // Default to studio-pro
         }
         
         state.ui.theme = safe;
@@ -2148,7 +2208,7 @@
         // Re-render tasks when notes panel is shown
         if (panel === 'notes') {
             renderTasks();
-            renderNewTodoList();
+            renderNewTodoList(getCurrentTodoCategory());
             updateTodoStats();
         }
         
@@ -2255,6 +2315,15 @@
         sizeBtns.forEach(btn => {
             btn.classList.toggle('active', parseInt(btn.dataset.size) === state.ui.textSize);
         });
+
+        if (selectors.uiScaleInput) {
+            selectors.uiScaleInput.value = Math.max(0.8, Math.min(1.0, Number(state.ui.uiScale) || 1));
+        }
+        updateUiScaleDisplay();
+
+        if (selectors.simpleTodoToggle) {
+            selectors.simpleTodoToggle.checked = !!state.ui.simpleTodo;
+        }
         
         // Update theme tiles
         const themeTiles = document.querySelectorAll('.theme-tile-new');
@@ -2988,6 +3057,8 @@
         const notesList = document.getElementById('notes-list');
         const notesEmpty = document.getElementById('notes-empty');
         const notesCountEl = document.getElementById('notes-total-count');
+        const pinnedCountEl = document.getElementById('notes-pinned-count');
+        const recentCountEl = document.getElementById('notes-recent-count');
         
         if (!notesList) return;
         
@@ -3020,6 +3091,17 @@
         // Update notes count
         if (notesCountEl) {
             notesCountEl.textContent = state.notes.length;
+        }
+        if (pinnedCountEl || recentCountEl) {
+            const recentSince = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            let pinnedCount = 0;
+            let recentCount = 0;
+            state.notes.forEach(note => {
+                if (note.pinned) pinnedCount += 1;
+                if ((note.updatedAt || note.createdAt || 0) >= recentSince) recentCount += 1;
+            });
+            if (pinnedCountEl) pinnedCountEl.textContent = pinnedCount;
+            if (recentCountEl) recentCountEl.textContent = recentCount;
         }
         
         if (!filtered.length) {
@@ -3142,6 +3224,9 @@
 
     function renderTasks() {
         renderTodoCategories();
+        renderNewTodoList(getCurrentTodoCategory());
+        renderSimpleTodoList();
+        updateTodoStats();
     }
     
     function renderTodoCategories() {
@@ -4979,6 +5064,12 @@
         selectors.dockSizeValue.textContent = `${value}%`;
     }
 
+    function updateUiScaleDisplay() {
+        if (!selectors.uiScaleValue) return;
+        const value = Math.round((state.ui.uiScale || 1) * 100);
+        selectors.uiScaleValue.textContent = `${value}%`;
+    }
+
     function updateSettingsDisplay() {
         // Update shop profile fields
         const shopNameInput = document.getElementById('settings-shop-name-input');
@@ -5019,6 +5110,18 @@
             applyDockScale(dockScale);
         }
         updateDockScaleDisplay();
+
+        if (selectors.uiScaleInput) {
+            const uiScale = Math.max(0.8, Math.min(1.0, Number(state.ui.uiScale) || 1));
+            selectors.uiScaleInput.value = uiScale;
+            applyUiScale(uiScale);
+        }
+        updateUiScaleDisplay();
+
+        if (selectors.simpleTodoToggle) {
+            selectors.simpleTodoToggle.checked = !!state.ui.simpleTodo;
+            applyTodoMode(state.ui.simpleTodo);
+        }
 
         // Update shop logo and photo previews
         updateShopLogoPreview();
@@ -5315,6 +5418,32 @@
             console.log('Dock custom slider NOT found');
         }
 
+        if (selectors.uiScaleInput) {
+            const currentScale = Math.max(0.8, Math.min(1.0, state.ui.uiScale || 1));
+            selectors.uiScaleInput.value = currentScale;
+            applyUiScale(currentScale);
+            updateUiScaleDisplay();
+
+            if (!selectors.uiScaleInput.hasAttribute('data-listener-attached')) {
+                selectors.uiScaleInput.setAttribute('data-listener-attached', 'true');
+                selectors.uiScaleInput.addEventListener('input', (event) => {
+                    const value = applyUiScale(event.target.value);
+                    state.ui.uiScale = value;
+                    updateUiScaleDisplay();
+                    saveState();
+                });
+            }
+        }
+
+        if (selectors.simpleTodoToggle && !selectors.simpleTodoToggle.hasAttribute('data-listener-attached')) {
+            selectors.simpleTodoToggle.setAttribute('data-listener-attached', 'true');
+            selectors.simpleTodoToggle.addEventListener('change', (event) => {
+                state.ui.simpleTodo = !!event.target.checked;
+                applyTodoMode(state.ui.simpleTodo);
+                saveState();
+            });
+        }
+
         // Shop name input
         const shopNameInput = document.getElementById('settings-shop-name-input');
         if (shopNameInput) {
@@ -5585,7 +5714,8 @@
             state.tasks.push(newTask);
             saveState();
             renderTasks();
-            renderNewTodoList();
+            renderNewTodoList(getCurrentTodoCategory());
+            renderSimpleTodoList();
             updateTodoStats();
             
             if (quickInput) quickInput.value = '';
@@ -5602,13 +5732,55 @@
         });
         
         // Initial render
-        renderNewTodoList();
+        renderNewTodoList(getCurrentTodoCategory());
         updateTodoStats();
+
+        initSimpleTodoUI();
+    }
+
+    function initSimpleTodoUI() {
+        const simpleInput = document.getElementById('simple-task-input');
+        const simpleAddBtn = document.getElementById('simple-add-task-btn');
+
+        if (simpleAddBtn && simpleInput) {
+            simpleAddBtn.addEventListener('click', addSimpleTask);
+            simpleInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addSimpleTask();
+                }
+            });
+        }
+
+        renderSimpleTodoList();
+
+        function addSimpleTask() {
+            const taskName = simpleInput?.value.trim();
+            if (!taskName) return;
+
+            const newTask = {
+                id: generateId('task'),
+                name: taskName,
+                type: 'other',
+                done: false,
+                createdAt: Date.now(),
+                date: new Date().toISOString().split('T')[0]
+            };
+
+            state.tasks.push(newTask);
+            saveState();
+            renderTasks();
+            renderNewTodoList(getCurrentTodoCategory());
+            renderSimpleTodoList();
+            updateTodoStats();
+
+            if (simpleInput) simpleInput.value = '';
+            playFeedback();
+        }
     }
     
     // Render new todo list
     function renderNewTodoList(filterCategory = 'all') {
-        const listContainer = document.getElementById('todo-list-new');
+        const listContainer = document.getElementById('todo-tasks-list-new');
         const emptyState = document.getElementById('todo-empty-new');
         
         if (!listContainer) return;
@@ -5698,6 +5870,55 @@
             listContainer.appendChild(item);
         });
     }
+
+    function renderSimpleTodoList() {
+        const listContainer = document.getElementById('todo-simple-list');
+        const emptyState = document.getElementById('todo-simple-empty');
+
+        if (!listContainer) return;
+
+        const tasks = [...(state.tasks || [])].sort((a, b) => {
+            if (a.done !== b.done) return a.done ? 1 : -1;
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+
+        listContainer.innerHTML = '';
+
+        if (tasks.length === 0) {
+            if (emptyState) emptyState.removeAttribute('hidden');
+            return;
+        }
+
+        if (emptyState) emptyState.setAttribute('hidden', 'hidden');
+
+        tasks.forEach(task => {
+            const item = document.createElement('div');
+            item.className = `todo-simple-item${task.done ? ' done' : ''}`;
+            item.dataset.taskId = task.id;
+
+            const check = document.createElement('button');
+            check.type = 'button';
+            check.className = `todo-simple-check${task.done ? ' checked' : ''}`;
+            check.textContent = task.done ? '✓' : '';
+            check.addEventListener('click', () => toggleTaskComplete(task.id));
+
+            const text = document.createElement('div');
+            text.className = 'todo-simple-text';
+            text.textContent = task.name;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'todo-simple-delete';
+            deleteBtn.textContent = state.language === 'bn' ? 'মুছুন' : 'Delete';
+            deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
+            item.appendChild(check);
+            item.appendChild(text);
+            item.appendChild(deleteBtn);
+
+            listContainer.appendChild(item);
+        });
+    }
     
     function toggleTaskComplete(taskId) {
         const task = state.tasks.find(t => t.id === taskId);
@@ -5707,6 +5928,7 @@
             saveState();
             renderTasks();
             renderNewTodoList(getCurrentTodoCategory());
+            renderSimpleTodoList();
             updateTodoStats();
             playFeedback();
         }
@@ -5719,6 +5941,7 @@
             saveState();
             renderTasks();
             renderNewTodoList(getCurrentTodoCategory());
+            renderSimpleTodoList();
             updateTodoStats();
             playFeedback();
         }
@@ -7263,6 +7486,27 @@
         return normalized;
     }
 
+    function applyUiScale(scale) {
+        const normalized = clampNumber(Number(scale) || 1, 0.8, 1.0);
+        document.documentElement.style.setProperty('--ui-scale', normalized);
+        return normalized;
+    }
+
+    function applyTodoMode(isSimple) {
+        const simplePanel = document.getElementById('todo-simple');
+        const advancedPanel = document.getElementById('todo-app-advanced');
+
+        if (simplePanel) simplePanel.hidden = !isSimple;
+        if (advancedPanel) advancedPanel.hidden = !!isSimple;
+
+        if (isSimple) {
+            renderSimpleTodoList();
+        } else {
+            renderNewTodoList(getCurrentTodoCategory());
+        }
+        updateTodoStats();
+    }
+
     // Calculator Functions
     function initCalculator() {
         if (!selectors.calculatorButtons) return;
@@ -7413,6 +7657,20 @@
             });
 
             updateDebtCardPreview();
+
+            const presetButtons = document.querySelectorAll('.message-preset-btn');
+            presetButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const message = state.language === 'bn'
+                        ? (btn.dataset.messageBn || btn.dataset.message || '')
+                        : (btn.dataset.message || btn.dataset.messageBn || '');
+                    const messageField = debtCardForm.querySelector('textarea[name="customMessage"]');
+                    if (!messageField) return;
+                    messageField.value = message;
+                    updateDebtCardPreview();
+                    playFeedback();
+                });
+            });
         }
         
         // Download and share buttons
@@ -7527,6 +7785,7 @@
         const paymentNumber = (formData.get('paymentNumber') || getPaymentNumberForMethod(paymentMethod)).toString();
         const dueDate = (formData.get('dueDate') || (selectedCustomer ? getCustomerNextDueDate(selectedCustomer) : '')).toString();
         const cardColor = (formData.get('cardColor') || '#22c55e').toString();
+        const cardStyle = (formData.get('cardStyle') || 'classic').toString();
         const customMessage = (formData.get('customMessage') || '').toString();
 
         return {
@@ -7539,6 +7798,7 @@
             paymentNumber,
             dueDate,
             cardColor,
+            cardStyle,
             customMessage
         };
     }
@@ -7569,18 +7829,31 @@
                 day: 'numeric'
             })
             : '';
+        const daysLeft = payload.dueDate ? daysUntil(payload.dueDate) : null;
+        const dueBadge = Number.isFinite(daysLeft) ? formatDaysLeftText(daysLeft) : '';
+        let dueStatus = '';
+        if (Number.isFinite(daysLeft)) {
+            if (daysLeft < 0) dueStatus = 'overdue';
+            else if (daysLeft === 0) dueStatus = 'due-today';
+            else if (daysLeft <= 2) dueStatus = 'due-soon';
+        }
 
         const amountText = payload.debtAmount > 0 ? formatCurrency(payload.debtAmount) : '৳0';
 
         const cardHTML = `
+            <div class="card-top-row">
+                <span class="card-badge">${translate('ai.reminderBadge') || 'Payment Reminder'}</span>
+                ${dueBadge ? `<span class="card-due-pill ${dueStatus}">${escapeHtml(dueBadge)}</span>` : ''}
+            </div>
             <div class="card-header">
-                <div>
+                <div class="card-brand">
                     <p class="card-shop-name">${escapeHtml(payload.shopName)}</p>
+                    <p class="card-tagline">${translate('ai.reminderTagline') || ''}</p>
                 </div>
                 ${logoHTML}
             </div>
             <div class="card-body">
-                <p class="card-customer-name">${translate('ai.customerName')}: ${escapeHtml(payload.customerName || '')}</p>
+                <p class="card-customer-name"><span>${translate('ai.customerName')}:</span> ${escapeHtml(payload.customerName || '')}</p>
                 <p class="card-debt-amount">${escapeHtml(amountText)}</p>
                 <div class="card-details">
                     ${payload.paymentMethod ? `
@@ -7607,7 +7880,21 @@
         `;
 
         cardContent.innerHTML = cardHTML;
-        cardContent.style.background = `linear-gradient(135deg, ${payload.cardColor}, ${adjustColor(payload.cardColor, -20)})`;
+        const accent = payload.cardColor;
+        const accentStrong = adjustColor(payload.cardColor, -30);
+        cardContent.dataset.style = payload.cardStyle || 'classic';
+        cardContent.style.setProperty('--card-accent', accent);
+        cardContent.style.setProperty('--card-accent-strong', accentStrong);
+        if (payload.cardStyle === 'minimal') {
+            cardContent.style.background = '#ffffff';
+            cardContent.style.color = '#0f172a';
+        } else if (payload.cardStyle === 'modern') {
+            cardContent.style.background = `linear-gradient(135deg, ${accent}, ${accentStrong})`;
+            cardContent.style.color = '#ffffff';
+        } else {
+            cardContent.style.background = `linear-gradient(135deg, ${accent}, ${adjustColor(payload.cardColor, -20)})`;
+            cardContent.style.color = '#ffffff';
+        }
         cardPreview.hidden = false;
         if (scroll) {
             cardPreview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
