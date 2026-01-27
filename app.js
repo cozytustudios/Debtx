@@ -12,7 +12,7 @@
         return `${year}-${month}-${day}`;
     };
 
-        const defaultState = () => ({
+    const defaultState = () => ({
         version: LS_VERSION,
         language: 'bn',
         notificationsEnabled: false,
@@ -50,7 +50,7 @@
         },
         ui: {
             selectedDate: todayString(),
-            activePanel: 'customers',
+            activePanel: 'premium',
             notesQuery: '',
             notesFilter: 'all',
             notesColorFilter: null, // Array of selected colors or null
@@ -65,18 +65,25 @@
             sounds: true,
             textSize: 3,
             simpleTodo: false,
+            pricingBilling: 'annual',
             hasSeenOnboarding: false
         },
         ai: {
             lastSummary: '',
-            chatHistory: []
+            chatHistory: [],
+            usageCount: 0,
+            lastUsageDate: null,
+            lastUsageKey: null,
+            lastUsagePlan: null,
+            pendingIntent: null,
+            buddyName: 'Assistant' // Default AI buddy name
         },
         calculator: {
             expression: '',
             result: '0'
         },
         subscription: {
-            plan: 'free', // free, pro, max, ultra, online
+            plan: 'free', // free, max, ultra
             activatedAt: null,
             expiresAt: null
         }
@@ -84,20 +91,27 @@
 
     const translations = {
         en: {
+            'nav.home': 'Home',
             'nav.customers': 'Customers',
+            'nav.debts': 'Baki',
             'nav.bills': 'Bills',
-            'nav.ai': 'AI Tools',
+            'nav.ai': 'AI Agent',
             'nav.notesTasks': 'Notes & Tasks',
             'nav.notes': 'Notes',
-            'nav.tasks': 'To-Do',
+            'nav.tasks': 'Tasks',
             'nav.settings': 'Settings',
-            'nav.premium': 'Pro',
-            'ai.title': 'AI Tools',
-            'ai.subtitle': 'Calculator, Card Generator & AI Chat',
+            'nav.premium': 'Home',
+            'ai.title': 'AI Agent',
+            'ai.subtitle': 'Calm Bangla assistant for debt, tasks, and notes',
+            'ai.greetingQuestion': 'How can I help you today?',
+            'ai.usagePlanLabel': 'Plan',
+            'ai.usageLabel': 'AI usage',
+            'ai.noApiBadge': 'No API',
             'ai.cardGenerator': 'Card Generator',
             'ai.calculator': 'Calculator',
-            'ai.chat': 'AI Chat',
-            'ai.debtCardTitle': 'Debt Card Generator Pro',
+            'ai.chat': 'AI Agent',
+            'ai.cardBadge': 'Studio',
+            'ai.debtCardTitle': 'Debt Card Generator',
             'ai.debtCardHint': 'Build polished reminder cards with live preview and pro templates.',
             'ai.cardGenPillAuto': 'Auto-fill',
             'ai.cardGenPillPreview': 'Live Preview',
@@ -125,6 +139,8 @@
             'ai.generateCard': 'Generate Card',
             'ai.preview': 'Preview',
             'ai.downloadCard': '📥 Download',
+            'ai.downloadPng': 'Download PNG',
+            'ai.downloadPdf': 'Download PDF',
             'ai.shareCard': '📤 Share',
             'calculator.title': 'Calculator',
             'calculator.subtitle': 'Quick calculations for your shop',
@@ -336,6 +352,8 @@
             'modals.customer.repayDays': 'Repayment window (days)',
             'modals.customer.note': 'Note',
             'modals.debt.title': 'Record Debt',
+            'modals.debt.customer': 'Customer',
+            'modals.debt.customerPlaceholder': 'Select customer',
             'modals.debt.amount': 'Debt Amount (৳)',
             'modals.debt.description': 'Description',
             'modals.debt.date': 'Date',
@@ -406,6 +424,7 @@
             'bills.view': 'View',
             'bills.share': 'Share',
             'bills.downloadPng': 'Download PNG',
+            'bills.downloadPdf': 'Download PDF',
             'bills.makeInvoice': 'Make Invoice',
             'bills.invoiceNumber': 'Invoice #',
             'bills.items': 'Items',
@@ -462,10 +481,77 @@
             'actions.close': 'Close',
             'actions.apply': 'Apply',
             'footer.text': 'Debtx keeps your khata simple, clear, and close to you.',
-            'ai.title': 'AI Assistant',
-            'ai.subtitle': 'Get insights and generate cards',
-            'ai.welcome': 'Hello! I can help you manage your shop, track payments, generate reminder cards, and more. How can I help you today?',
-            'ai.placeholder': 'Ask me anything...',
+            'ai.title': 'AI Agent',
+            'ai.subtitle': 'Calm Bangla assistant for debt, tasks, and notes',
+            'ai.welcome': 'Hi! I can help with debts, tasks, notes, and calm summaries. Speak in Bangla or English, and I will confirm before saving.',
+            'ai.placeholder': 'Type or speak in Bangla or English...',
+            'ai.agentBadge': 'AI Agent',
+            'ai.agentTitle': 'Calm, Bangla-first assistant',
+            'ai.agentHint': 'Speak in Bangla to add debt, tasks, or notes. Everything stays local.',
+            'ai.shortcut.summary': 'Summarize tasks',
+            'ai.shortcut.addTask': 'Add task',
+            'ai.shortcut.addNote': 'Add note',
+            'ai.shortcut.addDebt': 'Add debt',
+            'ai.shortcut.theme': 'Change theme',
+            'ai.limitTitleFree': 'Your free AI limit is finished for today',
+            'ai.limitBodyFree': 'Upgrade to Max to use the Agent more.',
+            'ai.limitTitleMax': 'Your Max cycle limit is finished',
+            'ai.limitBodyMax': 'Upgrade to Ultra for unlimited AI support anytime.',
+            'ai.limitCta': 'See plans',
+            'ai.paywallLater': 'Not now',
+            'ai.paywallCta': 'See Max plan',
+            'pricing.kicker': 'Simple, calm pricing',
+            'pricing.title': 'Clear AI access from day one',
+            'pricing.subtitle': 'See how much AI you can use, where voice lives, and what the Agent can do.',
+            'pricing.currentLabel': 'Current plan',
+            'pricing.aiUsageLabel': 'AI usage',
+            'pricing.perMonth': '/month',
+            'pricing.perYear': '/year',
+            'pricing.freePeriod': 'Forever',
+            'pricing.maxTagline': 'For growing shops that want more AI help.',
+            'pricing.ultraTagline': 'Unlimited AI for busy, calm days.',
+            'pricing.freeTagline': 'Start with core debts, tasks, and basic voice.',
+            'pricing.usagePreviewLabel': 'AI usage preview',
+            'pricing.usagePreviewFree': '0/30 today',
+            'pricing.usagePreviewMax': '12/100 this month',
+            'pricing.usagePreviewUltra': 'Unlimited',
+            'pricing.couponPlaceholder': 'Enter coupon code',
+            'pricing.free.feature1': 'Basic Baki + Tasks',
+            'pricing.free.feature2': 'AI Agent: 30/day',
+            'pricing.free.feature3': 'Basic voice input (limited commands)',
+            'pricing.max.feature1': 'AI Agent: 100 / billing cycle',
+            'pricing.max.feature2': 'Agent button fully enabled in Docs',
+            'pricing.max.feature3': 'Theme change, automation & controls',
+            'pricing.ultra.feature1': 'Unlimited AI Agent',
+            'pricing.ultra.feature2': 'All features unlocked',
+            'pricing.ultra.feature3': 'Priority automation & controls',
+            'pricing.footnote': 'No paid APIs. Works offline and keeps your data close.',
+            'home.quick.customers': 'Open customers',
+            'home.quick.bills': 'Bills & invoices',
+            'home.quick.settings': 'Settings',
+            'docs.title': 'Voice + No API Guide',
+            'docs.subtitle': 'See exactly how Bangla-first voice and the agent work.',
+            'docs.voice.title': 'Voice flow',
+            'docs.voice.step1': 'Transcribe Bangla + English speech',
+            'docs.voice.step2': 'Extract fields: name, amount, type, date, note, time',
+            'docs.voice.step3': 'Auto-fill the form fields',
+            'docs.voice.step4': 'Preview and confirm save',
+            'docs.voice.where': 'Mic is always in Add Baki, Add Task, Quick Add, and the Agent.',
+            'docs.noapi.title': 'No API Agent',
+            'docs.noapi.body': 'Rule-based intent parser (keywords + regex + entity extraction). Optional on-device model can be added later.',
+            'docs.examples.title': 'Natural Bangla examples',
+            'voice.listening': 'Listening...',
+            'voice.preview.title': 'Voice preview',
+            'voice.preview.confirmQuestion': 'Confirm save?',
+            'voice.preview.customer': 'Customer',
+            'voice.preview.amount': 'Amount',
+            'voice.preview.type': 'Type',
+            'voice.preview.date': 'Date',
+            'voice.preview.time': 'Time',
+            'voice.preview.task': 'Task',
+            'voice.preview.note': 'Note',
+            'voice.preview.edit': 'Edit',
+            'voice.preview.confirmCta': 'Confirm save',
             'ai.ultraOnly': 'Ultra Only',
             'ai.ultraExclusive': 'AI Chat - Ultra Exclusive',
             'notifications.enabled': 'Reminders on',
@@ -499,20 +585,27 @@
             'onboarding.step4.desc': 'Explore Notes for quick reminders, AI Tools for smart features, and Settings to customize your experience.'
         },
         bn: {
+            'nav.home': 'হোম',
             'nav.customers': 'ক্রেতা',
+            'nav.debts': 'বাকি',
             'nav.bills': 'বিল',
-            'nav.ai': 'এআই টুলস',
+            'nav.ai': 'এআই এজেন্ট',
             'nav.notesTasks': 'নোট ও কাজ',
             'nav.notes': 'নোট',
-            'nav.tasks': 'করণীয়',
+            'nav.tasks': 'কাজ',
             'nav.settings': 'সেটিংস',
-            'nav.premium': 'প্রো',
-            'ai.title': 'এআই টুলস',
-            'ai.subtitle': 'ক্যালকুলেটর, কার্ড জেনারেটর ও এআই চ্যাট',
+            'nav.premium': 'হোম',
+            'ai.title': 'এআই এজেন্ট',
+            'ai.subtitle': 'দেনা, কাজ ও নোটের জন্য শান্ত বাংলা সহায়ক',
+            'ai.greetingQuestion': 'আজ আপনাকে কীভাবে সাহায্য করতে পারি?',
+            'ai.usagePlanLabel': 'প্ল্যান',
+            'ai.usageLabel': 'এআই ব্যবহার',
+            'ai.noApiBadge': 'No API',
             'ai.cardGenerator': 'কার্ড জেনারেটর',
             'ai.calculator': 'ক্যালকুলেটর',
-            'ai.chat': 'এআই চ্যাট',
-            'ai.debtCardTitle': 'প্রো ঋণ কার্ড জেনারেটর',
+            'ai.chat': 'এআই এজেন্ট',
+            'ai.cardBadge': 'স্টুডিও',
+            'ai.debtCardTitle': 'ঋণ কার্ড জেনারেটর',
             'ai.debtCardHint': 'লাইভ প্রিভিউ ও প্রো টেমপ্লেট দিয়ে সুন্দর কার্ড তৈরি করুন।',
             'ai.cardGenPillAuto': 'অটো-ফিল',
             'ai.cardGenPillPreview': 'লাইভ প্রিভিউ',
@@ -540,6 +633,8 @@
             'ai.generateCard': 'কার্ড তৈরি করুন',
             'ai.preview': 'প্রিভিউ',
             'ai.downloadCard': '📥 ডাউনলোড',
+            'ai.downloadPng': 'PNG ডাউনলোড',
+            'ai.downloadPdf': 'PDF ডাউনলোড',
             'ai.shareCard': '📤 শেয়ার',
             'calculator.title': 'ক্যালকুলেটর',
             'calculator.subtitle': 'দ্রুত হিসাব করুন',
@@ -751,6 +846,8 @@
             'modals.customer.repayDays': 'পরিশোধের সময়সীমা (দিন)',
             'modals.customer.note': 'নোট',
             'modals.debt.title': 'দেনা লিখুন',
+            'modals.debt.customer': 'ক্রেতা',
+            'modals.debt.customerPlaceholder': 'ক্রেতা নির্বাচন করুন',
             'modals.debt.amount': 'দেনার পরিমাণ (৳)',
             'modals.debt.description': 'বিবরণ',
             'modals.debt.date': 'তারিখ',
@@ -828,6 +925,7 @@
             'bills.view': 'দেখুন',
             'bills.share': 'শেয়ার',
             'bills.downloadPng': 'PNG ডাউনলোড',
+            'bills.downloadPdf': 'PDF ডাউনলোড',
             'bills.makeInvoice': 'ইনভয়েস তৈরি',
             'bills.invoiceNumber': 'ইনভয়েস #',
             'bills.items': 'পণ্য',
@@ -884,10 +982,77 @@
             'actions.close': 'বন্ধ',
             'actions.apply': 'প্রয়োগ',
             'footer.text': 'ডেবটএক্স আপনার খাতা রাখে সহজ ও নির্ভরযোগ্য',
-            'ai.title': 'এআই সহায়ক',
-            'ai.subtitle': 'ইনসাইট ও কার্ড তৈরি করুন',
-            'ai.welcome': 'হ্যালো আমি আপনার দোকান পরিচালনা ট্রাস্ট রেশিও গণনা (জিজ্ঞাসা করুন: "[ক্রেতার নাম] এর ট্রাস্ট রেশিও কত?") পেমেন্ট কার্ড তৈরি ইত্যাদিতে সাহায্য করতে পারি কিছু জিজ্ঞাসা করুন',
-            'ai.placeholder': 'কিছু জিজ্ঞাসা করুন',
+            'ai.title': 'এআই এজেন্ট',
+            'ai.subtitle': 'দেনা, কাজ ও নোটের জন্য শান্ত বাংলা সহায়ক',
+            'ai.welcome': 'হ্যালো! আমি দেনা, কাজ, নোট এবং শান্ত সারাংশে সাহায্য করতে পারি। বাংলায় বলুন বা লিখুন—সেভ করার আগে আমি নিশ্চিত করব।',
+            'ai.placeholder': 'বাংলা বা ইংরেজিতে লিখুন বা বলুন...',
+            'ai.agentBadge': 'এআই এজেন্ট',
+            'ai.agentTitle': 'শান্ত, বাংলা-প্রথম সহায়ক',
+            'ai.agentHint': 'বাংলায় বললেই দেনা, কাজ বা নোট যোগ হবে—সবকিছু লোকালেই থাকে।',
+            'ai.shortcut.summary': 'কাজের সারাংশ',
+            'ai.shortcut.addTask': 'কাজ যোগ করুন',
+            'ai.shortcut.addNote': 'নোট যোগ করুন',
+            'ai.shortcut.addDebt': 'দেনা যোগ করুন',
+            'ai.shortcut.theme': 'থিম বদলান',
+            'ai.limitTitleFree': 'আজকের ফ্রি এআই লিমিট শেষ হয়েছে',
+            'ai.limitBodyFree': 'আরও ব্যবহার করতে Max নিন।',
+            'ai.limitTitleMax': 'আপনার Max সাইকেলের লিমিট শেষ হয়েছে',
+            'ai.limitBodyMax': 'সবসময় আনলিমিটেড এআই পেতে Ultra নিন।',
+            'ai.limitCta': 'প্ল্যান দেখুন',
+            'ai.paywallLater': 'এখন নয়',
+            'ai.paywallCta': 'Max প্ল্যান দেখুন',
+            'pricing.kicker': 'সহজ ও পরিষ্কার প্ল্যান',
+            'pricing.title': 'প্রথম দিন থেকেই এআই এক্সেস পরিষ্কার',
+            'pricing.subtitle': 'এআই কতবার ব্যবহার হবে, ভয়েস কোথায় আছে—সব আগে থেকেই স্পষ্ট।',
+            'pricing.currentLabel': 'বর্তমান প্ল্যান',
+            'pricing.aiUsageLabel': 'এআই ব্যবহার',
+            'pricing.perMonth': '/মাস',
+            'pricing.perYear': '/বছর',
+            'pricing.freePeriod': 'সবসময় ফ্রি',
+            'pricing.freeTagline': 'বেসিক বাকি ও কাজের জন্য শুরু করুন।',
+            'pricing.maxTagline': 'বড় হতে থাকা দোকানের জন্য বেশি এআই সহায়তা।',
+            'pricing.ultraTagline': 'ব্যস্ত দিনের জন্য আনলিমিটেড এআই।',
+            'pricing.usagePreviewLabel': 'AI ব্যবহার প্রিভিউ',
+            'pricing.usagePreviewFree': '০/৩০ আজ',
+            'pricing.usagePreviewMax': '১২/১০০ এই মাসে',
+            'pricing.usagePreviewUltra': 'আনলিমিটেড',
+            'pricing.couponPlaceholder': 'কুপন কোড লিখুন',
+            'pricing.free.feature1': 'বেসিক বাকি + কাজ',
+            'pricing.free.feature2': 'এআই এজেন্ট: দিনে ৩০ বার',
+            'pricing.free.feature3': 'বেসিক ভয়েস ইনপুট (সীমিত কমান্ড)',
+            'pricing.max.feature1': 'এআই এজেন্ট: প্রতি সাইকেলে ১০০ বার',
+            'pricing.max.feature2': 'ডকের AI বাটন সম্পূর্ণ এনাবল',
+            'pricing.max.feature3': 'থিম বদল, অটোমেশন ও কন্ট্রোল',
+            'pricing.ultra.feature1': 'আনলিমিটেড এআই এজেন্ট',
+            'pricing.ultra.feature2': 'সব ফিচার আনলক',
+            'pricing.ultra.feature3': 'প্রায়োরিটি অটোমেশন ও কন্ট্রোল',
+            'pricing.footnote': 'কোন পেইড API নেই। অফলাইনে কাজ করে এবং ডেটা আপনার কাছেই থাকে।',
+            'home.quick.customers': 'ক্রেতা খুলুন',
+            'home.quick.bills': 'বিল ও ইনভয়েস',
+            'home.quick.settings': 'সেটিংস',
+            'docs.title': 'ভয়েস + No API গাইড',
+            'docs.subtitle': 'বাংলা-প্রথম ভয়েস ও এজেন্ট কীভাবে কাজ করে দেখুন।',
+            'docs.voice.title': 'ভয়েস ফ্লো',
+            'docs.voice.step1': 'বাংলা + ইংরেজি স্পিচ ট্রান্সক্রাইব',
+            'docs.voice.step2': 'ফিল্ড বের করা: নাম, টাকা, টাইপ, তারিখ, নোট, সময়',
+            'docs.voice.step3': 'ফর্ম অটো-ফিল',
+            'docs.voice.step4': 'প্রিভিউ দেখিয়ে কনফার্ম',
+            'docs.voice.where': 'Add Baki, Add Task, Quick Add, এবং Agent-এ মাইক সবসময় থাকবে।',
+            'docs.noapi.title': 'No API এজেন্ট',
+            'docs.noapi.body': 'রুল-বেসড intent parser (keywords + regex + entity extraction)। পরে চাইলে লোকাল মডেল যোগ করা যাবে।',
+            'docs.examples.title': 'ন্যাচারাল বাংলা উদাহরণ',
+            'voice.listening': 'শোনা হচ্ছে...',
+            'voice.preview.title': 'ভয়েস প্রিভিউ',
+            'voice.preview.confirmQuestion': 'ঠিক আছে? Save করবো?',
+            'voice.preview.customer': 'ক্রেতা',
+            'voice.preview.amount': 'টাকা',
+            'voice.preview.type': 'ধরন',
+            'voice.preview.date': 'তারিখ',
+            'voice.preview.time': 'সময়',
+            'voice.preview.task': 'কাজ',
+            'voice.preview.note': 'নোট',
+            'voice.preview.edit': 'এডিট',
+            'voice.preview.confirmCta': 'সেভ করুন',
             'ai.ultraOnly': 'শুধু Ultra',
             'ai.ultraExclusive': 'এআই চ্যাট - Ultra একচেটিয়া',
             'notifications.enabled': 'রিমাইন্ডার চালু',
@@ -928,23 +1093,23 @@
 
     const selectors = {
         nav: {
-            customers: document.getElementById('nav-customers'),
-            bills: document.getElementById('nav-bills'),
-            ai: document.getElementById('nav-ai'),
-            notes: document.getElementById('nav-notes'),
-            tasks: document.getElementById('nav-tasks'),
-            settings: document.getElementById('nav-settings'),
             premium: document.getElementById('nav-premium'),
+            customers: document.getElementById('nav-customers'),
+            tasks: document.getElementById('nav-tasks'),
+            notes: document.getElementById('nav-notes'),
+            settings: document.getElementById('nav-settings'),
+            ai: document.getElementById('nav-ai'),
+            bills: document.getElementById('nav-bills'),
         },
         panels: {
             customers: document.getElementById('panel-customers'),
             bills: document.getElementById('panel-bills'),
             ai: document.getElementById('panel-ai'),
             notes: document.getElementById('panel-notes'),
-            tasks: document.getElementById('panel-tasks'),
             settings: document.getElementById('panel-settings'),
             premium: document.getElementById('panel-premium')
         },
+        premiumCornerBtn: document.getElementById('premium-corner-btn'),
         languageToggle: document.getElementById('language-toggle'),
         notificationToggle: document.getElementById('notification-toggle'),
         customerList: document.getElementById('customer-list'),
@@ -1057,7 +1222,7 @@
 
     function init() {
         console.log('Debtx init starting...');
-        
+
         attachNavHandlers();
         attachModalHandlers();
         attachFormHandlers();
@@ -1072,7 +1237,9 @@
         applyUiScale(state.ui.uiScale || 1);
         applyTodoMode(state.ui.simpleTodo);
         applyPlanBranding();
-        
+        highlightPlanCards();
+        setBillingMode(state.ui.pricingBilling || 'annual');
+
         // Initialize text size button
         const currentSize = state.ui.textSize || 3;
         document.querySelectorAll('.text-size-btn').forEach(btn => {
@@ -1080,14 +1247,16 @@
                 btn.classList.add('active');
             }
         });
-        
+
         // No initial auth overlay - login moved to settings
         renderAll();
         setCustomersTab(state.ui.customersTab || 'customers', { save: false });
-        
+
         startReminderLoop();
         refreshAISummary();
-        
+        updateAIUsageUI();
+        updateAIBuddyName();
+
         // Initialize notes/tasks tab on load
         if (state.ui.activeNotesTab) {
             switchNotesTab(state.ui.activeNotesTab);
@@ -1124,6 +1293,10 @@
             parsed.customers = (parsed.customers || []).map(prepareCustomerRecord);
             parsed.tasks = (parsed.tasks || []).map(task => Object.assign({ reminderSent: false }, task));
             parsed.ai = Object.assign(defaultState().ai, parsed.ai || {});
+            // Ensure buddyName exists
+            if (!parsed.ai.buddyName) {
+                parsed.ai.buddyName = 'Assistant';
+            }
             return Object.assign(defaultState(), parsed);
         } catch (error) {
             console.error('Failed to load state', error);
@@ -1383,14 +1556,47 @@
     }
 
     function attachNavHandlers() {
+        const navActions = {
+            customers: () => {
+                setActivePanel('customers');
+                setCustomersTab('customers');
+            },
+            tasks: () => {
+                setActivePanel('notes');
+                switchNotesTab('tasks');
+            },
+            notes: () => {
+                setActivePanel('notes');
+                switchNotesTab('notes');
+            },
+            settings: () => setActivePanel('settings'),
+            bills: () => setActivePanel('bills'),
+            premium: () => setActivePanel('premium'),
+            ai: () => {
+                const usage = getAIUsageInfo();
+                if (usage.plan === 'free' && usage.limit !== Infinity && usage.remaining <= 0) {
+                    openAIPaywallModal();
+                    return;
+                }
+                setActivePanel('ai');
+            }
+        };
+
         Object.entries(selectors.nav).forEach(([key, btn]) => {
             if (!btn) return;
             // Do not set data-i18n on the button: labels use data-i18n and applyLanguage would wipe icon+label
             btn.addEventListener('click', () => {
                 playFeedback();
-                setActivePanel(key);
+                const action = navActions[key];
+                if (action) action();
             });
         });
+        if (selectors.premiumCornerBtn) {
+            selectors.premiumCornerBtn.addEventListener('click', () => {
+                playFeedback();
+                setActivePanel('premium');
+            });
+        }
         setActivePanel(state.ui.activePanel);
     }
 
@@ -1437,11 +1643,12 @@
             if (forms.task.elements.recurring) forms.task.elements.recurring.checked = false;
             const recurringOptions = document.getElementById('recurring-options');
             if (recurringOptions) recurringOptions.style.display = 'none';
+            hideTaskVoicePreview();
             modals.task.showModal();
         });
 
         // FAB button handler moved to attachNewFeatureHandlers for context-aware behavior
-        
+
         // Recurring task toggle
         const recurringCheckbox = forms.task?.elements.recurring;
         const recurringOptions = document.getElementById('recurring-options');
@@ -1450,7 +1657,24 @@
                 recurringOptions.style.display = recurringCheckbox.checked ? 'block' : 'none';
             });
         }
-        
+
+        document.getElementById('debt-voice-edit')?.addEventListener('click', () => {
+            hideDebtVoicePreview();
+        });
+        document.getElementById('debt-voice-confirm')?.addEventListener('click', () => {
+            if (forms.debt?.reportValidity()) {
+                forms.debt.requestSubmit();
+            }
+        });
+        document.getElementById('task-voice-edit')?.addEventListener('click', () => {
+            hideTaskVoicePreview();
+        });
+        document.getElementById('task-voice-confirm')?.addEventListener('click', () => {
+            if (forms.task?.reportValidity()) {
+                forms.task.requestSubmit();
+            }
+        });
+
     }
 
     function attachFormHandlers() {
@@ -1468,10 +1692,44 @@
     }
 
     function attachMiscHandlers() {
+        // ... (preserving existing handlers by appending after them)
+
+        // Note Tab Switching
+        document.querySelectorAll('.notes-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.ui.notesTab = btn.dataset.tab;
+                saveState();
+                renderNotesV3();
+                playFeedback();
+            });
+        });
+
+        // Add Habit Button
+        document.getElementById('add-habit-btn')?.addEventListener('click', () => {
+            forms.task.reset();
+            setModalMode(forms.task, 'add');
+            modals.task.showModal();
+        });
+
+        // New Note FAB
+        document.getElementById('fab-add-note')?.addEventListener('click', () => {
+            forms.note.reset();
+            setModalMode(forms.note, 'add');
+            modals.note.showModal();
+        });
         selectors.languageToggle?.addEventListener('click', () => {
             const nextLang = state.language === 'en' ? 'bn' : 'en';
             applyLanguage(nextLang);
             saveState();
+        });
+
+        document.querySelectorAll('.quick-action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const panel = btn.dataset.panel;
+                if (!panel) return;
+                playFeedback();
+                setActivePanel(panel);
+            });
         });
 
         // Language toggle removed with settings panel
@@ -1505,7 +1763,7 @@
                     // Update active state
                     document.querySelectorAll('#notes-section .filter-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-                    
+
                     state.ui.notesFilter = filter;
                     saveState();
                     renderNotes();
@@ -1513,7 +1771,7 @@
                 }
             });
         });
-        
+
         // Color filter buttons (legacy)
         document.querySelectorAll('#notes-section .color-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1521,7 +1779,7 @@
                 if (color) {
                     // Toggle active state
                     btn.classList.toggle('active');
-                    
+
                     // Update filter to show selected colors
                     const activeColors = Array.from(document.querySelectorAll('#notes-section .color-filter-btn.active')).map(b => b.dataset.color);
                     if (activeColors.length > 0) {
@@ -1536,7 +1794,7 @@
                 }
             });
         });
-        
+
         // New Color Filter Pills (V2)
         document.querySelectorAll('.color-filter-pill').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1545,7 +1803,7 @@
                     // Update active state - single selection
                     document.querySelectorAll('.color-filter-pill').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-                    
+
                     // Update filter
                     state.ui.notesColorFilter = color;
                     saveState();
@@ -1554,7 +1812,7 @@
                 }
             });
         });
-        
+
         // Empty state add note button
         document.getElementById('empty-add-note-btn')?.addEventListener('click', () => {
             setModalMode(forms.note, 'create');
@@ -1564,7 +1822,7 @@
             if (forms.note.elements.pinned) forms.note.elements.pinned.checked = false;
             modals.note.showModal();
         });
-        
+
         // Legacy select filter (if it exists)
         selectors.notesFilter?.addEventListener('change', event => {
             state.ui.notesFilter = event.target.value;
@@ -1617,7 +1875,7 @@
             }
             event.target.value = '';
         });
-        
+
         // Notes FAB button handler
         document.getElementById('notes-fab')?.addEventListener('click', () => {
             playFeedback();
@@ -1628,11 +1886,11 @@
             if (forms.note.elements.pinned) forms.note.elements.pinned.checked = false;
             modals.note.showModal();
         });
-        
+
         // Onboarding handlers
         attachOnboardingHandlers();
     }
-    
+
     function attachOnboardingHandlers() {
         const modal = document.getElementById('onboarding-modal');
         const skipBtn = document.getElementById('onboarding-skip');
@@ -1640,12 +1898,12 @@
         const nextBtn = document.getElementById('onboarding-next');
         const dots = document.querySelectorAll('.onboarding-dots .dot');
         const slides = document.querySelectorAll('.onboarding-slide');
-        
+
         if (!modal) return;
-        
+
         let currentStep = 0;
         const totalSteps = slides.length;
-        
+
         function updateSlide() {
             slides.forEach((slide, i) => {
                 slide.classList.toggle('active', i === currentStep);
@@ -1653,10 +1911,10 @@
             dots.forEach((dot, i) => {
                 dot.classList.toggle('active', i === currentStep);
             });
-            
+
             // Update prev button visibility
             prevBtn.style.visibility = currentStep === 0 ? 'hidden' : 'visible';
-            
+
             // Update next button text
             const isLastStep = currentStep === totalSteps - 1;
             const enText = isLastStep ? 'Get Started' : 'Next';
@@ -1664,15 +1922,15 @@
             nextBtn.querySelector('.title-en').textContent = enText;
             nextBtn.querySelector('.title-bn').textContent = bnText;
         }
-        
+
         function closeOnboarding() {
             modal.close();
             state.ui.hasSeenOnboarding = true;
             saveState();
         }
-        
+
         skipBtn?.addEventListener('click', closeOnboarding);
-        
+
         prevBtn?.addEventListener('click', () => {
             if (currentStep > 0) {
                 currentStep--;
@@ -1680,7 +1938,7 @@
                 playFeedback();
             }
         });
-        
+
         nextBtn?.addEventListener('click', () => {
             if (currentStep < totalSteps - 1) {
                 currentStep++;
@@ -1690,7 +1948,7 @@
                 closeOnboarding();
             }
         });
-        
+
         dots.forEach((dot, i) => {
             dot.addEventListener('click', () => {
                 currentStep = i;
@@ -1698,7 +1956,7 @@
                 playFeedback();
             });
         });
-        
+
         // Show onboarding on first visit (after a small delay to let app initialize)
         if (!state.ui.hasSeenOnboarding) {
             setTimeout(() => {
@@ -1821,21 +2079,21 @@
             console.warn('Auth overlay not found');
             return;
         }
-        
+
         const isGuest = !!state.auth.isGuest;
         const hasPassword = !!state.auth.passwordHash;
         const isUnlocked = !!state.session.unlocked;
-        
+
         console.log('renderAuthState:', { isGuest, hasPassword, isUnlocked });
-        
+
         // Determine if we need to show auth screen
         // Show if: not a guest AND (no password set OR not unlocked)
         const needsSetup = !hasPassword && !isGuest;
         const needsLogin = hasPassword && !isUnlocked;
         const showAuth = needsSetup || needsLogin;
-        
+
         console.log('Auth decision:', { needsSetup, needsLogin, showAuth });
-        
+
         // Update overlay visibility
         if (showAuth) {
             overlay.hidden = false;
@@ -1848,28 +2106,28 @@
             overlay.style.display = 'none';
             console.log('Hiding auth overlay');
         }
-        
+
         document.body.classList.toggle('locked', showAuth);
         setAuthMode(needsSetup ? 'setup' : 'login');
-        
+
         if (selectors.authError) selectors.authError.textContent = '';
-        
+
         // Hide close button when auth is required
         if (selectors.authCloseBtn) {
             selectors.authCloseBtn.hidden = showAuth;
         }
-        
+
         // Show/hide lock button based on whether password is set
         if (selectors.lockBtn) {
             selectors.lockBtn.hidden = !hasPassword;
         }
         // Settings lock button removed
-        
+
         // Clear form fields when showing login
         if (showAuth && !needsSetup) {
             selectors.authLoginForm?.reset();
         }
-        
+
         updateUserBadge();
         updateThemePickerUI();
     }
@@ -1897,7 +2155,7 @@
         const email = (data.get('email') || '').toString().trim();
         const password = (data.get('password') || '').toString();
         const passcode = (data.get('passcode') || '').toString().trim();
-        
+
         // Password is optional - if provided, must be at least 6 chars
         let passwordHash = '';
         let passcodeHash = '';
@@ -1911,7 +2169,7 @@
             passwordHash = await hashString(password);
             passcodeHash = passcode ? await hashString(passcode) : '';
         }
-        
+
         const profilePicture = await readFileAsDataUrl(data.get('profilePicture'));
 
         state.auth = {
@@ -1993,6 +2251,13 @@
         const notesCount = state.notes.length;
         const customersCount = state.customers.length;
         const overdueCustomers = state.customers.filter(c => getCustomerDueInfo(c).status === 'overdue').length;
+        if (state.language === 'bn') {
+            return [
+                `কাজ: মোট ${totalTasks}টি · সম্পন্ন ${doneTasks}টি · বাকি ${overdueTasks}টি · আজকের ${dueToday}টি।`,
+                `নোট: ${notesCount}টি সংরক্ষিত।`,
+                `ক্রেতা: মোট ${customersCount}জন · বাকি থাকা ${overdueCustomers}জন।`
+            ].join(' ');
+        }
         return [
             `Tasks: ${totalTasks} total · ${doneTasks} done · ${overdueTasks} overdue · ${dueToday} due today.`,
             `Notes: ${notesCount} saved.`,
@@ -2038,7 +2303,7 @@
             // Legacy themes for backward compatibility
             'light', 'dark', 'ocean', 'rose'
         ];
-        
+
         // Map old theme names to new themes
         const themeMap = {
             'default': 'studio-pro',
@@ -2060,7 +2325,7 @@
             'coral': 'street-ledger',
             'teal': 'zen-finance'
         };
-        
+
         // Theme descriptions for UI
         const themeDescriptions = {
             'studio-pro': 'Crisp professional palette — refined neutrals with a premium teal focus.',
@@ -2071,16 +2336,16 @@
             'street-ledger': 'Bold modern theme — highlights important actions with energetic colors.',
             'classic-paper': 'Paper-inspired design — feels familiar and reliable like a traditional ledger.'
         };
-        
+
         let safe = theme;
         if (themeMap[theme]) {
             safe = themeMap[theme];
         } else if (!allThemes.includes(theme)) {
             safe = 'studio-pro'; // Default to studio-pro
         }
-        
+
         state.ui.theme = safe;
-        
+
         // Add transition class for smooth theme switching
         if (!options.initial) {
             document.documentElement.setAttribute('data-theme-transitioning', 'true');
@@ -2088,21 +2353,21 @@
                 document.documentElement.removeAttribute('data-theme-transitioning');
             }, 350);
         }
-        
+
         // Apply theme immediately to document element
         if (document.documentElement) {
             document.documentElement.setAttribute('data-theme', safe);
         }
-        
+
         // Update theme description in UI
         const descEl = document.querySelector('.theme-description-text');
         if (descEl && themeDescriptions[safe]) {
             descEl.textContent = themeDescriptions[safe];
         }
-        
+
         // Update theme picker UI
         updateThemePickerUI();
-        
+
         // Save state if not initial load
         if (!options.initial) {
             saveState();
@@ -2123,7 +2388,7 @@
                 }
             });
         }
-        
+
         // Update settings panel theme tiles
         document.querySelectorAll('.theme-appearance-tile').forEach(tile => {
             const isActive = tile.dataset.theme === state.ui.theme;
@@ -2189,29 +2454,45 @@
         });
     }
 
-    function setActivePanel(panel) {
-        state.ui.activePanel = panel;
+    function updateDockActiveState(panel) {
+        const customersTab = state.ui.customersTab || 'customers';
+        const notesTab = state.ui.activeNotesTab || 'notes';
         Object.entries(selectors.nav).forEach(([key, btn]) => {
             if (!btn) return;
-            btn.classList.toggle('active', key === panel);
+            let isActive = key === panel;
+            if (key === 'customers') {
+                isActive = panel === 'customers';
+            } else if (key === 'tasks') {
+                isActive = panel === 'notes' && notesTab === 'tasks';
+            } else if (key === 'notes') {
+                isActive = panel === 'notes' && notesTab !== 'tasks';
+            }
+            btn.classList.toggle('active', isActive);
         });
+    }
+
+    function setActivePanel(panel) {
+        if (!selectors.panels[panel]) {
+            panel = 'customers';
+        }
+        state.ui.activePanel = panel;
         Object.entries(selectors.panels).forEach(([key, panelEl]) => {
             if (!panelEl) return;
             panelEl.classList.toggle('active', key === panel);
         });
-        
+
 
         if (panel === 'customers') {
             setCustomersTab(state.ui.customersTab || 'customers', { save: false });
         }
-        
+
         // Re-render tasks when notes panel is shown
         if (panel === 'notes') {
             renderTasks();
             renderNewTodoList(getCurrentTodoCategory());
             updateTodoStats();
         }
-        
+
         // Update settings display when settings panel is shown
         if (panel === 'settings') {
             setTimeout(() => {
@@ -2219,69 +2500,166 @@
                 updateNewSettingsUI();
             }, 100);
         }
-        
+
         // Update premium panel status when shown
         if (panel === 'premium') {
             updatePremiumPanelStatus();
+            setBillingMode(state.ui.pricingBilling || 'annual');
+            highlightPlanCards();
         }
         if (panel === 'ai') {
             ensureAIChatAccessible();
         }
+        updateDockActiveState(panel);
 
-        
         saveState();
     }
-    
+
     // Update dock premium button visibility based on subscription
     function updateDockPremiumVisibility() {
         const premiumBtn = document.getElementById('nav-premium');
-        if (!premiumBtn) return;
-        
-        const subscription = state.subscription || { plan: 'free' };
-        const now = Date.now();
-        const isExpired = subscription.expiresAt && now > subscription.expiresAt;
-        const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
-        
-        // Show premium button only for free users
-        if (activePlan === 'free') {
-            premiumBtn.classList.remove('hidden');
-        } else {
-            premiumBtn.classList.add('hidden');
+        const cornerBtn = selectors.premiumCornerBtn;
+        const isFree = getActivePlan() === 'free';
+
+        if (premiumBtn) {
+            premiumBtn.hidden = !isFree;
+            premiumBtn.setAttribute('aria-hidden', isFree ? 'false' : 'true');
+            premiumBtn.classList.toggle('hidden', !isFree);
+        }
+        if (cornerBtn) {
+            cornerBtn.hidden = !isFree;
+            cornerBtn.setAttribute('aria-hidden', isFree ? 'false' : 'true');
         }
     }
-    
+
+    function openAIPaywallModal() {
+        const modal = document.getElementById('ai-paywall-modal');
+        if (!modal) return;
+        if (typeof modal.showModal === 'function') {
+            modal.showModal();
+        } else {
+            modal.setAttribute('open', 'true');
+        }
+    }
+
     // Update premium panel status display
     function updatePremiumPanelStatus() {
         const statusEl = document.getElementById('premium-current-status');
         if (!statusEl) return;
-        
-        const subscription = state.subscription || { plan: 'free' };
+
+        const activePlan = getActivePlan();
+        const sub = state.subscription || { plan: 'free' };
         const now = Date.now();
-        const isExpired = subscription.expiresAt && now > subscription.expiresAt;
-        const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
-        
+        const expiresAt = sub.expiresAt && sub.expiresAt > now ? sub.expiresAt : null;
+        const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000))) : null;
+        const isBangla = state.language === 'bn';
         const planNames = {
-            free: state.language === 'bn' ? 'ফ্রি প্ল্যান' : 'Free Plan',
-            pro: 'PRO',
-            max: 'MAX',
-            ultra: 'ULTRA',
-            online: 'ONLINE'
+            free: isBangla ? 'ফ্রি' : 'Free',
+            nano: isBangla ? 'ন্যানো' : 'Nano',
+            pro: isBangla ? 'প্রো' : 'Pro',
+            max: isBangla ? 'ম্যাক্স' : 'Max',
+            ultra: isBangla ? 'আল্ট্রা' : 'Ultra'
         };
-        
-        const badge = statusEl.querySelector('.status-badge');
-        if (badge) {
-            badge.textContent = state.language === 'bn' ? `বর্তমান: ${planNames[activePlan]}` : `Current: ${planNames[activePlan]}`;
-            badge.classList.toggle('free', activePlan === 'free');
-            badge.classList.toggle('active', activePlan !== 'free');
+
+        const planEl = document.getElementById('premium-current-plan');
+        const usageEl = document.getElementById('premium-current-usage');
+        const hintEl = document.getElementById('premium-current-hint');
+        const daysEl = document.getElementById('premium-days-left');
+
+        if (planEl) planEl.textContent = planNames[activePlan] || planNames.free;
+        if (daysEl) {
+            if (!expiresAt || activePlan === 'free') {
+                daysEl.textContent = '—';
+            } else {
+                daysEl.textContent = String(daysLeft);
+            }
+        }
+        if (usageEl) {
+            const usageText = (() => {
+                switch (activePlan) {
+                    case 'nano':
+                        return isBangla ? 'এআই এজেন্ট: ২০/মাস' : 'AI agent: 20/month';
+                    case 'pro':
+                        return isBangla ? 'এআই এজেন্ট: ৬০/মাস' : 'AI agent: 60/month';
+                    case 'max':
+                        return isBangla ? 'এআই এজেন্ট: ১০০/মাস' : 'AI agent: 100/month';
+                    case 'ultra':
+                        return isBangla ? 'এআই এজেন্ট: আনলিমিটেড' : 'AI agent: Unlimited';
+                    default:
+                        return isBangla ? 'এআই এজেন্ট: দিনে ৩০ বার' : 'AI agent: 30/day';
+                }
+            })();
+            usageEl.textContent = usageText;
+        }
+        if (hintEl) {
+            if (!expiresAt || activePlan === 'free') {
+                hintEl.textContent = isBangla
+                    ? 'কুপন রিডিম করে প্ল্যান চালু করুন।'
+                    : 'Redeem a coupon to activate a plan.';
+            } else {
+                const expiryDate = new Date(expiresAt);
+                const dateStr = expiryDate.toLocaleDateString(isBangla ? 'bn-BD' : 'en-US');
+                hintEl.textContent = isBangla
+                    ? `মেয়াদ শেষ হতে বাকি: ${daysLeft} দিন • মেয়াদ শেষ: ${dateStr}`
+                    : `Days left: ${daysLeft} • Expires: ${dateStr}`;
+            }
+        }
+        highlightPlanCards();
+    }
+
+    function updateSettingsSubscriptionOverview() {
+        const planEl = document.getElementById('settings-current-plan');
+        const daysEl = document.getElementById('settings-days-left');
+        const noteEl = document.getElementById('settings-expiry-note');
+        if (!planEl && !daysEl && !noteEl) return;
+
+        const activePlan = getActivePlan();
+        const isBangla = state.language === 'bn';
+        const planNames = {
+            free: isBangla ? 'ফ্রি' : 'Free',
+            nano: isBangla ? 'ন্যানো' : 'Nano',
+            pro: isBangla ? 'প্রো' : 'Pro',
+            max: isBangla ? 'ম্যাক্স' : 'Max',
+            ultra: isBangla ? 'আল্ট্রা' : 'Ultra'
+        };
+
+        const sub = state.subscription || { plan: 'free' };
+        const now = Date.now();
+        const expiresAt = sub.expiresAt && sub.expiresAt > now ? sub.expiresAt : null;
+        const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000))) : null;
+
+        if (planEl) planEl.textContent = planNames[activePlan] || planNames.free;
+        if (daysEl) daysEl.textContent = !expiresAt || activePlan === 'free' ? '—' : String(daysLeft);
+
+        if (noteEl) {
+            if (!expiresAt || activePlan === 'free') {
+                noteEl.textContent = isBangla
+                    ? 'প্ল্যান চালু করতে কুপন রিডিম করুন অথবা ফেসবুকে মেসেজ দিন।'
+                    : 'Redeem a coupon to activate, or message us on Facebook to buy/renew.';
+            } else {
+                const expiryDate = new Date(expiresAt);
+                const dateStr = expiryDate.toLocaleDateString(isBangla ? 'bn-BD' : 'en-US');
+                noteEl.textContent = isBangla
+                    ? `মেয়াদ শেষ: ${dateStr} • রিনিউ করার জন্য ফেসবুকে মেসেজ দিন।`
+                    : `Expires: ${dateStr} • Message us on Facebook to renew.`;
+            }
         }
     }
-    
-    // Get active subscription plan (handles expiry)
+
+    function normalizePlan(plan) {
+        if (plan === 'ultra') return 'ultra';
+        if (plan === 'max') return 'max';
+        if (plan === 'pro') return 'pro';
+        if (plan === 'nano') return 'nano';
+        return 'free';
+    }
+
+    // Get active subscription plan (handles expiry + legacy plans)
     function getActivePlan() {
         const sub = state.subscription || { plan: 'free' };
         const now = Date.now();
         if (sub.expiresAt && now > sub.expiresAt) return 'free';
-        return sub.plan || 'free';
+        return normalizePlan(sub.plan || 'free');
     }
 
     // Apply DebtX plan branding: header logo, body data-attr, and settings plan section. free=black, pro/max=red, ultra=purple.
@@ -2293,23 +2671,70 @@
         const badge = document.getElementById('settings-plan-badge');
         const nameEl = document.getElementById('settings-debtx-name');
         if (section) {
-            section.classList.remove('plan-free', 'plan-pro', 'plan-max', 'plan-ultra', 'plan-online');
+            section.classList.remove('plan-free', 'plan-nano', 'plan-pro', 'plan-max', 'plan-ultra');
             section.classList.add('plan-' + plan);
         }
-        const planLabels = { free: state.language === 'bn' ? 'ফ্রি' : 'Free', pro: 'Pro', max: 'Max', ultra: 'Ultra', online: 'Online' };
+        const planLabels = {
+            free: state.language === 'bn' ? 'ফ্রি' : 'Free',
+            nano: state.language === 'bn' ? 'ন্যানো' : 'Nano',
+            pro: state.language === 'bn' ? 'প্রো' : 'Pro',
+            max: state.language === 'bn' ? 'ম্যাক্স' : 'Max',
+            ultra: state.language === 'bn' ? 'আল্ট্রা' : 'Ultra'
+        };
         if (badge) badge.textContent = planLabels[plan] || planLabels.free;
         if (nameEl) nameEl.textContent = 'DebtX';
+    }
+
+    function highlightPlanCards() {
+        const activePlan = getActivePlan();
+        document.querySelectorAll('[data-plan-card]').forEach(card => {
+            card.classList.toggle('is-active', card.dataset.planCard === activePlan);
+        });
+    }
+
+    function setBillingMode(mode = 'annual') {
+        const normalized = mode === 'monthly' ? 'monthly' : 'annual';
+        state.ui.pricingBilling = normalized;
+        const stack = document.getElementById('pricing-card-stack');
+        const cards = stack ? stack.querySelectorAll('[data-billing]') : [];
+        cards.forEach(card => {
+            const billing = card.dataset.billing || 'all';
+            const show = billing === 'all' || billing === normalized;
+            card.hidden = !show;
+            card.classList.toggle('is-visible', show);
+        });
+        document.querySelectorAll('[data-billing-toggle]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.billingToggle === normalized);
+        });
+        if (stack) stack.dataset.activeBilling = normalized;
+        saveState();
+    }
+
+    function handlePlanSelect(plan, billingMode) {
+        const normalized = normalizePlan(plan);
+        state.subscription.plan = normalized;
+        state.subscription.activatedAt = Date.now();
+        state.subscription.expiresAt = null;
+        if (billingMode) {
+            state.ui.pricingBilling = billingMode === 'monthly' ? 'monthly' : 'annual';
+        }
+        saveState();
+        applyPlanBranding();
+        updatePremiumPanelStatus();
+        highlightPlanCards();
     }
 
     // Update new settings UI elements
     function updateNewSettingsUI() {
         applyPlanBranding();
+        highlightPlanCards();
+        updateSettingsSubscriptionOverview();
         // Update language buttons
         const langBtns = document.querySelectorAll('.lang-btn-new');
         langBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.lang === state.language);
         });
-        
+
         // Update text size buttons
         const sizeBtns = document.querySelectorAll('.size-btn-new');
         sizeBtns.forEach(btn => {
@@ -2324,29 +2749,26 @@
         if (selectors.simpleTodoToggle) {
             selectors.simpleTodoToggle.checked = !!state.ui.simpleTodo;
         }
-        
+
         // Update theme tiles
         const themeTiles = document.querySelectorAll('.theme-tile-new');
         themeTiles.forEach(tile => {
             tile.setAttribute('aria-checked', tile.dataset.theme === state.ui.theme ? 'true' : 'false');
         });
     }
-    
+
     // Get customer limit based on subscription
     function getCustomerLimit() {
         const subscription = state.subscription || { plan: 'free' };
         const now = Date.now();
         const isExpired = subscription.expiresAt && now > subscription.expiresAt;
         const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
-        
+
         switch (activePlan) {
             case 'free':
                 return Infinity; // Unlimited for free
-            case 'pro':
-                return 100; // 100 customers for Pro
             case 'max':
             case 'ultra':
-            case 'online':
                 return Infinity; // Unlimited for other plans
             default:
                 return Infinity;
@@ -2359,20 +2781,34 @@
 
     function handleCustomerSubmit(event) {
         event.preventDefault();
-        
+
         try {
             const form = event.target;
             const data = new FormData(form);
             const customerName = data.get('name')?.trim();
-            
+
             // Validate customer name
             if (!customerName) {
                 alert(state.language === 'bn' ? 'ক্রেতার নাম প্রয়োজন' : 'Customer name is required');
                 return;
             }
-            
-            // No customer limit for free version - users can add unlimited customers
-            
+
+            // Customer limit
+            const activePlan = getActivePlan();
+            let limit = 5; // free
+            if (activePlan === 'nano') limit = 20;
+            else if (activePlan === 'pro') limit = 100;
+            else if (activePlan === 'max') limit = 200;
+            else if (activePlan === 'ultra') limit = Infinity;
+
+            if (state.customers.length >= limit) {
+                const msg = state.language === 'bn'
+                    ? `আপনার ${activePlan} প্ল্যানের সীমা (${limit} ক্রেতা) পূর্ণ হয়েছে। আরও ক্রেতা যোগ করতে আপগ্রেড করুন।`
+                    : `Your ${activePlan} plan limit (${limit} customers) has been reached. Upgrade to add more.`;
+                alert(msg);
+                return;
+            }
+
             // Process customer addition
             const customer = {
                 id: generateId('cust'),
@@ -2395,7 +2831,7 @@
             renderAIDebtCalendar();
             populateCardCustomerSelect();
             modals.customer.close();
-            
+
         } catch (error) {
             console.error('Error in handleCustomerSubmit:', error);
             alert(state.language === 'bn' ? 'ক্রেতা যোগ করতে ত্রুটি হয়েছে' : 'Error adding customer: ' + error.message);
@@ -2519,7 +2955,7 @@
         const form = event.target;
         const data = new FormData(form);
         const taskId = data.get('taskId');
-        
+
         const taskData = {
             name: data.get('name').trim(),
             type: data.get('type'),
@@ -2532,7 +2968,7 @@
             done: false,
             reminderSent: false
         };
-        
+
         if (taskId) {
             // Edit existing task
             const existing = state.tasks.find(t => t.id === taskId);
@@ -2549,11 +2985,11 @@
             };
             state.tasks.push(task);
         }
-        
+
         saveState();
         renderTasks();
         modals.task.close();
-        
+
         // Return to categories view if in detail view
         const categoriesView = document.getElementById('todo-categories-view');
         const detailView = document.getElementById('todo-detail-view');
@@ -2561,7 +2997,7 @@
             categoriesView.hidden = false;
             detailView.hidden = true;
         }
-        
+
         playFeedback();
     }
 
@@ -2648,7 +3084,7 @@
         updateSettingsToggles();
         // Shop profile display removed with settings panel
         refreshAISummary(true);
-        
+
         // Initialize notes/tasks tab
         if (state.ui.activeNotesTab) {
             switchNotesTab(state.ui.activeNotesTab);
@@ -2792,12 +3228,12 @@
             renderDebtLedger();
             renderAIDebtCalendar();
             populateCardCustomerSelect();
-            
+
             // Show success message
             const successMessage = state.language === 'bn'
                 ? 'ক্রেতা সফলভাবে মুছে ফেলা হয়েছে'
                 : 'Customer deleted successfully';
-            
+
             // Optional: Show a toast notification or simple alert
             playFeedback();
         }
@@ -3029,6 +3465,68 @@
     }
 
     function renderNotes() {
+        renderNotesV3();
+    }
+
+    function renderNotesV3() {
+        const gridEl = document.getElementById('notes-grid-modern');
+        const foldersEl = document.getElementById('folders-grid-view');
+        const gridViewEl = document.getElementById('notes-grid-view');
+        const activeTab = state.ui.notesTab || 'all';
+
+        // Update Tab UI
+        document.querySelectorAll('.notes-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === activeTab);
+        });
+
+        if (activeTab === 'folders') {
+            gridViewEl.style.display = 'none';
+            foldersEl.style.display = 'block';
+            return;
+        } else {
+            gridViewEl.style.display = 'block';
+            foldersEl.style.display = 'none';
+        }
+
+        if (!gridEl) return;
+        gridEl.innerHTML = '';
+
+        const query = (state.ui.notesQuery || '').toLowerCase();
+        const filtered = state.notes
+            .filter(note => !query || note.title.toLowerCase().includes(query) || (note.body || '').toLowerCase().includes(query))
+            .sort((a, b) => (b.pinned - a.pinned) || ((b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt)));
+
+        filtered.forEach(note => {
+            const card = document.createElement('div');
+            card.className = 'note-card-modern';
+            card.dataset.noteId = note.id;
+
+            const date = new Date(note.updatedAt || note.createdAt);
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            card.innerHTML = `
+                <span class="note-date">${dateStr}</span>
+                <h3 class="note-title-modern">${escapeHtml(note.title || 'Untitled')}</h3>
+                <div class="note-snippet">${escapeHtml(note.body || '').substring(0, 100)}...</div>
+                <div class="note-tags-modern">
+                    <span class="note-tag-pill">Personal</span>
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                forms.note.reset();
+                setModalMode(forms.note, 'edit');
+                forms.note.elements.title.value = note.title;
+                forms.note.elements.body.value = note.body;
+                forms.note.elements.noteId.value = note.id;
+                modals.note.showModal();
+            });
+
+            gridEl.appendChild(card);
+        });
+    }
+
+    function renderNotes_OLD() {
         const { notesList, notesSearch, notesFilter } = selectors;
         if (!notesList) return;
 
@@ -3051,7 +3549,7 @@
 
         renderNotesNewFormat();
     }
-    
+
     // Render notes in new modern format V2
     function renderNotesNewFormat() {
         const notesList = document.getElementById('notes-list');
@@ -3059,16 +3557,16 @@
         const notesCountEl = document.getElementById('notes-total-count');
         const pinnedCountEl = document.getElementById('notes-pinned-count');
         const recentCountEl = document.getElementById('notes-recent-count');
-        
+
         if (!notesList) return;
-        
+
         // Clear existing content
         notesList.innerHTML = '';
-        
+
         const query = (state.ui.notesQuery || '').toLowerCase();
         const colorFilter = String(state.ui.notesColorFilter || 'all');
         const filter = state.ui.notesFilter || 'all';
-        
+
         const filtered = [...state.notes]
             .filter(note => {
                 if (query && !(
@@ -3087,7 +3585,7 @@
                 return true;
             })
             .sort((a, b) => (b.pinned - a.pinned) || ((b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt)));
-        
+
         // Update notes count
         if (notesCountEl) {
             notesCountEl.textContent = state.notes.length;
@@ -3103,20 +3601,20 @@
             if (pinnedCountEl) pinnedCountEl.textContent = pinnedCount;
             if (recentCountEl) recentCountEl.textContent = recentCount;
         }
-        
+
         if (!filtered.length) {
             if (notesEmpty) notesEmpty.removeAttribute('hidden');
             return;
         }
-        
+
         if (notesEmpty) notesEmpty.setAttribute('hidden', 'hidden');
-        
+
         filtered.forEach((note, index) => {
             const card = document.createElement('div');
             card.className = `note-card-v2 color-${note.color || 'yellow'}`;
             card.dataset.noteId = note.id;
             card.style.animationDelay = `${index * 50}ms`;
-            
+
             // Pin badge
             if (note.pinned) {
                 const pinBadge = document.createElement('div');
@@ -3124,21 +3622,21 @@
                 pinBadge.textContent = '📌';
                 card.appendChild(pinBadge);
             }
-            
+
             // Title
             const title = document.createElement('h3');
             title.className = 'note-title-v2';
             title.textContent = note.title || (state.language === 'bn' ? 'শিরোনামহীন নোট' : 'Untitled Note');
-            
+
             // Preview
             const preview = document.createElement('p');
             preview.className = 'note-preview-v2';
             preview.textContent = note.body || '';
-            
+
             // Footer
             const footer = document.createElement('div');
             footer.className = 'note-footer-v2';
-            
+
             const dateSpan = document.createElement('span');
             dateSpan.className = 'note-date-v2';
             const noteDate = new Date(note.updatedAt || note.createdAt);
@@ -3147,7 +3645,7 @@
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
             const isYesterday = noteDate.toDateString() === yesterday.toDateString();
-            
+
             if (isToday) {
                 dateSpan.textContent = state.language === 'bn' ? 'আজ' : 'Today';
             } else if (isYesterday) {
@@ -3158,14 +3656,14 @@
                     day: 'numeric'
                 });
             }
-            
+
             const actions = document.createElement('div');
             actions.className = 'note-actions-v2';
-            
+
             // Pin button
             const pinBtn = document.createElement('button');
             pinBtn.className = 'note-action-btn-v2';
-            pinBtn.innerHTML = note.pinned 
+            pinBtn.innerHTML = note.pinned
                 ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M12 17a2 2 0 0 0 2-2V9h3l-5-5-5 5h3v6a2 2 0 0 0 2 2z"/><line x1="12" y1="17" x2="12" y2="22"/></svg>'
                 : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17a2 2 0 0 0 2-2V9h3l-5-5-5 5h3v6a2 2 0 0 0 2 2z"/><line x1="12" y1="17" x2="12" y2="22"/></svg>';
             pinBtn.title = note.pinned ? (state.language === 'bn' ? 'আনপিন' : 'Unpin') : (state.language === 'bn' ? 'পিন করুন' : 'Pin');
@@ -3180,7 +3678,7 @@
                     playFeedback();
                 }
             });
-            
+
             // Delete button
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'note-action-btn-v2 delete';
@@ -3195,17 +3693,17 @@
                     playFeedback();
                 }
             });
-            
+
             actions.appendChild(pinBtn);
             actions.appendChild(deleteBtn);
-            
+
             footer.appendChild(dateSpan);
             footer.appendChild(actions);
-            
+
             card.appendChild(title);
             card.appendChild(preview);
             card.appendChild(footer);
-            
+
             // Click to edit
             card.addEventListener('click', () => {
                 forms.note.reset();
@@ -3217,18 +3715,101 @@
                 forms.note.elements.noteId.value = note.id;
                 modals.note.showModal();
             });
-            
+
             notesList.appendChild(card);
         });
     }
 
     function renderTasks() {
+        renderHabitTracker();
+    }
+
+    function renderHabitTracker() {
+        const calendarStrip = document.getElementById('task-calendar-strip');
+        const habitsList = document.getElementById('habit-tasks-list');
+        if (!calendarStrip || !habitsList) return;
+
+        // Render Calendar Strip
+        calendarStrip.innerHTML = '';
+        const today = new Date();
+        const selectedDate = state.ui.selectedDate || todayString();
+
+        for (let i = -3; i <= 3; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dateISO = date.toISOString().split('T')[0];
+            const isActive = dateISO === selectedDate;
+
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+            const dayNum = date.getDate();
+
+            const dayCard = document.createElement('div');
+            dayCard.className = `calendar-day-card ${isActive ? 'active' : ''}`;
+            dayCard.innerHTML = `
+                <span class="calendar-day-name">${dayName}</span>
+                <span class="calendar-day-number">${dayNum}</span>
+                <div class="calendar-day-status">
+                    <span class="status-dot"></span>
+                </div>
+            `;
+            dayCard.addEventListener('click', () => {
+                state.ui.selectedDate = dateISO;
+                saveState();
+                renderHabitTracker();
+            });
+            calendarStrip.appendChild(dayCard);
+        }
+
+        // Render Habits
+        habitsList.innerHTML = '';
+        const tasksForDate = state.tasks.filter(t => t.dueDate === selectedDate || (!t.dueDate && selectedDate === todayString()));
+
+        if (tasksForDate.length === 0) {
+            habitsList.innerHTML = '<p class="empty-state">No tasks for this day.</p>';
+            return;
+        }
+
+        tasksForDate.forEach(task => {
+            const habitCard = document.createElement('div');
+            habitCard.className = `habit-card ${task.done ? 'checked' : ''}`;
+
+            habitCard.innerHTML = `
+                <div class="habit-checkbox ${task.done ? 'checked' : ''}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <div class="habit-content">
+                    <h3 class="habit-title">${escapeHtml(task.name)}</h3>
+                    <div class="habit-streak">🔥 <span>7 in a row. Good job!</span></div>
+                </div>
+            `;
+
+            habitCard.querySelector('.habit-checkbox').addEventListener('click', (e) => {
+                e.stopPropagation();
+                task.done = !task.done;
+                saveState();
+                renderHabitTracker();
+                playFeedback();
+            });
+
+            habitCard.addEventListener('click', () => {
+                forms.task.reset();
+                setModalMode(forms.task, 'edit');
+                forms.task.elements.name.value = task.name;
+                forms.task.elements.taskId.value = task.id;
+                modals.task.showModal();
+            });
+
+            habitsList.appendChild(habitCard);
+        });
+    }
+
+    function renderTasks_OLD() {
         renderTodoCategories();
         renderNewTodoList(getCurrentTodoCategory());
         renderSimpleTodoList();
         updateTodoStats();
     }
-    
+
     function renderTodoCategories() {
         const categoriesGrid = document.getElementById('todo-categories-grid');
         const categoriesEmpty = document.getElementById('categories-empty');
@@ -3255,7 +3836,7 @@
             categories[category].tasks.push(task);
             if (task.done) categories[category].completed++;
         });
-        
+
         // Add default categories if empty
         const defaultCategories = ['work', 'personal', 'shopping', 'other'];
         defaultCategories.forEach(cat => {
@@ -3267,38 +3848,38 @@
                 };
             }
         });
-        
+
         categoriesGrid.innerHTML = '';
-        
+
         // Show empty state only if there are no tasks at all
         if (state.tasks.length === 0) {
             if (categoriesEmpty) categoriesEmpty.removeAttribute('hidden');
             return;
         }
-        
+
         if (categoriesEmpty) categoriesEmpty.setAttribute('hidden', 'hidden');
-        
+
         const categoryColors = {
             work: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
             personal: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)',
             shopping: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
             other: 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)'
         };
-        
+
         Object.values(categories).forEach(category => {
             const card = document.createElement('div');
             card.className = 'todo-category-card';
             card.style.background = categoryColors[category.name] || categoryColors.other;
             card.dataset.category = category.name;
-            
+
             const nameEl = document.createElement('h3');
             nameEl.className = 'todo-category-name';
             nameEl.textContent = category.name.charAt(0).toUpperCase() + category.name.slice(1);
-            
+
             const countEl = document.createElement('p');
             countEl.className = 'todo-category-count';
             countEl.textContent = `${category.completed} of ${category.tasks.length} Tasks`;
-            
+
             const previewEl = document.createElement('div');
             previewEl.className = 'todo-category-tasks-preview';
             const previewTasks = category.tasks.slice(0, 3);
@@ -3309,13 +3890,13 @@
                 taskItem.textContent = (task.done ? '✓ ' : '○ ') + task.name;
                 previewEl.appendChild(taskItem);
             });
-            
+
             card.appendChild(nameEl);
             card.appendChild(countEl);
             if (previewTasks.length > 0) {
                 card.appendChild(previewEl);
             }
-            
+
             card.addEventListener('click', () => {
                 if (categoriesView) categoriesView.hidden = true;
                 if (detailView) {
@@ -3323,19 +3904,19 @@
                     renderTodoDetail(category.name);
                 }
             });
-            
+
             categoriesGrid.appendChild(card);
         });
     }
-    
+
     function renderTodoDetail(categoryName) {
         const tasksList = document.getElementById('todo-tasks-list');
         const tasksEmpty = document.getElementById('todo-tasks-empty');
         const categoryTitle = document.getElementById('todo-category-title');
         const categoryCount = document.getElementById('todo-category-count');
-        
+
         if (!tasksList) return;
-        
+
         // Filter tasks by category, mapping old types to new categories
         const categoryTasks = state.tasks.filter(t => {
             let taskCategory = t.type || 'other';
@@ -3346,28 +3927,28 @@
             return taskCategory === categoryName;
         });
         const completed = categoryTasks.filter(t => t.done).length;
-        
+
         if (categoryTitle) {
             categoryTitle.textContent = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
         }
         if (categoryCount) {
             categoryCount.textContent = `${completed} of ${categoryTasks.length} Tasks`;
         }
-        
+
         tasksList.innerHTML = '';
-        
+
         if (categoryTasks.length === 0) {
             if (tasksEmpty) tasksEmpty.removeAttribute('hidden');
             return;
         }
-        
+
         if (tasksEmpty) tasksEmpty.setAttribute('hidden', 'hidden');
-        
+
         categoryTasks.forEach(task => {
             const item = document.createElement('div');
             item.className = 'todo-task-item';
             if (task.done) item.classList.add('completed');
-            
+
             const checkbox = document.createElement('div');
             checkbox.className = 'todo-task-checkbox';
             if (task.done) checkbox.classList.add('checked');
@@ -3379,26 +3960,26 @@
                 renderTodoDetail(categoryName);
                 playFeedback();
             });
-            
+
             const text = document.createElement('div');
             text.className = 'todo-task-text';
             text.textContent = task.name;
-            
+
             item.appendChild(checkbox);
             item.appendChild(text);
             tasksList.appendChild(item);
         });
     }
-    
+
     function updateTaskStats() {
         const totalTasks = state.tasks.length;
         const completedTasks = state.tasks.filter(t => t.done).length;
         const pendingTasks = totalTasks - completedTasks;
-        
+
         const totalEl = document.getElementById('tasks-total');
         const completedEl = document.getElementById('tasks-completed');
         const pendingEl = document.getElementById('tasks-pending');
-        
+
         if (totalEl) totalEl.textContent = `${totalTasks} Total`;
         if (completedEl) completedEl.textContent = `${completedTasks} Done`;
         if (pendingEl) pendingEl.textContent = `${pendingTasks} Pending`;
@@ -3450,14 +4031,14 @@
                 const card = fragment.querySelector('.task-card');
                 card.dataset.taskId = item.id;
                 card.dataset.priority = item.priority || 'medium';
-                
+
                 // Add priority class for styling
                 if (item.priority) {
                     card.classList.add(`priority-${item.priority}`);
                 }
-                
+
                 card.querySelector('.task-name').textContent = item.name;
-                
+
                 // Priority badge
                 const priorityEl = card.querySelector('.task-priority');
                 if (priorityEl && item.priority) {
@@ -3470,19 +4051,19 @@
                     priorityEl.textContent = priorityLabels[item.priority] || '';
                     priorityEl.className = `task-priority priority-${item.priority}`;
                 }
-                
+
                 card.querySelector('.task-type').textContent = translateTaskType(item.type);
-                
+
                 // Format date with time if available
                 let dateText = formatDisplayDate(item.dueDate);
                 if (item.dueTime) {
                     dateText += ` at ${item.dueTime}`;
                 }
                 card.querySelector('.task-date').textContent = dateText;
-                
+
                 card.querySelector('.task-note').textContent = item.note;
                 card.querySelector('.task-note').hidden = !item.note;
-                
+
                 // Recurring indicator
                 if (item.recurring) {
                     const recurringBadge = document.createElement('span');
@@ -3491,7 +4072,7 @@
                     recurringBadge.title = `Repeats ${item.recurringType || 'daily'}`;
                     card.querySelector('.task-header-top')?.appendChild(recurringBadge);
                 }
-                
+
                 const checkbox = card.querySelector('input[type="checkbox"]');
                 checkbox.checked = item.done;
                 const doneLabel = card.querySelector('.task-status span');
@@ -3668,7 +4249,7 @@
         const [yearStr, monthStr] = selectedDate.split('-');
         let year = parseInt(yearStr, 10);
         let month = parseInt(monthStr, 10) - 1; // Month is 0-indexed
-        
+
         month += offset;
         // Handle year rollover
         while (month < 0) {
@@ -3679,7 +4260,7 @@
             month -= 12;
             year += 1;
         }
-        
+
         // Format back to YYYY-MM-DD
         state.ui.selectedDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
         saveState();
@@ -3743,8 +4324,14 @@
 
     function prepareDebtModal(customer) {
         forms.debt.reset();
-        forms.debt.elements.customerId.value = customer.id;
-        forms.debt.elements.date.value = todayString();
+        populateDebtCustomerSelect();
+        if (forms.debt.elements.customerId) {
+            forms.debt.elements.customerId.value = customer.id;
+        }
+        if (forms.debt.elements.date) {
+            forms.debt.elements.date.value = todayString();
+        }
+        hideDebtVoicePreview();
         modals.debt.showModal();
     }
 
@@ -3890,6 +4477,8 @@
             renderAll();
         }
         updateLanguageButtons();
+        updatePremiumPanelStatus();
+        updateAIUsageUI();
     }
 
     function translate(key) {
@@ -4132,6 +4721,111 @@
         const res = await fetch(dataUrl);
         const blob = await res.blob();
         return new File([blob], filename, { type: blob.type });
+    }
+
+    function base64ToUint8Array(base64) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes;
+    }
+
+    async function pngDataUrlToJpegBytes(pngDataUrl, quality = 0.92) {
+        const img = await loadImage(pngDataUrl);
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // Fill white so transparent pixels don't render as black in PDF viewers.
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', quality);
+        const base64 = jpegDataUrl.split(',')[1] || '';
+        return { bytes: base64ToUint8Array(base64), width: w, height: h };
+    }
+
+    function buildSinglePagePdfFromJpeg(jpegBytes, imageWidthPx, imageHeightPx) {
+        const enc = new TextEncoder();
+        const chunks = [];
+        let offset = 0;
+        const offsets = [0]; // xref requires object 0
+
+        const push = (data) => {
+            const chunk = typeof data === 'string' ? enc.encode(data) : data;
+            chunks.push(chunk);
+            offset += chunk.length;
+        };
+
+        const markObj = () => offsets.push(offset);
+
+        // A4 portrait in points
+        const pageW = 595.28;
+        const pageH = 841.89;
+        const margin = 36;
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+        const aspect = imageWidthPx / imageHeightPx;
+        let drawW = maxW;
+        let drawH = drawW / aspect;
+        if (drawH > maxH) {
+            drawH = maxH;
+            drawW = drawH * aspect;
+        }
+        const x = (pageW - drawW) / 2;
+        const y = (pageH - drawH) / 2;
+
+        const content = `q\n${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm\n/Im0 Do\nQ\n`;
+        const contentBytes = enc.encode(content);
+
+        push('%PDF-1.3\n');
+
+        markObj();
+        push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+
+        markObj();
+        push('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+
+        markObj();
+        push(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 4 0 R >> /ProcSet [/PDF /ImageC] >> /Contents 5 0 R >>\nendobj\n`);
+
+        markObj();
+        push(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imageWidthPx} /Height ${imageHeightPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`);
+        push(jpegBytes);
+        push('\nendstream\nendobj\n');
+
+        markObj();
+        push(`5 0 obj\n<< /Length ${contentBytes.length} >>\nstream\n`);
+        push(contentBytes);
+        push('\nendstream\nendobj\n');
+
+        const xrefStart = offset;
+        push('xref\n0 6\n');
+        push('0000000000 65535 f \n');
+        for (let i = 1; i <= 5; i++) {
+            const off = String(offsets[i]).padStart(10, '0');
+            push(`${off} 00000 n \n`);
+        }
+        push(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`);
+
+        return new Blob(chunks, { type: 'application/pdf' });
+    }
+
+    async function downloadBillPdf(bill, customizeSettings = null) {
+        const pngUrl = await generateBillCard(bill, customizeSettings);
+        const jpeg = await pngDataUrlToJpegBytes(pngUrl, 0.92);
+        const pdfBlob = buildSinglePagePdfFromJpeg(jpeg.bytes, jpeg.width, jpeg.height);
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bill-${bill.invoiceNumber || bill.id}.pdf`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     function loadImage(src) {
@@ -4379,6 +5073,26 @@
             playFeedback();
         });
 
+        // Pricing toggle + plan selection (premium & settings)
+        document.querySelectorAll('[data-billing-toggle]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setBillingMode(btn.dataset.billingToggle || 'annual');
+                highlightPlanCards();
+                playFeedback();
+            });
+        });
+
+        document.querySelectorAll('[data-plan-select]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const plan = btn.dataset.planSelect;
+                const billing = btn.dataset.billingMode || state.ui.pricingBilling || 'annual';
+                handlePlanSelect(plan, billing);
+                setBillingMode(billing);
+                highlightPlanCards();
+                playFeedback();
+            });
+        });
+
         // Todo List Navigation
         document.getElementById('back-to-categories-btn')?.addEventListener('click', () => {
             const categoriesView = document.getElementById('todo-categories-view');
@@ -4390,7 +5104,7 @@
             renderTasks();
             playFeedback();
         });
-        
+
 
         // Text Size
         document.querySelectorAll('.text-size-btn').forEach(btn => {
@@ -4445,7 +5159,7 @@
             }
         });
 
-        document.getElementById('preview-download-btn')?.addEventListener('click', async () => {
+        document.getElementById('preview-download-png-btn')?.addEventListener('click', async () => {
             const bill = window.currentBillForCustomize;
             if (!bill) {
                 if (typeof alert !== 'undefined') alert('Download requires a bill. Try opening a bill first.');
@@ -4475,24 +5189,38 @@
             }
         });
 
-        // Customize controls - Real-time preview updates
-        ['customize-layout-style', 'customize-primary-color', 'customize-accent-color', 
-         'customize-bg-color', 'customize-font', 'customize-spacing', 'customize-border',
-         'customize-border-width', 'customize-font-size', 'customize-show-icons', 'customize-notes'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('input', debounce(() => {
-                    if (window.currentBillForCustomize) {
-                        updateBillPreview(window.currentBillForCustomize);
-                    }
-                }, 50));
-                el.addEventListener('change', () => {
-                    if (window.currentBillForCustomize) {
-                        updateBillPreview(window.currentBillForCustomize);
-                    }
-                });
+        document.getElementById('preview-download-pdf-btn')?.addEventListener('click', async () => {
+            const bill = window.currentBillForCustomize;
+            if (!bill) {
+                if (typeof alert !== 'undefined') alert('Download requires a bill. Try opening a bill first.');
+                return;
+            }
+            try {
+                await downloadBillPdf(bill, getCustomizeSettings());
+            } catch (err) {
+                console.error('Preview PDF download failed', err);
+                if (typeof alert !== 'undefined') alert(err?.message || 'PDF download failed. If using an external logo, try removing it.');
             }
         });
+
+        // Customize controls - Real-time preview updates
+        ['customize-layout-style', 'customize-primary-color', 'customize-accent-color',
+            'customize-bg-color', 'customize-font', 'customize-spacing', 'customize-border',
+            'customize-border-width', 'customize-font-size', 'customize-show-icons', 'customize-notes'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', debounce(() => {
+                        if (window.currentBillForCustomize) {
+                            updateBillPreview(window.currentBillForCustomize);
+                        }
+                    }, 50));
+                    el.addEventListener('change', () => {
+                        if (window.currentBillForCustomize) {
+                            updateBillPreview(window.currentBillForCustomize);
+                        }
+                    });
+                }
+            });
 
         // Font size display
         const fontSizeInput = document.getElementById('customize-font-size');
@@ -4549,31 +5277,93 @@
         });
 
 
-        // AI Chat
+        // AI Chat - Modern UI
         const aiInput = document.getElementById('ai-input');
         const aiSendBtn = document.getElementById('ai-send-btn');
         const aiVoiceBtn = document.getElementById('ai-voice-btn');
-        aiSendBtn?.addEventListener('click', handleAIMessage);
-        aiInput?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleAIMessage();
-        });
-        aiVoiceBtn?.addEventListener('click', () => startVoiceInput('ai'));
-        
-        // Voice input for debt amount
-        document.getElementById('debt-amount-voice-btn')?.addEventListener('click', () => {
-            startVoiceInput('debt-amount');
+        const aiBuddyOrb = document.getElementById('ai-buddy-orb');
+        const aiMessagesContainer = document.getElementById('ai-messages');
+        const aiSuggestionsContainer = document.getElementById('ai-shortcuts');
+        const aiLimitMessage = document.getElementById('ai-limit-message-modern');
+
+        // Update AI buddy name display
+        updateAIBuddyName();
+
+        // Handle input (both old and new UI)
+        if (aiSendBtn) {
+            aiSendBtn.addEventListener('click', handleAIMessage);
+        }
+        if (aiInput) {
+            aiInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleAIMessage();
+            });
+        }
+        if (aiVoiceBtn) {
+            aiVoiceBtn.addEventListener('click', () => startVoiceInput('ai'));
+        }
+
+        // AI Settings button (for buddy name customization)
+        document.getElementById('ai-nav-settings')?.addEventListener('click', () => {
+            const newName = prompt(
+                state.language === 'bn'
+                    ? 'আপনার AI সহায়কের নাম কী হবে?'
+                    : 'What should your AI assistant be called?',
+                state.ai.buddyName || 'Assistant'
+            );
+            if (newName && newName.trim()) {
+                state.ai.buddyName = newName.trim();
+                saveState();
+                updateAIBuddyName();
+                playFeedback();
+            }
         });
 
-        // AI Shortcuts
+        document.getElementById('ai-upgrade-btn')?.addEventListener('click', () => {
+            setActivePanel('premium');
+        });
+
+        document.getElementById('ai-paywall-upgrade-btn')?.addEventListener('click', () => {
+            const modal = document.getElementById('ai-paywall-modal');
+            if (modal) modal.close();
+            setActivePanel('premium');
+        });
+
+        // Voice input for debt amount
+        document.getElementById('debt-voice-btn')?.addEventListener('click', () => {
+            startVoiceInput('debt');
+        });
+        document.getElementById('task-voice-btn')?.addEventListener('click', () => {
+            startVoiceInput('task');
+        });
+        document.getElementById('quick-task-voice-btn')?.addEventListener('click', () => {
+            startVoiceInput('task');
+        });
+
+        // AI Suggestions (new UI)
+        document.querySelectorAll('.ai-suggestion-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const suggestion = state.language === 'bn' ? btn.dataset.suggestionBn : btn.dataset.suggestionEn;
+                if (suggestion && aiInput) {
+                    aiInput.value = suggestion;
+                    aiInput.focus();
+                    setTimeout(() => {
+                        handleAIMessage();
+                    }, 100);
+                }
+            });
+        });
+
+        // AI Shortcuts (old UI - for backward compatibility)
         document.querySelectorAll('.ai-shortcut-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const suggestion = btn.dataset.suggestion;
-                if (suggestion) {
+                const suggestion = state.language === 'bn' ? btn.dataset.suggestionBn : btn.dataset.suggestionEn;
+                const fallback = btn.dataset.suggestion;
+                const finalSuggestion = suggestion || fallback;
+                if (finalSuggestion) {
                     const aiInput = document.getElementById('ai-input');
                     if (aiInput) {
-                        aiInput.value = suggestion;
+                        aiInput.value = finalSuggestion;
                         aiInput.focus();
-                        // Auto-send after a brief delay
                         setTimeout(() => {
                             handleAIMessage();
                         }, 100);
@@ -4588,7 +5378,7 @@
         const billsPageTextColor = document.getElementById('bills-page-text-color');
         const billsTextZoom = document.getElementById('bills-text-zoom');
         const billsTextZoomValue = document.getElementById('bills-text-zoom-value');
-        
+
         if (billsPageBgColor) {
             billsPageBgColor.addEventListener('input', (e) => {
                 document.documentElement.style.setProperty('--bills-page-bg', e.target.value);
@@ -4600,7 +5390,7 @@
                 document.documentElement.style.setProperty('--bills-page-bg', savedBg);
             }
         }
-        
+
         if (billsPageTextColor) {
             billsPageTextColor.addEventListener('input', (e) => {
                 document.documentElement.style.setProperty('--bills-page-text', e.target.value);
@@ -4612,7 +5402,7 @@
                 document.documentElement.style.setProperty('--bills-page-text', savedText);
             }
         }
-        
+
         if (billsTextZoom && billsTextZoomValue) {
             billsTextZoom.addEventListener('input', (e) => {
                 const zoom = parseFloat(e.target.value);
@@ -4631,7 +5421,7 @@
         document.getElementById('view-monthly-wrap-btn')?.addEventListener('click', () => {
             showMonthlyWrap();
         });
-        
+
         // Update monthly wrap preview when panel is shown
         document.getElementById('nav-settings')?.addEventListener('click', () => {
             setTimeout(() => {
@@ -4643,7 +5433,7 @@
         document.getElementById('add-product-btn')?.addEventListener('click', () => {
             addProductRow();
         });
-        
+
         // Bill form - add product (inline button)
         document.getElementById('add-product-btn-inline')?.addEventListener('click', () => {
             addProductRow();
@@ -4678,7 +5468,7 @@
 
         // Settings Handlers
         initSettingsHandlers();
-        
+
         // Empty state new bill button
         const emptyNewBillBtn = document.getElementById('empty-new-bill-btn');
         if (emptyNewBillBtn) {
@@ -4689,16 +5479,49 @@
 
         // Premium Plan Coupon Validation
         initPremiumPlanHandlers();
+
+        // Pricing UI handlers
+        const pricingBackBtn = document.getElementById('pricing-back-btn');
+        if (pricingBackBtn) {
+            pricingBackBtn.addEventListener('click', () => {
+                setActivePanel('settings');
+            });
+        }
+
+        // Pricing period toggle
+        document.querySelectorAll('.pricing-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const period = btn.dataset.period; // monthly or yearly
+
+                // Update buttons
+                document.querySelectorAll('.pricing-toggle-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.period === period);
+                });
+
+                // Show/hide relevant card containers
+                const monthlyContainer = document.getElementById('pricing-monthly-cards');
+                const yearlyContainer = document.getElementById('pricing-yearly-cards');
+
+                if (period === 'monthly') {
+                    if (monthlyContainer) monthlyContainer.style.display = 'grid';
+                    if (yearlyContainer) yearlyContainer.style.display = 'none';
+                } else {
+                    if (monthlyContainer) monthlyContainer.style.display = 'none';
+                    if (yearlyContainer) yearlyContainer.style.display = 'grid';
+                }
+                playFeedback();
+            });
+        });
     }
 
     // Premium Plan Coupon Validation
     function initPremiumPlanHandlers() {
         // Define valid coupon codes for each plan
         const validCoupons = {
-            pro: ['TERENCEPROXOFCL', 'PRO2024', 'PRO50'],
+            nano: ['OPTITERENCENANO'],
+            pro: ['OPTIPROMAX'],
             max: ['TERENCEMAXO', 'MAX2024', 'MAX50'],
-            ultra: ['TERENCEULTRAOFCL'],
-            online: ['TERENCEONOX']
+            ultra: ['TERENCEULTRAOFCL']
         };
 
         // Function to validate and activate a plan
@@ -4707,8 +5530,8 @@
             const couponInput = document.getElementById(`premium-coupon-${plan}`);
             const feedbackEl = document.getElementById(`premium-feedback-${plan}`);
             const activateBtn = document.getElementById(`premium-activate-${plan}`);
-            
-            if (!couponInput || !feedbackEl || !activateBtn) return;
+
+            if (!couponInput || !feedbackEl || !activateBtn) return false;
 
             const couponCode = couponInput.value.trim().toUpperCase();
             const validCodes = validCoupons[plan] || [];
@@ -4719,16 +5542,16 @@
 
             // Check if coupon is valid
             if (!couponCode) {
-                feedbackEl.textContent = state.language === 'bn' 
-                    ? 'কুপন কোড লিখুন' 
+                feedbackEl.textContent = state.language === 'bn'
+                    ? 'কুপন কোড লিখুন'
                     : 'Please enter a coupon code';
                 feedbackEl.classList.add('error');
                 return false;
             }
 
             if (!validCodes.includes(couponCode)) {
-                feedbackEl.textContent = state.language === 'bn' 
-                    ? 'অবৈধ কুপন কোড' 
+                feedbackEl.textContent = state.language === 'bn'
+                    ? 'অবৈধ কুপন কোড'
                     : 'Invalid coupon code';
                 feedbackEl.classList.add('error');
                 return false;
@@ -4738,12 +5561,10 @@
             const now = Date.now();
             let expiresAt = null;
 
-            // Calculate expiration based on plan
-            if (plan === 'pro') {
-                // Pro: 1 month
+            // Monthly plans: 30 days, Annual plans: 365 days
+            if (plan === 'nano' || plan === 'pro') {
                 expiresAt = now + (30 * 24 * 60 * 60 * 1000);
             } else {
-                // Max, Ultra, Online: 1 year
                 expiresAt = now + (365 * 24 * 60 * 60 * 1000);
             }
 
@@ -4751,22 +5572,29 @@
             state.subscription = {
                 plan: plan,
                 activatedAt: now,
-                expiresAt: expiresAt
+                expiresAt: expiresAt,
+                couponUsed: couponCode
             };
             saveState();
 
             // Show success message
-            feedbackEl.textContent = state.language === 'bn' 
-                ? 'প্ল্যান সক্রিয় হয়েছে!' 
+            feedbackEl.textContent = state.language === 'bn'
+                ? 'প্ল্যান সক্রিয় হয়েছে!'
                 : 'Plan activated successfully!';
             feedbackEl.classList.add('success');
 
             // Clear coupon input
             couponInput.value = '';
-            
+
             // Update UI
             updatePremiumStatus();
-            renderPremiumPlans();
+            updatePremiumPanelStatus();
+            highlightPlanCards();
+            updateDockPremiumVisibility();
+            applyPlanBranding();
+            // Keep Settings "days left" section in sync immediately after activation.
+            updateSettingsSubscriptionOverview();
+            updateNewSettingsUI();
             ensureAIChatAccessible();
 
             playFeedbackStrong();
@@ -4774,7 +5602,7 @@
         }
 
         // Attach event listeners to all activate buttons
-        ['pro', 'max', 'ultra', 'online'].forEach(plan => {
+        Object.keys(validCoupons).forEach(plan => {
             const activateBtn = document.getElementById(`premium-activate-${plan}`);
             if (activateBtn) {
                 activateBtn.addEventListener('click', () => {
@@ -4785,10 +5613,8 @@
             // Allow Enter key to activate
             const couponInput = document.getElementById(`premium-coupon-${plan}`);
             if (couponInput) {
-                couponInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        validateAndActivatePlan(plan);
-                    }
+                couponInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') validateAndActivatePlan(plan);
                 });
             }
         });
@@ -4802,7 +5628,7 @@
 
         // Haptic on Buy link
         document.querySelector('.premium-buy-button')?.addEventListener('click', () => playFeedback());
-        
+
         // Ensure AI chat is always accessible (no restrictions for free version)
         ensureAIChatAccessible();
     }
@@ -4828,24 +5654,17 @@
         next.addEventListener('click', () => { go(idx + 1); });
         dots.forEach(d => d.addEventListener('click', () => { go(parseInt(d.dataset.index, 10)); }));
     }
-    
+
     function ensureAIChatAccessible() {
-        const plan = getActivePlan();
-        const aiSubscriptionMessage = document.getElementById('ai-subscription-message');
         const aiChatContainer = document.getElementById('ai-chat-container');
-        if (plan === 'ultra') {
-            if (aiSubscriptionMessage) aiSubscriptionMessage.setAttribute('hidden', 'hidden');
-            if (aiChatContainer) aiChatContainer.style.display = 'flex';
-        } else {
-            if (aiSubscriptionMessage) aiSubscriptionMessage.removeAttribute('hidden');
-            if (aiChatContainer) aiChatContainer.style.display = 'none';
-        }
+        if (aiChatContainer) aiChatContainer.style.display = 'flex';
+        updateAIUsageUI();
     }
 
     function updatePremiumStatus() {
         const currentPlanEl = document.getElementById('premium-current-plan');
         const expiryEl = document.getElementById('premium-expiry');
-        
+
         if (!currentPlanEl) return;
 
         const subscription = state.subscription || { plan: 'free' };
@@ -4859,20 +5678,21 @@
             saveState();
         }
 
+        const activePlan = normalizePlan(subscription.plan);
         const planNames = {
             free: state.language === 'bn' ? 'ফ্রি' : 'Free',
-            pro: 'PRO',
-            max: 'MAX',
-            ultra: 'ULTRA',
-            online: 'ONLINE'
+            nano: state.language === 'bn' ? 'ন্যানো' : 'Nano',
+            pro: state.language === 'bn' ? 'প্রো' : 'Pro',
+            max: state.language === 'bn' ? 'ম্যাক্স' : 'Max',
+            ultra: state.language === 'bn' ? 'আল্ট্রা' : 'Ultra'
         };
 
-        currentPlanEl.textContent = planNames[subscription.plan] || planNames.free;
+        currentPlanEl.textContent = planNames[activePlan] || planNames.free;
 
         // Show expiry date if active subscription
-        if (expiryEl && subscription.expiresAt && subscription.plan !== 'free') {
+        if (expiryEl && subscription.expiresAt && activePlan !== 'free') {
             const expiryDate = new Date(subscription.expiresAt);
-            const expiryText = state.language === 'bn' 
+            const expiryText = state.language === 'bn'
                 ? `মেয়াদ শেষ: ${expiryDate.toLocaleDateString('bn-BD')}`
                 : `Expires: ${expiryDate.toLocaleDateString('en-US')}`;
             expiryEl.textContent = expiryText;
@@ -4880,13 +5700,13 @@
         } else if (expiryEl) {
             expiryEl.style.display = 'none';
         }
-        
+
         // Ensure AI chat is always accessible regardless of subscription
         ensureAIChatAccessible();
-        
+
         // Update dock premium button visibility
         updateDockPremiumVisibility();
-        
+
         // Update premium panel status if shown
         updatePremiumPanelStatus();
 
@@ -4895,15 +5715,12 @@
     }
 
     function renderPremiumPlans() {
-        const subscription = state.subscription || { plan: 'free' };
-        const now = Date.now();
-        const isExpired = subscription.expiresAt && now > subscription.expiresAt;
-        const activePlan = (isExpired ? 'free' : subscription.plan) || 'free';
+        const activePlan = getActivePlan();
 
         // Update active state on plan cards
-        document.querySelectorAll('.premium-plan-card').forEach(card => {
+        document.querySelectorAll('.pricing-card-modern').forEach(card => {
             const planType = card.dataset.plan;
-            if (planType === activePlan && activePlan !== 'free') {
+            if (planType === activePlan) {
                 card.classList.add('is-active');
             } else {
                 card.classList.remove('is-active');
@@ -4996,7 +5813,7 @@
                 const theme = tile.dataset.theme;
                 if (!theme) return;
                 applyTheme(theme);
-                
+
                 // Update aria-checked
                 document.querySelectorAll('.theme-appearance-tile').forEach(t => {
                     t.setAttribute('aria-checked', 'false');
@@ -5036,10 +5853,10 @@
 
         // Initialize settings display
         updateSettingsDisplay();
-        
+
         // Call additional settings handlers
         initSettingsHandlers2();
-        
+
         // Also initialize language buttons in case settings panel is already visible
         initLanguageButtons();
     }
@@ -5060,7 +5877,11 @@
 
     function updateDockScaleDisplay() {
         if (!selectors.dockSizeValue) return;
-        const value = Math.round((state.ui.dockScale || 1) * 100);
+        const normalized = clampNumber(Number(state.ui.dockScale) || 1, 0.6, 1.15);
+        if (state.ui.dockScale !== normalized) {
+            state.ui.dockScale = normalized;
+        }
+        const value = Math.round(normalized * 100);
         selectors.dockSizeValue.textContent = `${value}%`;
     }
 
@@ -5105,8 +5926,9 @@
 
         // Update dock custom slider
         if (selectors.dockSizeInput) {
-            const dockScale = Math.max(0.2, Math.min(1.0, Number(state.ui.dockScale) || 1));
+            const dockScale = clampNumber(Number(state.ui.dockScale) || 1, 0.6, 1.15);
             selectors.dockSizeInput.value = dockScale;
+            state.ui.dockScale = dockScale;
             applyDockScale(dockScale);
         }
         updateDockScaleDisplay();
@@ -5134,15 +5956,54 @@
 
     function updateShopLogoPreview() {
         const preview = document.getElementById('settings-shop-logo-preview');
-        const placeholder = document.getElementById('settings-shop-logo-placeholder');
         if (!preview) return;
 
+        // Do not overwrite `innerHTML` here, otherwise the <input type="file"> gets removed and
+        // the user can no longer change the logo after the first upload.
+        let placeholder = preview.querySelector('#settings-shop-logo-placeholder');
+        if (!placeholder) {
+            placeholder = document.createElement('span');
+            placeholder.id = 'settings-shop-logo-placeholder';
+            placeholder.textContent = '🏪';
+            preview.appendChild(placeholder);
+        }
+
+        let input = document.getElementById('settings-shop-logo-input');
+        if (!input) {
+            // Recover from older versions that replaced the preview HTML and removed the input.
+            input = document.createElement('input');
+            input.type = 'file';
+            input.id = 'settings-shop-logo-input';
+            input.accept = 'image/*';
+            input.hidden = true;
+            preview.appendChild(input);
+
+            input.addEventListener('change', async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const dataUrl = await readFileAsDataURL(file);
+                state.shop.shopLogo = dataUrl;
+                saveState();
+                updateShopLogoPreview();
+                playFeedback();
+            });
+        }
+
+        let img = preview.querySelector('img');
+        if (!img) {
+            img = document.createElement('img');
+            img.alt = 'Shop Logo';
+            // Keep the input inside the preview; insert the image before it.
+            preview.insertBefore(img, input);
+        }
+
         if (state.shop.shopLogo) {
-            if (placeholder) placeholder.hidden = true;
-            preview.innerHTML = `<img src="${state.shop.shopLogo}" alt="Shop Logo">`;
+            img.src = state.shop.shopLogo;
+            img.hidden = false;
+            placeholder.hidden = true;
         } else {
-            if (placeholder) placeholder.hidden = false;
-            preview.innerHTML = '<span id="settings-shop-logo-placeholder">🏪</span>';
+            img.hidden = true;
+            placeholder.hidden = false;
         }
     }
 
@@ -5150,7 +6011,7 @@
         const preview = document.getElementById('settings-my-photo-preview');
         const img = document.getElementById('settings-my-photo-img');
         const placeholder = preview?.querySelector('.photo-placeholder');
-        
+
         if (!preview || !img) return;
 
         if (state.shop.ownerPhoto) {
@@ -5314,13 +6175,13 @@
         if (shopNameInput) {
             shopNameInput.value = state.shop?.shopName || '';
         }
-        
+
         // Update owner name input
         const ownerNameInput = document.getElementById('settings-owner-name-input');
         if (ownerNameInput) {
             ownerNameInput.value = state.shop?.ownerName || '';
         }
-        
+
         // Update shop logo preview
         const shopLogoEl = document.getElementById('settings-shop-logo');
         if (shopLogoEl && state.shop?.shopLogo) {
@@ -5328,7 +6189,7 @@
         } else if (shopLogoEl) {
             shopLogoEl.textContent = (state.shop?.shopName || 'S').slice(0, 1).toUpperCase();
         }
-        
+
         // Legacy display elements (if they exist)
         const shopNameEl = document.getElementById('settings-shop-name');
         const shopOwnerEl = document.getElementById('settings-shop-owner');
@@ -5344,7 +6205,7 @@
             if (btn.parentNode) {
                 btn.parentNode.replaceChild(newBtn, btn);
             }
-            
+
             newBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -5382,28 +6243,28 @@
 
         // Dock size custom slider (no presets, just custom slider)
 
-        // Dock size custom slider (range: 0.2 to 1.0 - really small to normal)
+        // Dock size custom slider (range: 0.6 to 1.15 - compact to large)
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4732',message:'Dock slider initialization check',data:{dockSizeInputFound:!!selectors.dockSizeInput,currentScale:state.ui.dockScale},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4732', message: 'Dock slider initialization check', data: { dockSizeInputFound: !!selectors.dockSizeInput, currentScale: state.ui.dockScale }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
         // #endregion
         if (selectors.dockSizeInput) {
             console.log('Dock custom slider found, initializing...');
-            const currentScale = Math.max(0.2, Math.min(1.0, state.ui.dockScale || 1));
+            const currentScale = clampNumber(state.ui.dockScale || 1, 0.6, 1.15);
             selectors.dockSizeInput.value = currentScale;
             applyDockScale(currentScale);
             updateDockScaleDisplay();
-            
+
             // Add event listener (don't clone, just add if not already added)
             if (!selectors.dockSizeInput.hasAttribute('data-listener-attached')) {
                 selectors.dockSizeInput.setAttribute('data-listener-attached', 'true');
                 selectors.dockSizeInput.addEventListener('input', (event) => {
                     // #region agent log
-                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4742',message:'Dock slider value changed',data:{newValue:event.target.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4742', message: 'Dock slider value changed', data: { newValue: event.target.value }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
                     // #endregion
                     console.log('Dock size changed:', event.target.value);
                     const value = applyDockScale(event.target.value);
                     // #region agent log
-                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4745',message:'Dock scale applied',data:{appliedValue:value,cssVar:getComputedStyle(document.documentElement).getPropertyValue('--dock-scale')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4745', message: 'Dock scale applied', data: { appliedValue: value, cssVar: getComputedStyle(document.documentElement).getPropertyValue('--dock-scale') }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
                     // #endregion
                     console.log('Applied dock scale:', value);
                     state.ui.dockScale = value;
@@ -5413,7 +6274,7 @@
             }
         } else {
             // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:4752',message:'Dock slider NOT FOUND',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4752', message: 'Dock slider NOT FOUND', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
             // #endregion
             console.log('Dock custom slider NOT found');
         }
@@ -5455,7 +6316,7 @@
                 // Shop profile display removed with settings panel
             });
         }
-        
+
         // Owner name input
         const ownerNameInput = document.getElementById('settings-owner-name-input');
         if (ownerNameInput) {
@@ -5467,7 +6328,7 @@
                 // Shop profile display removed with settings panel
             });
         }
-        
+
         // Shop logo upload
         const shopLogoInput = document.getElementById('settings-shop-logo-input');
         const uploadShopLogoBtn = document.getElementById('upload-shop-logo-btn');
@@ -5485,7 +6346,7 @@
                 }
             });
         }
-        
+
         // Phone number
         const phoneInput = document.getElementById('settings-phone-number');
         if (phoneInput) {
@@ -5507,7 +6368,7 @@
                 saveState();
             });
         }
-        
+
         // Payment toggles
         ['bkash', 'nagad', 'rocket'].forEach(method => {
             const toggle = document.getElementById(`toggle-payment-${method}`);
@@ -5523,7 +6384,7 @@
                 });
             }
         });
-        
+
         // Theme appearance tiles
         ['light', 'dark', 'custom', 'cozy'].forEach(theme => {
             const tile = document.querySelector(`.theme-appearance-tile[data-theme="${theme}"]`);
@@ -5534,13 +6395,13 @@
                         t.setAttribute('aria-checked', 'false');
                     });
                     tile.setAttribute('aria-checked', 'true');
-                    
+
                     // Show advanced options for custom theme
                     const advancedOptions = document.getElementById('theme-advanced-options');
                     if (advancedOptions) {
                         advancedOptions.hidden = theme !== 'custom';
                     }
-                    
+
                     // Apply theme preview (for now, just visual feedback)
                     playFeedback();
                 });
@@ -5573,7 +6434,7 @@
         // New Settings UI Handlers
         initNewSettingsUI();
     }
-    
+
     function initNewSettingsUI() {
         // Language toggle buttons (new UI)
         document.querySelectorAll('.lang-btn-new').forEach(btn => {
@@ -5589,7 +6450,7 @@
                 }
             });
         });
-        
+
         // Text size buttons (new UI)
         document.querySelectorAll('.size-btn-new').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -5604,7 +6465,7 @@
                 }
             });
         });
-        
+
         // Theme tiles (new UI)
         document.querySelectorAll('.theme-tile-new').forEach(tile => {
             tile.addEventListener('click', () => {
@@ -5623,30 +6484,32 @@
                 }
             });
         });
-        
+
         // Avatar upload click
         const avatarUpload = document.querySelector('.avatar-upload-new');
-        const shopLogoInputNew = document.getElementById('settings-shop-logo-input');
-        if (avatarUpload && shopLogoInputNew) {
-            avatarUpload.addEventListener('click', () => shopLogoInputNew.click());
+        if (avatarUpload) {
+            avatarUpload.addEventListener('click', () => {
+                // Re-query in case the input was recreated (older versions removed it).
+                document.getElementById('settings-shop-logo-input')?.click();
+            });
         }
-        
+
         // Cancel Subscription button
         const cancelSubBtn = document.getElementById('cancel-subscription-btn');
         if (cancelSubBtn) {
             cancelSubBtn.addEventListener('click', () => {
                 const subscription = state.subscription || { plan: 'free' };
                 if (subscription.plan === 'free') {
-                    alert(state.language === 'bn' 
-                        ? 'আপনি ইতিমধ্যে ফ্রি প্ল্যানে আছেন।' 
+                    alert(state.language === 'bn'
+                        ? 'আপনি ইতিমধ্যে ফ্রি প্ল্যানে আছেন।'
                         : 'You are already on the free plan.');
                     return;
                 }
-                
+
                 const confirmMsg = state.language === 'bn'
                     ? `আপনি কি ${subscription.plan.toUpperCase()} সাবস্ক্রিপশন বাতিল করতে চান? এটি আপনাকে ফ্রি প্ল্যানে ফিরিয়ে দেবে।`
                     : `Cancel your ${subscription.plan.toUpperCase()} subscription? This will return you to the free plan.`;
-                
+
                 if (confirm(confirmMsg)) {
                     state.subscription = {
                         plan: 'free',
@@ -5658,50 +6521,50 @@
                     updatePremiumStatus();
                     updateDockPremiumVisibility();
                     updatePremiumPanelStatus();
-                    
-                    alert(state.language === 'bn' 
-                        ? 'সাবস্ক্রিপশন সফলভাবে বাতিল হয়েছে।' 
+
+                    alert(state.language === 'bn'
+                        ? 'সাবস্ক্রিপশন সফলভাবে বাতিল হয়েছে।'
                         : 'Subscription cancelled successfully.');
                     playFeedback();
                 }
             });
         }
-        
+
         // Initialize dock premium visibility
         updateDockPremiumVisibility();
-        
+
         // Update new settings UI elements
         updateNewSettingsUI();
-        
+
         // Initialize new Todo UI
         initNewTodoUI();
     }
-    
+
     // New Todo UI Initialization
     function initNewTodoUI() {
         // Quick add task
         const quickInput = document.getElementById('quick-task-input');
         const quickCategory = document.getElementById('quick-task-category');
         const quickAddBtn = document.getElementById('quick-add-task-btn');
-        
+
         if (quickAddBtn && quickInput) {
             quickAddBtn.addEventListener('click', () => {
                 addQuickTask();
             });
-            
+
             quickInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     addQuickTask();
                 }
             });
         }
-        
+
         function addQuickTask() {
             const taskName = quickInput?.value.trim();
             const category = quickCategory?.value || 'personal';
-            
+
             if (!taskName) return;
-            
+
             const newTask = {
                 id: generateId('task'),
                 name: taskName,
@@ -5710,18 +6573,18 @@
                 createdAt: Date.now(),
                 date: new Date().toISOString().split('T')[0]
             };
-            
+
             state.tasks.push(newTask);
             saveState();
             renderTasks();
             renderNewTodoList(getCurrentTodoCategory());
             renderSimpleTodoList();
             updateTodoStats();
-            
+
             if (quickInput) quickInput.value = '';
             playFeedback();
         }
-        
+
         // Category tab filtering
         document.querySelectorAll('.todo-tab-new').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -5730,7 +6593,12 @@
                 renderNewTodoList(tab.dataset.category);
             });
         });
-        
+
+        const todoFab = document.getElementById('todo-add-btn');
+        if (todoFab) {
+            todoFab.addEventListener('click', () => openTaskModalPrefill('', todayString(), '', ''));
+        }
+
         // Initial render
         renderNewTodoList(getCurrentTodoCategory());
         updateTodoStats();
@@ -5777,16 +6645,16 @@
             playFeedback();
         }
     }
-    
+
     // Render new todo list
     function renderNewTodoList(filterCategory = 'all') {
         const listContainer = document.getElementById('todo-tasks-list-new');
         const emptyState = document.getElementById('todo-empty-new');
-        
+
         if (!listContainer) return;
-        
+
         let tasks = [...(state.tasks || [])];
-        
+
         // Filter by category
         if (filterCategory !== 'all') {
             tasks = tasks.filter(task => {
@@ -5794,22 +6662,22 @@
                 return taskCategory === filterCategory;
             });
         }
-        
+
         // Sort: incomplete first, then by date
         tasks.sort((a, b) => {
             if (a.done !== b.done) return a.done ? 1 : -1;
             return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
         });
-        
+
         listContainer.innerHTML = '';
-        
+
         if (tasks.length === 0) {
             if (emptyState) emptyState.removeAttribute('hidden');
             return;
         }
-        
+
         if (emptyState) emptyState.setAttribute('hidden', 'hidden');
-        
+
         const categoryEmojis = {
             personal: '👤',
             work: '💼',
@@ -5817,56 +6685,56 @@
             health: '💪',
             other: '📌'
         };
-        
+
         tasks.forEach(task => {
             const item = document.createElement('div');
             item.className = `todo-item-new${task.done ? ' completed' : ''}`;
             item.dataset.taskId = task.id;
-            
+
             const checkbox = document.createElement('div');
             checkbox.className = `todo-checkbox-new${task.done ? ' checked' : ''}`;
             checkbox.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
             checkbox.addEventListener('click', () => toggleTaskComplete(task.id));
-            
+
             const content = document.createElement('div');
             content.className = 'todo-content-new';
-            
+
             const text = document.createElement('div');
             text.className = 'todo-text-new';
             text.textContent = task.name;
-            
+
             const meta = document.createElement('div');
             meta.className = 'todo-meta-new';
-            
+
             const categoryBadge = document.createElement('span');
             categoryBadge.className = 'todo-category-badge';
             const emoji = categoryEmojis[task.type] || categoryEmojis.other;
             categoryBadge.textContent = `${emoji} ${(task.type || 'other').charAt(0).toUpperCase() + (task.type || 'other').slice(1)}`;
-            
+
             const dateBadge = document.createElement('span');
             dateBadge.className = 'todo-date-badge';
             dateBadge.textContent = task.date ? new Date(task.date).toLocaleDateString() : '';
-            
+
             meta.appendChild(categoryBadge);
             if (task.date) meta.appendChild(dateBadge);
-            
+
             content.appendChild(text);
             content.appendChild(meta);
-            
+
             const actions = document.createElement('div');
             actions.className = 'todo-actions-new';
-            
+
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'todo-action-btn delete';
             deleteBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>';
             deleteBtn.addEventListener('click', () => deleteTask(task.id));
-            
+
             actions.appendChild(deleteBtn);
-            
+
             item.appendChild(checkbox);
             item.appendChild(content);
             item.appendChild(actions);
-            
+
             listContainer.appendChild(item);
         });
     }
@@ -5919,7 +6787,7 @@
             listContainer.appendChild(item);
         });
     }
-    
+
     function toggleTaskComplete(taskId) {
         const task = state.tasks.find(t => t.id === taskId);
         if (task) {
@@ -5933,7 +6801,7 @@
             playFeedback();
         }
     }
-    
+
     function deleteTask(taskId) {
         const confirmMsg = state.language === 'bn' ? 'এই কাজটি মুছে ফেলতে চান?' : 'Delete this task?';
         if (confirm(confirmMsg)) {
@@ -5946,22 +6814,22 @@
             playFeedback();
         }
     }
-    
+
     function getCurrentTodoCategory() {
         const activeTab = document.querySelector('.todo-tab-new.active');
         return activeTab?.dataset.category || 'all';
     }
-    
+
     function updateTodoStats() {
         const totalEl = document.getElementById('total-tasks-count');
         const completedEl = document.getElementById('completed-tasks-count');
         const progressBar = document.getElementById('tasks-progress-bar');
         const progressPercent = document.getElementById('tasks-progress-percent');
-        
+
         const total = state.tasks?.length || 0;
         const completed = state.tasks?.filter(t => t.done).length || 0;
         const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-        
+
         if (totalEl) totalEl.textContent = total;
         if (completedEl) completedEl.textContent = completed;
         if (progressBar) progressBar.style.width = `${percent}%`;
@@ -6006,13 +6874,13 @@
             return billDate >= monthStart && billDate <= monthEnd;
         });
 
-        const monthPayments = state.customers.flatMap(c => 
+        const monthPayments = state.customers.flatMap(c =>
             c.payments.filter(p => {
                 const payDate = new Date(p.date);
                 return payDate >= monthStart && payDate <= monthEnd;
             })
         );
-        
+
         // Calculate pending amounts (total debts - payments)
         const totalDebts = state.customers.reduce((sum, c) => {
             return sum + (c.debts || []).reduce((debtSum, d) => debtSum + d.amount, 0);
@@ -6025,7 +6893,7 @@
         const totalRevenue = monthBills.reduce((sum, b) => sum + b.total, 0);
         const totalPayments = monthPayments.reduce((sum, p) => sum + p.amount, 0);
         const totalCustomers = new Set(monthBills.map(b => b.customerName)).size;
-        
+
         // Calculate performance (simple percentage of payments vs revenue)
         const performance = totalRevenue > 0 ? Math.round((totalPayments / totalRevenue) * 100) : 0;
         const performanceText = performance >= 80 ? 'Excellent' : performance >= 60 ? 'Good' : performance >= 40 ? 'Fair' : 'Needs Improvement';
@@ -6042,7 +6910,7 @@
         const paymentsEl = document.getElementById('preview-total-payments');
         const pendingEl = document.getElementById('preview-pending-amount');
         const performanceEl = document.getElementById('preview-performance');
-        
+
         // Legacy elements (if they exist)
         const billsEl = document.getElementById('preview-bills-count');
         const customersEl = document.getElementById('preview-customers-count');
@@ -6069,7 +6937,7 @@
     function openBillModal(billToEdit = null) {
         if (!forms.bill || !modals.bill) return;
         forms.bill.reset();
-        
+
         // Populate customer select
         const customerSelect = document.getElementById('bill-customer-select');
         if (customerSelect) {
@@ -6123,7 +6991,7 @@
             if (billToEdit.tax) {
                 document.getElementById('bill-tax').value = billToEdit.tax;
             }
-            
+
             // Populate products
             const productsContainer = document.getElementById('bill-products');
             productsContainer.innerHTML = '';
@@ -6142,10 +7010,10 @@
                 </div>
             `;
         }
-        
+
         attachBillProductHandlers();
         calculateBillTotal();
-        
+
         // Handle customer select change
         if (customerSelect) {
             customerSelect.addEventListener('change', (e) => {
@@ -6157,7 +7025,7 @@
                 }
             });
         }
-        
+
         modals.bill.showModal();
     }
 
@@ -6200,7 +7068,7 @@
                 playFeedback();
             });
         });
-        
+
         // Add input listeners for real-time calculation
         document.querySelectorAll('.bill-product-row input').forEach(input => {
             input.replaceWith(input.cloneNode(true)); // Remove old listeners
@@ -6208,7 +7076,7 @@
         document.querySelectorAll('.bill-product-row input').forEach(input => {
             input.addEventListener('input', calculateBillTotal);
         });
-        
+
         // Add listeners for discount and tax
         const totalDiscountInput = document.getElementById('bill-total-discount');
         const taxInput = document.getElementById('bill-tax');
@@ -6220,7 +7088,7 @@
             taxInput.replaceWith(taxInput.cloneNode(true));
             document.getElementById('bill-tax').addEventListener('input', calculateBillTotal);
         }
-        
+
         // Update spacing value display
         const spacingInput = document.getElementById('customize-spacing');
         if (spacingInput) {
@@ -6236,9 +7104,9 @@
         const subtotalEl = document.getElementById('bill-subtotal');
         const discountAmountEl = document.getElementById('bill-discount-amount');
         const taxAmountEl = document.getElementById('bill-tax-amount');
-        
+
         if (!totalEl) return;
-        
+
         let subtotal = 0;
         document.querySelectorAll('.bill-product-row').forEach(row => {
             const price = parseFloat(row.querySelector('input[name="productPrice[]"]').value) || 0;
@@ -6248,19 +7116,19 @@
             const itemDiscountAmount = itemTotal * (itemDiscount / 100);
             subtotal += itemTotal - itemDiscountAmount;
         });
-        
+
         if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
-        
+
         const totalDiscount = parseFloat(document.getElementById('bill-total-discount')?.value || 0);
         const discountAmount = subtotal * (totalDiscount / 100);
         const afterDiscount = subtotal - discountAmount;
-        
+
         if (discountAmountEl) discountAmountEl.textContent = formatCurrency(discountAmount);
-        
+
         const tax = parseFloat(document.getElementById('bill-tax')?.value || 0);
         const taxAmount = afterDiscount * (tax / 100);
         const total = afterDiscount + taxAmount;
-        
+
         if (taxAmountEl) taxAmountEl.textContent = formatCurrency(taxAmount);
         totalEl.textContent = formatCurrency(total);
     }
@@ -6273,14 +7141,14 @@
         const productPrices = data.getAll('productPrice[]');
         const productQuantities = data.getAll('productQuantity[]');
         const productDiscounts = data.getAll('productDiscount[]');
-        
+
         productNames.forEach((name, i) => {
             const price = parseFloat(productPrices[i]) || 0;
             const qty = parseFloat(productQuantities[i]) || 1;
             const discount = parseFloat(productDiscounts[i]) || 0;
             const itemTotal = price * qty;
             const discountAmount = itemTotal * (discount / 100);
-            
+
             products.push({
                 name: name.trim(),
                 price: price,
@@ -6300,7 +7168,7 @@
         const total = afterDiscount + taxAmount;
 
         const customerId = data.get('customerId');
-        const customerName = data.get('customerName') || 
+        const customerName = data.get('customerName') ||
             (customerId ? state.customers.find(c => c.id === customerId)?.name : '') || '';
 
         const bill = {
@@ -6333,7 +7201,7 @@
         saveState();
         renderBills();
         modals.bill.close();
-        
+
         // Generate bill card
         const billCardUrl = await generateBillCard(bill);
         shareBillCard(billCardUrl, bill);
@@ -6342,229 +7210,255 @@
 
 
     async function generateBillCard(bill, customizeSettings = null) {
+        // New invoice-style exporter (PNG). Used for download/share.
         const settings = customizeSettings || getCustomizeSettings();
+
         const canvas = document.createElement('canvas');
-        const baseWidth = 1200;
-        const baseHeight = 2000; // Increased for more content
-        const scale = 3; // Higher scale for better quality
-        canvas.width = baseWidth * scale;
+        const scale = 3; // crisp exports
+
+        const pageWidth = 1200;
+        const margin = 90;
+        const products = Array.isArray(bill.products) ? bill.products : [];
+
+        const rowHeight = 56;
+        const tableHeaderHeight = 44;
+        const rows = Math.max(products.length, 1);
+
+        // Height is based on rows so invoices don't have huge blank space.
+        const baseHeight = 520 + tableHeaderHeight + (rows * rowHeight) + 360;
+
+        canvas.width = pageWidth * scale;
         canvas.height = baseHeight * scale;
+
         const ctx = canvas.getContext('2d');
         ctx.scale(scale, scale);
 
-        // Background
-        ctx.fillStyle = settings.bgColor || '#ffffff';
-        ctx.fillRect(0, 0, baseWidth, baseHeight);
+        const themeBg = settings.bgColor || (settings.theme === 'minimal' ? '#ffffff' : '#f7f3ea');
+        const bg = themeBg.toLowerCase() === '#ffffff' && settings.theme === 'cozy' ? '#f7f3ea' : themeBg;
 
-        // Border
+        const ink = '#111827';
+        const inkSoft = 'rgba(17, 24, 39, 0.70)';
+        const line = 'rgba(17, 24, 39, 0.18)';
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, pageWidth, baseHeight);
+
         if (settings.showBorder) {
-            ctx.strokeStyle = settings.primaryColor || '#1c8b73';
-            ctx.lineWidth = (settings.borderWidth || 2);
-            ctx.strokeRect(settings.borderWidth / 2, settings.borderWidth / 2, 
-                          baseWidth - settings.borderWidth, baseHeight - settings.borderWidth);
+            ctx.strokeStyle = 'rgba(17, 24, 39, 0.08)';
+            ctx.lineWidth = Math.max(1, settings.borderWidth || 1);
+            ctx.strokeRect(24, 24, pageWidth - 48, baseHeight - 48);
         }
 
-        const spacing = settings.spacing || 16;
-        const baseFontSize = 14 + (settings.fontSize || 0);
-        let y = spacing * 2;
-        
-        // Helper function to draw text with word wrap - fixed to handle text bugs
-        const drawText = (text, x, yPos, maxWidth, fontSize, color = '#1d2b2f', align = 'left', bold = false) => {
-            ctx.fillStyle = color;
-            ctx.font = `${bold ? 'bold ' : ''}${fontSize}px ${settings.font || 'Inter'}, sans-serif`;
-            ctx.textAlign = align;
-            // Ensure text is a string and handle newlines
-            const textStr = String(text || '').replace(/\n/g, ' ');
-            const words = textStr.split(' ');
-            let line = '';
-            let currentY = yPos;
-            
-            words.forEach((word) => {
-                if (!word) return;
-                const testLine = line + word + ' ';
-                const metrics = ctx.measureText(testLine);
-                if (metrics.width > maxWidth && line) {
-                    ctx.fillText(line.trim(), x, currentY);
-                    line = word + ' ';
-                    currentY += fontSize * 1.4;
-                } else {
-                    line = testLine;
-                }
-            });
-            if (line) {
-                ctx.fillText(line.trim(), x, currentY);
-            }
-            return currentY + fontSize * 0.5;
+        const drawRoundedRect = (x, y, w, h, r) => {
+            const radius = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + w, y, x + w, y + h, radius);
+            ctx.arcTo(x + w, y + h, x, y + h, radius);
+            ctx.arcTo(x, y + h, x, y, radius);
+            ctx.arcTo(x, y, x + w, y, radius);
+            ctx.closePath();
         };
 
-        const leftMargin = spacing * 2;
-        const rightMargin = baseWidth - spacing * 2;
-        const contentWidth = rightMargin - leftMargin;
+        const drawText = ({ text, x, y, size = 16, color = ink, align = 'left', weight = 400, family = 'Space Grotesk, ui-sans-serif, system-ui' }) => {
+            ctx.fillStyle = color;
+            ctx.textAlign = align;
+            ctx.font = `${weight} ${size}px ${family}`;
+            ctx.fillText(String(text ?? ''), x, y);
+        };
 
-        // Shop logo
-        if (settings.logoUrl) {
+        const fitText = (text, maxWidth, font) => {
+            ctx.font = font;
+            const str = String(text ?? '');
+            if (ctx.measureText(str).width <= maxWidth) return str;
+            const ellipsis = '…';
+            let out = str;
+            while (out.length > 0 && ctx.measureText(out + ellipsis).width > maxWidth) {
+                out = out.slice(0, -1);
+            }
+            return (out || '').trim() ? (out.trim() + ellipsis) : ellipsis;
+        };
+
+        const logoUrl = settings.logoUrl || state.shop?.shopLogo || null;
+        const logoSize = 64;
+        const headerY = 96;
+
+        if (logoUrl) {
             try {
-                const logo = await loadImage(settings.logoUrl);
-                const logoSize = 80;
-                ctx.drawImage(logo, leftMargin, y, logoSize, logoSize);
-                y += logoSize + spacing;
+                const logo = await loadImage(logoUrl);
+                const lw = logo.naturalWidth || logo.width || 1;
+                const lh = logo.naturalHeight || logo.height || 1;
+                const ratio = Math.min(logoSize / lw, logoSize / lh);
+                const w = Math.max(1, Math.round(lw * ratio));
+                const h = Math.max(1, Math.round(lh * ratio));
+                const x = margin;
+                const y = headerY - logoSize + 8;
+                ctx.drawImage(logo, x, y, w, h);
             } catch (e) {
                 console.warn('Logo load failed', e);
             }
         }
 
-        // Shop info
-        const shopName = String(state.shop?.shopName || 'Shop Name');
-        y = drawText(shopName, leftMargin, y, contentWidth, baseFontSize + 8, settings.primaryColor, 'left', true);
-        y += spacing / 2;
-        
-        if (state.shop?.ownerName) {
-            y = drawText(String(state.shop.ownerName), leftMargin, y, contentWidth, baseFontSize - 2, '#4a5568', 'left', false);
-        }
-        y += spacing * 1.5;
+        // INVOICE title (right)
+        drawText({
+            text: 'INVOICE',
+            x: pageWidth - margin,
+            y: headerY,
+            size: 44,
+            weight: 700,
+            align: 'right'
+        });
 
-        // Divider
-        ctx.strokeStyle = settings.primaryColor + '40';
+        // Shop name (left, under logo)
+        const shopName = state.shop?.shopName || 'DebtX Shop';
+        drawText({ text: shopName, x: margin, y: headerY + 38, size: 20, weight: 700, color: ink });
+        if (state.shop?.phoneNumber) {
+            drawText({ text: state.shop.phoneNumber, x: margin, y: headerY + 62, size: 14, color: inkSoft });
+        }
+
+        // Line under header
+        ctx.strokeStyle = line;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(leftMargin, y);
-        ctx.lineTo(rightMargin, y);
+        ctx.moveTo(margin, headerY + 90);
+        ctx.lineTo(pageWidth - margin, headerY + 90);
         ctx.stroke();
-        y += spacing;
 
-        // Invoice header
-        const invoiceText = `Invoice: ${bill.invoiceNumber || generateInvoiceNumber()}`;
-        y = drawText(invoiceText, leftMargin, y, contentWidth, baseFontSize + 2, '#1d2b2f', 'left', true);
-        y += spacing / 2;
-        
-        const dateText = `Date: ${formatDisplayDate(bill.date)}`;
-        y = drawText(dateText, leftMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'left', false);
-        y += spacing / 2;
-        
-        const customerText = `Customer: ${bill.customerName || 'Customer'}`;
-        y = drawText(customerText, leftMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'left', false);
-        
-        if (bill.dueDate) {
-            y += spacing / 2;
-            const dueDateText = `Due Date: ${formatDisplayDate(bill.dueDate)}`;
-            const dueColor = bill.dueDate < todayString() ? '#dc2626' : '#4a5568';
-            y = drawText(dueDateText, leftMargin, y, contentWidth, baseFontSize, dueColor, 'left', false);
-        }
-        y += spacing * 1.5;
+        // Billed to + invoice meta
+        const metaTop = headerY + 130;
+        drawText({ text: 'BILLED TO:', x: margin, y: metaTop, size: 12, weight: 700, color: inkSoft });
+        drawText({ text: bill.customerName || 'Customer', x: margin, y: metaTop + 24, size: 18, weight: 700, color: ink });
 
-        // Divider
+        const invoiceNo = bill.invoiceNumber || generateInvoiceNumber();
+        const dateStr = formatDisplayDate(bill.date);
+        drawText({ text: `Invoice No. ${invoiceNo}`, x: pageWidth - margin, y: metaTop, size: 14, weight: 600, color: ink, align: 'right' });
+        drawText({ text: dateStr, x: pageWidth - margin, y: metaTop + 22, size: 13, color: inkSoft, align: 'right' });
+
+        // Table header
+        const tableTop = metaTop + 64;
+        const tableW = pageWidth - margin * 2;
+        const colQty = 110;
+        const colUnit = 180;
+        const colTotal = 180;
+        const colItem = tableW - colQty - colUnit - colTotal;
+        const xItem = margin;
+        const xQty = xItem + colItem;
+        const xUnit = xQty + colQty;
+        const xTotal = xUnit + colUnit;
+
+        ctx.strokeStyle = line;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(leftMargin, y);
-        ctx.lineTo(rightMargin, y);
+        ctx.moveTo(margin, tableTop);
+        ctx.lineTo(pageWidth - margin, tableTop);
         ctx.stroke();
-        y += spacing;
 
-        // Items header
-        y = drawText('Items:', leftMargin, y, contentWidth, baseFontSize + 2, settings.primaryColor, 'left', true);
-        y += spacing / 2;
+        drawText({ text: 'Item', x: xItem, y: tableTop + 28, size: 13, weight: 700, color: inkSoft });
+        drawText({ text: 'Qty', x: xQty + colQty / 2, y: tableTop + 28, size: 13, weight: 700, color: inkSoft, align: 'center' });
+        drawText({ text: 'Unit Price', x: xUnit + colUnit - 6, y: tableTop + 28, size: 13, weight: 700, color: inkSoft, align: 'right' });
+        drawText({ text: 'Total', x: xTotal + colTotal - 6, y: tableTop + 28, size: 13, weight: 700, color: inkSoft, align: 'right' });
 
-        // Products
-        if (bill.products && bill.products.length > 0) {
-            bill.products.forEach(product => {
-                const itemName = String(product.name || 'Item');
-                const qty = product.quantity || 1;
-                const price = product.price || 0;
-                const discount = product.discount || 0;
-                const itemTotal = product.subtotal || (price * qty * (1 - discount / 100));
-                
-                let itemText = `${itemName} × ${qty}`;
-                if (discount > 0) {
-                    itemText += ` (${discount}% off)`;
-                }
-                
-                // Draw item name and quantity on left
-                const itemY = drawText(itemText, leftMargin, y, contentWidth * 0.7, baseFontSize, '#1d2b2f', 'left', false);
-                
-                // Draw price on right
-                ctx.fillStyle = '#1d2b2f';
-                ctx.font = `bold ${baseFontSize}px ${settings.font || 'Inter'}, sans-serif`;
-                ctx.textAlign = 'right';
-                ctx.fillText(formatCurrency(itemTotal), rightMargin, y);
-                ctx.textAlign = 'left';
-                
-                y = itemY + spacing / 3;
+        ctx.beginPath();
+        ctx.moveTo(margin, tableTop + tableHeaderHeight);
+        ctx.lineTo(pageWidth - margin, tableTop + tableHeaderHeight);
+        ctx.stroke();
+
+        const bodyFont = '500 15px Space Grotesk, ui-sans-serif, system-ui';
+
+        let y = tableTop + tableHeaderHeight + 34;
+        const safeProducts = products.length
+            ? products
+            : [{ name: 'Item', quantity: 1, price: bill.total || 0, subtotal: bill.total || 0 }];
+
+        safeProducts.forEach((p) => {
+            const name = fitText(p.name || 'Item', colItem - 12, bodyFont);
+            const qty = Number(p.quantity) || 1;
+            const unit = Number(p.price) || 0;
+            const lineTotal = typeof p.subtotal === 'number' ? p.subtotal : (unit * qty);
+
+            drawText({ text: name, x: xItem, y, size: 15, weight: 500, color: ink });
+            drawText({ text: String(qty), x: xQty + colQty / 2, y, size: 13, weight: 600, color: ink, align: 'center' });
+            drawText({ text: formatCurrency(unit), x: xUnit + colUnit - 6, y, size: 13, weight: 600, color: ink, align: 'right' });
+            drawText({ text: formatCurrency(lineTotal), x: xTotal + colTotal - 6, y, size: 13, weight: 700, color: ink, align: 'right' });
+
+            ctx.strokeStyle = 'rgba(17, 24, 39, 0.10)';
+            ctx.beginPath();
+            ctx.moveTo(margin, y + 22);
+            ctx.lineTo(pageWidth - margin, y + 22);
+            ctx.stroke();
+
+            y += rowHeight;
+        });
+
+        // Totals block (right)
+        const totalsTop = y + 12;
+        const totalsW = 320;
+        const totalsX = pageWidth - margin - totalsW;
+        const totalsRight = pageWidth - margin;
+
+        const subtotal = Number(bill.subtotal ?? bill.total ?? 0);
+        const discountAmount = Number(bill.discountAmount ?? 0);
+        const taxAmount = Number(bill.taxAmount ?? 0);
+        const total = Number(bill.total ?? 0);
+
+        const drawTotalRow = (label, value, rowY) => {
+            drawText({ text: label, x: totalsX, y: rowY, size: 14, weight: 600, color: inkSoft });
+            drawText({ text: value, x: totalsRight, y: rowY, size: 14, weight: 700, color: ink, align: 'right' });
+        };
+
+        drawTotalRow('Subtotal', formatCurrency(subtotal), totalsTop);
+        let totalsY = totalsTop + 28;
+        if (discountAmount > 0) {
+            drawTotalRow('Discount', '-' + formatCurrency(discountAmount), totalsY);
+            totalsY += 28;
+        }
+        if (taxAmount > 0) {
+            drawTotalRow('Tax', formatCurrency(taxAmount), totalsY);
+            totalsY += 28;
+        }
+
+        ctx.strokeStyle = line;
+        ctx.beginPath();
+        ctx.moveTo(totalsX, totalsY + 6);
+        ctx.lineTo(totalsRight, totalsY + 6);
+        ctx.stroke();
+
+        drawText({ text: 'Total', x: totalsX, y: totalsY + 40, size: 18, weight: 800, color: ink });
+        drawText({ text: formatCurrency(total), x: totalsRight, y: totalsY + 40, size: 18, weight: 900, color: ink, align: 'right' });
+
+        // Footer
+        const footerTop = totalsY + 110;
+        drawText({ text: 'Thank you!', x: margin, y: footerTop + 44, size: 20, weight: 800, color: ink });
+
+        // Payment information (left)
+        const paymentLines = [];
+        const pm = state.shop?.paymentMethods;
+        if (pm?.bkash?.enabled && pm.bkash.number) paymentLines.push(`bKash: ${pm.bkash.number}`);
+        if (pm?.nagad?.enabled && pm.nagad.number) paymentLines.push(`Nagad: ${pm.nagad.number}`);
+        if (pm?.rocket?.enabled && pm.rocket.number) paymentLines.push(`Rocket: ${pm.rocket.number}`);
+
+        if (paymentLines.length) {
+            drawText({ text: 'PAYMENT INFORMATION', x: margin, y: footerTop + 86, size: 12, weight: 800, color: inkSoft });
+            let py = footerTop + 108;
+            paymentLines.forEach((lineText) => {
+                drawText({ text: lineText, x: margin, y: py, size: 13, weight: 600, color: inkSoft });
+                py += 18;
             });
-        } else {
-            y = drawText('No items', leftMargin, y, contentWidth, baseFontSize, '#9ca3af', 'left', false);
-        }
-        y += spacing;
-
-        // Divider
-        ctx.beginPath();
-        ctx.moveTo(leftMargin, y);
-        ctx.lineTo(rightMargin, y);
-        ctx.stroke();
-        y += spacing;
-
-        // Totals
-        ctx.textAlign = 'right';
-        const subtotalText = `Subtotal: ${formatCurrency(bill.subtotal || bill.total)}`;
-        y = drawText(subtotalText, rightMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'right', false);
-        
-        if (bill.discountAmount > 0) {
-            y += spacing / 2;
-            const discountText = `Discount: -${formatCurrency(bill.discountAmount)}`;
-            y = drawText(discountText, rightMargin, y, contentWidth, baseFontSize, '#16a34a', 'right', false);
-        }
-        
-        if (bill.taxAmount > 0) {
-            y += spacing / 2;
-            const taxText = `Tax: ${formatCurrency(bill.taxAmount)}`;
-            y = drawText(taxText, rightMargin, y, contentWidth, baseFontSize, '#1d2b2f', 'right', false);
-        }
-        
-        y += spacing / 2;
-        ctx.beginPath();
-        ctx.moveTo(leftMargin, y);
-        ctx.lineTo(rightMargin, y);
-        ctx.stroke();
-        y += spacing / 2;
-        
-        // Total
-        const totalText = `Total: ${formatCurrency(bill.total || 0)}`;
-        y = drawText(totalText, rightMargin, y, contentWidth, baseFontSize + 4, settings.primaryColor, 'right', true);
-        ctx.textAlign = 'left';
-        y += spacing * 1.5;
-
-        // Notes
-        const notesText = (bill.notes || '') + (settings.customNotes ? '\n' + settings.customNotes : '');
-        if (notesText.trim()) {
-            y = drawText('Notes: ' + notesText, leftMargin, y, contentWidth, baseFontSize - 2, '#4a5568', 'left', false);
-            y += spacing;
         }
 
-        // Payment info
-        if (state.shop?.paymentMethods) {
-            const methods = [];
-            if (state.shop.paymentMethods.bkash?.enabled && state.shop.paymentMethods.bkash.number) {
-                methods.push(`bKash: ${state.shop.paymentMethods.bkash.number}`);
-            }
-            if (state.shop.paymentMethods.nagad?.enabled && state.shop.paymentMethods.nagad.number) {
-                methods.push(`Nagad: ${state.shop.paymentMethods.nagad.number}`);
-            }
-            if (state.shop.paymentMethods.rocket?.enabled && state.shop.paymentMethods.rocket.number) {
-                methods.push(`Rocket: ${state.shop.paymentMethods.rocket.number}`);
-            }
-            if (methods.length > 0) {
-                y += spacing / 2;
-                methods.forEach((method) => {
-                    y = drawText(method, leftMargin, y, contentWidth, baseFontSize - 1, '#4a5568', 'left', false);
-                });
-            }
-        }
-
-        // Payment status
-        if (bill.paymentStatus) {
-            y += spacing;
-            const statusText = `Status: ${bill.paymentStatus.charAt(0).toUpperCase() + bill.paymentStatus.slice(1)}`;
-            const statusColor = bill.paymentStatus === 'paid' ? '#16a34a' : 
-                              bill.paymentStatus === 'partial' ? '#2563eb' : '#d97706';
-            y = drawText(statusText, leftMargin, y, contentWidth, baseFontSize, statusColor, 'left', false);
+        // Notes (right)
+        if (bill.notes) {
+            const noteBoxW = 420;
+            const noteX = pageWidth - margin - noteBoxW;
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.strokeStyle = 'rgba(17, 24, 39, 0.10)';
+            ctx.lineWidth = 1;
+            drawRoundedRect(noteX, footerTop + 74, noteBoxW, 100, 14);
+            ctx.fill();
+            ctx.stroke();
+            drawText({ text: 'NOTES', x: noteX + 16, y: footerTop + 98, size: 12, weight: 800, color: inkSoft, align: 'left' });
+            const note = fitText(bill.notes, noteBoxW - 32, '500 13px Space Grotesk, ui-sans-serif, system-ui');
+            drawText({ text: note, x: noteX + 16, y: footerTop + 122, size: 13, weight: 500, color: inkSoft, align: 'left' });
         }
 
         try {
@@ -6636,99 +7530,147 @@
         if (!previewContainer || !bill) return;
 
         const settings = getCustomizeSettings();
-        const baseFontSize = 14 + settings.fontSize;
-        const headingSize = baseFontSize + 6;
-        const iconSize = settings.showIcons ? '1.2em' : '0';
-        
-        // Escape HTML to prevent text bugs
-        const escapeHtml = (text) => {
+
+        const escapeHtml = (value) => {
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = String(value ?? '');
             return div.innerHTML;
         };
 
-        const shopName = escapeHtml(state.shop?.shopName || 'Shop Name');
+        const bgCandidate = settings.bgColor || (settings.theme === 'minimal' ? '#ffffff' : '#f7f3ea');
+        const bg = bgCandidate.toLowerCase() === '#ffffff' && settings.theme === 'cozy' ? '#f7f3ea' : bgCandidate;
+
+        const logoUrl = settings.logoUrl || state.shop?.shopLogo || '';
+        const shopName = escapeHtml(state.shop?.shopName || 'DebtX Shop');
+        const phone = state.shop?.phoneNumber ? escapeHtml(state.shop.phoneNumber) : '';
+
         const invoiceNum = escapeHtml(bill.invoiceNumber || generateInvoiceNumber());
         const customerName = escapeHtml(bill.customerName || 'Customer');
-        const dateStr = formatDisplayDate(bill.date);
-        
-        const previewHTML = `
+        const dateStr = escapeHtml(formatDisplayDate(bill.date));
+
+        const products = Array.isArray(bill.products) ? bill.products : [];
+        const rows = (products.length ? products : [{ name: 'Item', quantity: 1, price: bill.total || 0, subtotal: bill.total || 0 }]).map(p => {
+            const name = escapeHtml(p.name || 'Item');
+            const qty = Number(p.quantity) || 1;
+            const unit = Number(p.price) || 0;
+            const total = typeof p.subtotal === 'number' ? p.subtotal : unit * qty;
+            return `
+                <tr style="border-bottom: 1px solid rgba(17,24,39,0.10);">
+                    <td style="padding: 10px 8px; max-width: 260px;">${name}</td>
+                    <td style="padding: 10px 8px; text-align: center;">${qty}</td>
+                    <td style="padding: 10px 8px; text-align: right;">${escapeHtml(formatCurrency(unit))}</td>
+                    <td style="padding: 10px 8px; text-align: right; font-weight: 800;">${escapeHtml(formatCurrency(total))}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const subtotal = Number(bill.subtotal ?? bill.total ?? 0);
+        const discountAmount = Number(bill.discountAmount ?? 0);
+        const taxAmount = Number(bill.taxAmount ?? 0);
+        const totalAmount = Number(bill.total ?? 0);
+
+        const pm = state.shop?.paymentMethods;
+        const payLines = [];
+        if (pm?.bkash?.enabled && pm.bkash.number) payLines.push(`bKash: ${escapeHtml(pm.bkash.number)}`);
+        if (pm?.nagad?.enabled && pm.nagad.number) payLines.push(`Nagad: ${escapeHtml(pm.nagad.number)}`);
+        if (pm?.rocket?.enabled && pm.rocket.number) payLines.push(`Rocket: ${escapeHtml(pm.rocket.number)}`);
+
+        const paymentInfoHtml = payLines.length ? `
+            <div style="margin-top: 10px;">
+                <div style="font-size: 11px; letter-spacing: 0.10em; font-weight: 900; color: rgba(17,24,39,0.65);">PAYMENT INFORMATION</div>
+                ${payLines.map(l => `<div style="margin-top: 4px; font-size: 12px; color: rgba(17,24,39,0.72);">${l}</div>`).join('')}
+            </div>
+        ` : '';
+
+        const notesHtml = bill.notes ? `
+            <div style="margin-top: 10px;">
+                <div style="font-size: 11px; letter-spacing: 0.10em; font-weight: 900; color: rgba(17,24,39,0.65);">NOTES</div>
+                <div style="margin-top: 6px; font-size: 12px; color: rgba(17,24,39,0.72);">${escapeHtml(bill.notes)}</div>
+            </div>
+        ` : '';
+
+        previewContainer.innerHTML = `
             <div class="bill-preview-card" style="
-                background: ${settings.bgColor};
-                border: ${settings.showBorder ? `${settings.borderWidth}px solid ${settings.primaryColor}` : 'none'};
-                border-radius: 8px;
-                padding: ${settings.spacing}px;
-                font-family: '${settings.font}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                font-size: ${baseFontSize}px;
-                color: #1d2b2f;
+                background: ${bg};
+                border: ${settings.showBorder ? '1px solid rgba(17,24,39,0.12)' : 'none'};
+                border-radius: 18px;
+                padding: 20px;
+                font-family: var(--font-en);
+                color: #111827;
                 max-width: 100%;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                box-shadow: 0 10px 28px rgba(15, 23, 42, 0.10);
             ">
-                ${settings.logoUrl ? `<img src="${settings.logoUrl}" style="width: 60px; height: 60px; margin-bottom: ${settings.spacing}px; border-radius: 4px; object-fit: contain;" alt="Logo" />` : ''}
-                <h3 style="color: ${settings.primaryColor}; margin: 0 0 ${settings.spacing / 2}px 0; font-size: ${headingSize}px; font-weight: 700;">
-                    ${shopName}
-                </h3>
-                ${state.shop?.ownerName ? `<p style="margin: 0 0 ${settings.spacing}px 0; font-size: ${baseFontSize - 2}px; color: #4a5568;">${escapeHtml(state.shop.ownerName)}</p>` : ''}
-                <div style="margin: ${settings.spacing}px 0; padding: ${settings.spacing / 2}px 0; border-top: 1px solid ${settings.primaryColor}20; border-bottom: 1px solid ${settings.primaryColor}20;">
-                    <p style="margin: ${settings.spacing / 2}px 0; font-weight: 600; color: ${settings.primaryColor};">
-                        ${settings.showIcons ? '📄 ' : ''}Invoice: ${invoiceNum}
-                    </p>
-                    <p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px;">
-                        ${settings.showIcons ? '📅 ' : ''}Date: ${dateStr}
-                    </p>
-                    <p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px;">
-                        ${settings.showIcons ? '👤 ' : ''}Customer: ${customerName}
-                    </p>
-                    ${bill.dueDate ? `<p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px; color: ${bill.dueDate < todayString() ? '#dc2626' : '#4a5568'};">
-                        ${settings.showIcons ? '⏰ ' : ''}Due: ${formatDisplayDate(bill.dueDate)}
-                    </p>` : ''}
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px;">
+                    <div style="min-width: 72px;">
+                        ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="width: 64px; height: 64px; object-fit: contain;" />` : ''}
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size: 30px; font-weight: 900; letter-spacing: 0.16em;">INVOICE</div>
+                        <div style="margin-top: 6px; font-size: 12px; color: rgba(17,24,39,0.70);">Invoice No. ${invoiceNum}</div>
+                        <div style="font-size: 12px; color: rgba(17,24,39,0.70);">${dateStr}</div>
+                    </div>
                 </div>
-                <div style="margin: ${settings.spacing}px 0;">
-                    <p style="margin: 0 0 ${settings.spacing / 2}px 0; font-weight: 600; color: ${settings.primaryColor};">
-                        ${settings.showIcons ? '📦 ' : ''}Items:
-                    </p>
-                    ${bill.products && bill.products.length > 0 ? bill.products.map(p => {
-                        const itemName = escapeHtml(p.name || 'Item');
-                        const qty = p.quantity || 1;
-                        const price = p.price || 0;
-                        const discount = p.discount || 0;
-                        const itemTotal = p.subtotal || (price * qty * (1 - discount / 100));
-                        return `
-                            <p style="margin: ${settings.spacing / 3}px 0; font-size: ${baseFontSize - 1}px; display: flex; justify-content: space-between;">
-                                <span>${itemName} × ${qty}${discount > 0 ? ` (${discount}% off)` : ''}</span>
-                                <strong>${formatCurrency(itemTotal)}</strong>
-                            </p>
-                        `;
-                    }).join('') : '<p style="margin: 4px 0; color: #9ca3af;">No items</p>'}
+
+                <div style="margin-top: 14px; border-top: 1px solid rgba(17,24,39,0.16); padding-top: 14px; display:flex; justify-content:space-between; gap:18px;">
+                    <div>
+                        <div style="font-size: 11px; letter-spacing: 0.10em; font-weight: 900; color: rgba(17,24,39,0.65);">BILLED TO</div>
+                        <div style="margin-top: 6px; font-size: 18px; font-weight: 900;">${customerName}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size: 11px; letter-spacing: 0.10em; font-weight: 900; color: rgba(17,24,39,0.65);">FROM</div>
+                        <div style="margin-top: 6px; font-size: 14px; font-weight: 900;">${shopName}</div>
+                        ${phone ? `<div style="font-size: 12px; color: rgba(17,24,39,0.70);">${phone}</div>` : ''}
+                    </div>
                 </div>
-                <div style="margin: ${settings.spacing}px 0; padding-top: ${settings.spacing}px; border-top: 2px solid ${settings.primaryColor};">
-                    <p style="margin: ${settings.spacing / 2}px 0; display: flex; justify-content: space-between; font-size: ${baseFontSize - 1}px;">
-                        <span>Subtotal:</span>
-                        <strong>${formatCurrency(bill.subtotal || bill.total)}</strong>
-                    </p>
-                    ${bill.discountAmount > 0 ? `<p style="margin: ${settings.spacing / 2}px 0; display: flex; justify-content: space-between; font-size: ${baseFontSize - 1}px; color: #16a34a;">
-                        <span>Discount:</span>
-                        <strong>-${formatCurrency(bill.discountAmount)}</strong>
-                    </p>` : ''}
-                    ${bill.taxAmount > 0 ? `<p style="margin: ${settings.spacing / 2}px 0; display: flex; justify-content: space-between; font-size: ${baseFontSize - 1}px;">
-                        <span>Tax:</span>
-                        <strong>${formatCurrency(bill.taxAmount)}</strong>
-                    </p>` : ''}
-                    <p style="margin: ${settings.spacing}px 0 0 0; padding-top: ${settings.spacing / 2}px; border-top: 1px solid ${settings.primaryColor}40; display: flex; justify-content: space-between; font-size: ${baseFontSize + 2}px; font-weight: 700; color: ${settings.primaryColor};">
-                        <span>Total:</span>
-                        <strong>${formatCurrency(bill.total || 0)}</strong>
-                    </p>
+
+                <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px;">
+                    <thead>
+                        <tr style="border-top: 1px solid rgba(17,24,39,0.18); border-bottom: 1px solid rgba(17,24,39,0.18);">
+                            <th style="text-align:left; padding: 10px 8px; color: rgba(17,24,39,0.70);">Item</th>
+                            <th style="text-align:center; padding: 10px 8px; color: rgba(17,24,39,0.70);">Qty</th>
+                            <th style="text-align:right; padding: 10px 8px; color: rgba(17,24,39,0.70);">Unit</th>
+                            <th style="text-align:right; padding: 10px 8px; color: rgba(17,24,39,0.70);">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+
+                <div style="display:flex; justify-content:flex-end; margin-top: 14px;">
+                    <div style="width: 280px;">
+                        <div style="display:flex; justify-content:space-between; font-size: 12px; color: rgba(17,24,39,0.70);">
+                            <span>Subtotal</span>
+                            <strong style="color:#111827;">${escapeHtml(formatCurrency(subtotal))}</strong>
+                        </div>
+                        ${discountAmount > 0 ? `<div style="margin-top:6px; display:flex; justify-content:space-between; font-size: 12px; color: rgba(17,24,39,0.70);">
+                            <span>Discount</span>
+                            <strong style="color:#111827;">-${escapeHtml(formatCurrency(discountAmount))}</strong>
+                        </div>` : ''}
+                        ${taxAmount > 0 ? `<div style="margin-top:6px; display:flex; justify-content:space-between; font-size: 12px; color: rgba(17,24,39,0.70);">
+                            <span>Tax</span>
+                            <strong style="color:#111827;">${escapeHtml(formatCurrency(taxAmount))}</strong>
+                        </div>` : ''}
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(17,24,39,0.18); display:flex; justify-content:space-between; font-size: 16px; font-weight: 900;">
+                            <span>Total</span>
+                            <span>${escapeHtml(formatCurrency(totalAmount))}</span>
+                        </div>
+                    </div>
                 </div>
-                ${bill.notes || settings.customNotes ? `<div style="margin: ${settings.spacing}px 0; padding: ${settings.spacing / 2}px; background: ${settings.bgColor === '#ffffff' ? '#f8fafc' : settings.bgColor}; border-radius: 4px; font-size: ${baseFontSize - 2}px; color: #4a5568;">
-                    <strong>Notes:</strong> ${escapeHtml(bill.notes || '')} ${escapeHtml(settings.customNotes || '')}
-                </div>` : ''}
-                ${bill.paymentStatus ? `<p style="margin: ${settings.spacing / 2}px 0; font-size: ${baseFontSize - 1}px; color: ${bill.paymentStatus === 'paid' ? '#16a34a' : bill.paymentStatus === 'partial' ? '#2563eb' : '#d97706'};">
-                    Status: ${bill.paymentStatus.charAt(0).toUpperCase() + bill.paymentStatus.slice(1)}
-                </p>` : ''}
+
+                <div style="margin-top: 14px; border-top: 1px solid rgba(17,24,39,0.16); padding-top: 12px; display:flex; justify-content:space-between; gap:18px;">
+                    <div>
+                        <div style="font-size: 16px; font-weight: 900;">Thank you!</div>
+                        ${paymentInfoHtml}
+                    </div>
+                    <div style="text-align:right; max-width: 46%;">
+                        ${notesHtml}
+                    </div>
+                </div>
             </div>
         `;
-        previewContainer.innerHTML = previewHTML;
     }
+
 
     async function shareBillCard(dataUrl, bill) {
         if (!dataUrl || typeof dataUrl !== 'string') return;
@@ -6789,7 +7731,7 @@
         const searchInput = document.getElementById('bill-search');
         const searchQuery = searchInput?.value.toLowerCase().trim() || '';
         if (searchQuery) {
-            bills = bills.filter(bill => 
+            bills = bills.filter(bill =>
                 bill.customerName?.toLowerCase().includes(searchQuery) ||
                 bill.invoiceNumber?.toLowerCase().includes(searchQuery) ||
                 bill.notes?.toLowerCase().includes(searchQuery)
@@ -6833,17 +7775,17 @@
             const card = document.createElement('article');
             card.className = 'customer-card bill-card-enhanced';
             card.dataset.billId = bill.id;
-            
-            const isOverdue = bill.dueDate && bill.dueDate < todayString() && 
-                            (bill.paymentStatus === 'pending' || !bill.paymentStatus);
-            const statusClass = bill.paymentStatus === 'paid' ? 'status-paid' : 
-                              bill.paymentStatus === 'partial' ? 'status-partial' :
-                              isOverdue ? 'status-overdue' : 'status-pending';
-            
-            const statusText = bill.paymentStatus === 'paid' ? translate('bills.filterPaid') : 
-                              bill.paymentStatus === 'partial' ? translate('modals.bill.statusPartial') : 
-                              isOverdue ? translate('bills.filterOverdue') : translate('bills.filterPending');
-            
+
+            const isOverdue = bill.dueDate && bill.dueDate < todayString() &&
+                (bill.paymentStatus === 'pending' || !bill.paymentStatus);
+            const statusClass = bill.paymentStatus === 'paid' ? 'status-paid' :
+                bill.paymentStatus === 'partial' ? 'status-partial' :
+                    isOverdue ? 'status-overdue' : 'status-pending';
+
+            const statusText = bill.paymentStatus === 'paid' ? translate('bills.filterPaid') :
+                bill.paymentStatus === 'partial' ? translate('modals.bill.statusPartial') :
+                    isOverdue ? translate('bills.filterOverdue') : translate('bills.filterPending');
+
             const unknownCustomer = translate('modals.bill.customerName') || 'Unknown Customer';
             const noInvoice = translate('bills.invoiceNumber') || 'No Invoice #';
             const dueLabel = translate('bills.dueDate') || 'Due';
@@ -6852,12 +7794,12 @@
             const discountLabel = translate('modals.bill.discount') || 'Discount';
             const taxLabel = translate('modals.bill.tax') || 'Tax';
             const dateLabel = translate('bills.date') || 'Date';
-            
+
             // Get customer initial for icon
             const customerName = bill.customerName || unknownCustomer;
             const iconLetter = customerName.charAt(0).toUpperCase();
             const iconColor = getColorForLetter(iconLetter);
-            
+
             card.innerHTML = `
                 <header class="bill-card-header-enhanced">
                     <div class="bill-customer-info">
@@ -6946,6 +7888,15 @@
                         </svg>
                         <span>${translate('bills.downloadPng')}</span>
                     </button>
+                    <button class="bill-action-btn secondary" data-action="download-pdf" title="${translate('bills.downloadPdf')}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <path d="M12 12v6"></path>
+                            <path d="M9 15l3 3 3-3"></path>
+                        </svg>
+                        <span>${translate('bills.downloadPdf')}</span>
+                    </button>
                     <button class="bill-action-btn primary" data-action="share" title="${translate('bills.share')}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="18" cy="5" r="3"></circle>
@@ -6958,7 +7909,7 @@
                     </button>
                 </footer>
             `;
-            
+
             // Attach event handlers
             card.querySelector('[data-action="edit"]')?.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -6998,6 +7949,16 @@
                     if (typeof alert !== 'undefined') alert(err?.message || 'Could not generate bill image. Please try again.');
                 }
             });
+            card.querySelector('[data-action="download-pdf"]')?.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await downloadBillPdf(bill, getCustomizeSettings());
+                    playFeedback();
+                } catch (err) {
+                    console.error('Bill PDF download failed', err);
+                    if (typeof alert !== 'undefined') alert(err?.message || 'Could not generate bill PDF. Please try again.');
+                }
+            });
             card.querySelector('[data-action="share"]')?.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
@@ -7008,7 +7969,7 @@
                     if (typeof alert !== 'undefined') alert(err?.message || 'Could not generate bill image. Please try again.');
                 }
             });
-            
+
             billsList.appendChild(card);
         });
     }
@@ -7018,7 +7979,7 @@
         const paidEl = document.getElementById('bills-paid-count');
         const pendingEl = document.getElementById('bills-pending-count');
         const overdueEl = document.getElementById('bills-overdue-count');
-        
+
         if (totalEl) totalEl.textContent = total;
         if (paidEl) paidEl.textContent = paid;
         if (pendingEl) pendingEl.textContent = pending;
@@ -7029,7 +7990,7 @@
         const balanceEl = document.getElementById('bills-balance-amount');
         const inflowEl = document.getElementById('bills-inflow-amount');
         const outflowEl = document.getElementById('bills-outflow-amount');
-        
+
         if (balanceEl) balanceEl.textContent = formatCurrency(balance);
         if (inflowEl) inflowEl.textContent = `+${formatCurrency(inflow)}`;
         if (outflowEl) outflowEl.textContent = `-${formatCurrency(outflow)}`;
@@ -7040,13 +8001,13 @@
             const outflowPercent = (outflow / total) * 100;
             const inflowPercent = (inflow / total) * 100;
             const circumference = 2 * Math.PI * 80; // radius = 80
-            
+
             const outflowDash = (outflowPercent / 100) * circumference;
             const inflowDash = (inflowPercent / 100) * circumference;
-            
+
             const outflowCircle = document.getElementById('donut-outflow');
             const inflowCircle = document.getElementById('donut-inflow');
-            
+
             if (outflowCircle) {
                 outflowCircle.style.strokeDasharray = `${outflowDash} ${circumference}`;
             }
@@ -7064,177 +8025,1323 @@
 
     function getColorForLetter(letter) {
         const colors = [
-            '#EF4444', '#F59E0B', '#10B981', '#3B82F6', 
+            '#EF4444', '#F59E0B', '#10B981', '#3B82F6',
             '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'
         ];
         const index = letter.charCodeAt(0) % colors.length;
         return colors[index];
     }
 
-    async function handleAIMessage() {
-        
-        const input = document.getElementById('ai-input');
-        const messagesContainer = document.getElementById('ai-messages');
-        if (!input || !messagesContainer) return;
+    function normalizeBanglaDigits(text) {
+        const map = {
+            '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+            '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+        };
+        return text.replace(/[০-৯]/g, (digit) => map[digit] || digit);
+    }
 
-        const userMessage = input.value.trim();
-        if (!userMessage) return;
+    function normalizeText(text) {
+        return normalizeBanglaDigits(text).toLowerCase();
+    }
 
-        // Add user message
-        const userMsgEl = document.createElement('div');
-        userMsgEl.className = 'ai-message ai-message-user';
-        userMsgEl.innerHTML = `
-            <div class="ai-avatar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-            </div>
-            <div class="ai-content"><p>${userMessage}</p></div>
-        `;
-        messagesContainer.appendChild(userMsgEl);
-        input.value = '';
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        playFeedback();
+    function getAIUsageInfo() {
+        const plan = getActivePlan();
+        // Limits: Free/Nano/Pro=30/day, Max=100/cycle, Ultra=Infinity
+        let limit = 30; // Default for Free, Nano, Pro
+        if (plan === 'max') limit = 100;
+        else if (plan === 'ultra') limit = Infinity;
 
-        // Generate AI response
-        const aiResponse = await generateAIResponse(userMessage);
-        
-        // Add AI response
-        const aiMsgEl = document.createElement('div');
-        aiMsgEl.className = 'ai-message ai-message-assistant';
-        aiMsgEl.innerHTML = `
-            <div class="ai-avatar">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                </svg>
-            </div>
-            <div class="ai-content"><p style="white-space: pre-line;">${aiResponse}</p></div>
-        `;
-        messagesContainer.appendChild(aiMsgEl);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        const now = new Date();
+        const windowKey = plan === 'max'
+            ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+            : todayString();
+        const lastKey = state.ai.lastUsageKey || state.ai.lastUsageDate;
+
+        if (lastKey !== windowKey || state.ai.lastUsagePlan !== plan) {
+            state.ai.usageCount = 0;
+            state.ai.lastUsageKey = windowKey;
+            state.ai.lastUsagePlan = plan;
+            state.ai.lastUsageDate = windowKey;
+            saveState();
+        }
+
+        const used = Number(state.ai.usageCount) || 0;
+        const remaining = limit === Infinity ? Infinity : Math.max(0, limit - used);
+        return { plan, limit, used, remaining, windowKey };
+    }
+
+    function buildLimitMessage(info) {
+        const isBangla = state.language === 'bn';
+        if (info.plan === 'max') {
+            return isBangla
+                ? 'আপনার Max সাইকেলের লিমিট শেষ হয়েছে। আনলিমিটেড সহায়তার জন্য Ultra নিন।'
+                : 'You have reached your Max cycle limit. Upgrade to Ultra for unlimited support.';
+        }
+        return isBangla
+            ? 'আজকের এআই লিমিট শেষ হয়েছে। আরও ব্যবহারের জন্য Max নিন।'
+            : 'You have reached today’s AI limit. Upgrade to Max for more usage.';
+    }
+
+    function consumeAIUsage() {
+        const info = getAIUsageInfo();
+        if (info.limit !== Infinity && info.remaining <= 0) {
+            return { allowed: false, info, message: buildLimitMessage(info) };
+        }
+        if (info.limit !== Infinity) {
+            state.ai.usageCount += 1;
+            saveState();
+            info.used = state.ai.usageCount;
+            info.remaining = Math.max(0, info.limit - info.used);
+        }
+        return { allowed: true, info };
+    }
+
+    function updateAIBuddyName() {
+        const buddyName = state.ai.buddyName || 'Assistant';
+        const buddyNameEn = document.getElementById('ai-buddy-name-display');
+        const buddyNameBn = document.getElementById('ai-buddy-name-display-bn');
+        if (buddyNameEn) buddyNameEn.textContent = buddyName;
+        if (buddyNameBn) {
+            // Simple transliteration for common names, or use the name as-is
+            buddyNameBn.textContent = buddyName;
+        }
+    }
+
+    function animateAIBuddy(state) {
+        const orb = document.getElementById('ai-buddy-orb');
+        if (!orb) return;
+
+        orb.classList.remove('listening', 'thinking');
+        if (state === 'listening') {
+            orb.classList.add('listening');
+        } else if (state === 'thinking') {
+            orb.classList.add('thinking');
+        }
+    }
+
+    function speakText(text, lang) {
+        if (!('speechSynthesis' in window)) return;
+
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang === 'bn' ? 'bn-BD' : 'en-US';
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+
+        utterance.onstart = () => {
+            animateAIBuddy('thinking');
+        };
+
+        utterance.onend = () => {
+            animateAIBuddy('idle');
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function updateAIUsageUI(usageInfo) {
+        const info = usageInfo || getAIUsageInfo();
+        const isBangla = state.language === 'bn';
+        const planLabel = info.plan === 'ultra'
+            ? (isBangla ? 'আল্ট্রা' : 'Ultra')
+            : info.plan === 'max'
+                ? (isBangla ? 'ম্যাক্স' : 'Max')
+                : isBangla ? 'ফ্রি' : 'Free';
+
+        const planEl = document.getElementById('ai-usage-plan');
+        const countEl = document.getElementById('ai-usage-count');
+        const hintEl = document.getElementById('ai-usage-hint');
+        const barEl = document.getElementById('ai-usage-bar');
+        const limitMessage = document.getElementById('ai-limit-message');
+        const limitMessageModern = document.getElementById('ai-limit-message-modern');
+        const limitTitle = limitMessage?.querySelector('h3');
+        const limitBody = limitMessage?.querySelector('p');
+        const inputEl = document.getElementById('ai-input');
+        const sendBtn = document.getElementById('ai-send-btn');
+        const voiceBtn = document.getElementById('ai-voice-btn');
+
+        if (planEl) planEl.textContent = planLabel;
+        if (countEl) {
+            if (info.limit === Infinity) {
+                countEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
+            } else {
+                countEl.textContent = info.plan === 'max'
+                    ? (isBangla ? `${info.remaining}/${info.limit} এই সাইকেলে বাকি` : `${info.remaining}/${info.limit} left this cycle`)
+                    : (isBangla ? `${info.remaining}/${info.limit} আজকে বাকি` : `${info.remaining}/${info.limit} left today`);
+            }
+        }
+        if (hintEl) {
+            hintEl.textContent = info.plan === 'ultra'
+                ? (isBangla ? 'সীমাহীন ব্যবহার' : 'Always unlimited')
+                : info.plan === 'max'
+                    ? (isBangla ? 'প্রতি বিলিং সাইকেলে রিসেট' : 'Resets each billing cycle')
+                    : (isBangla ? 'প্রতিদিন রিসেট' : 'Resets daily');
+        }
+        if (barEl) {
+            if (info.limit === Infinity) {
+                barEl.style.width = '100%';
+                barEl.dataset.state = 'unlimited';
+            } else {
+                const percent = info.limit ? Math.min(100, (info.used / info.limit) * 100) : 0;
+                barEl.style.width = `${percent}%`;
+                barEl.dataset.state = 'meter';
+            }
+        }
+
+        const limitReached = info.limit !== Infinity && info.remaining <= 0;
+
+        // Update old UI limit message
+        if (limitMessage) {
+            if (limitReached) {
+                if (limitTitle) {
+                    limitTitle.textContent = info.plan === 'max'
+                        ? translate('ai.limitTitleMax')
+                        : translate('ai.limitTitleFree');
+                }
+                if (limitBody) {
+                    limitBody.textContent = info.plan === 'max'
+                        ? translate('ai.limitBodyMax')
+                        : translate('ai.limitBodyFree');
+                }
+                limitMessage.removeAttribute('hidden');
+            } else {
+                limitMessage.setAttribute('hidden', 'hidden');
+            }
+        }
+
+        // Update new UI limit message
+        if (limitMessageModern) {
+            if (limitReached) {
+                limitMessageModern.removeAttribute('hidden');
+            } else {
+                limitMessageModern.setAttribute('hidden', 'hidden');
+            }
+        }
+
+        if (inputEl) inputEl.disabled = limitReached;
+        if (sendBtn) sendBtn.disabled = limitReached;
+        if (voiceBtn) voiceBtn.disabled = limitReached;
+    }
+
+    function findCustomerFromText(text) {
+        const lower = text.toLowerCase();
+        let match = null;
+        let bestLength = 0;
+        state.customers.forEach(customer => {
+            const name = (customer.name || '').toLowerCase().trim();
+            if (!name) return;
+            if (lower.includes(name) && name.length > bestLength) {
+                match = customer;
+                bestLength = name.length;
+            }
+        });
+        return match;
+    }
+
+    function extractNumberFromText(text) {
+        const normalized = normalizeBanglaDigits(text);
+        const match = normalized.match(/(\d+(?:\.\d+)?)/);
+        return match ? Number(match[1]) : null;
+    }
+
+    function extractAmountFromText(text) {
+        const normalized = normalizeBanglaDigits(text);
+        const match = normalized.match(/(\d+(?:\.\d+)?)(?=\s*(?:টাকা|taka|tk|৳))/i);
+        if (match) return Number(match[1]);
+        return extractNumberFromText(text);
+    }
+
+    function addDaysToToday(days) {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        return date.toISOString().slice(0, 10);
+    }
+
+    function extractDateFromText(text) {
+        const normalized = normalizeText(text);
+        // Relative dates (Bangla/Banglish friendly)
+        if (normalized.includes('yesterday') || normalized.includes('গতকাল')) return addDaysToToday(-1);
+        if (normalized.includes('today') || normalized.includes('আজ')) return todayString();
+        // Must check "day after tomorrow" before "tomorrow" because it contains the word "tomorrow".
+        if (normalized.includes('day after tomorrow') || normalized.includes('পরশু')) return addDaysToToday(2);
+        if (normalized.includes('tomorrow') || normalized.includes('আগামীকাল') || (normalized.includes('কাল') && !normalized.includes('গতকাল'))) {
+            return addDaysToToday(1);
+        }
+
+        const isoMatch = normalized.match(/\d{4}-\d{2}-\d{2}/);
+        if (isoMatch) return isoMatch[0];
+
+        const dmMatch = normalized.match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/);
+        if (dmMatch) {
+            const now = new Date();
+            const day = Number(dmMatch[1]);
+            const month = Number(dmMatch[2]);
+            const yearRaw = dmMatch[3];
+            const year = yearRaw ? Number(yearRaw.length === 2 ? `20${yearRaw}` : yearRaw) : now.getFullYear();
+            if (day > 0 && month > 0 && month <= 12) {
+                const date = new Date(year, month - 1, day);
+                if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10);
+            }
+        }
+        return '';
+    }
+
+    function extractQuotedText(text) {
+        const match = text.match(/["'“”‘’](.+?)["'“”‘’]/);
+        return match ? match[1].trim() : '';
+    }
+
+    function extractNoteFromText(text, allowQuoted) {
+        const notePatterns = [
+            /(?:note|memo|নোট|মন্তব্য|নোট লিখো|নোট লিখুন|লিখো|লিখুন)\s*[:\-]?\s*(.+)$/i
+        ];
+        for (const pattern of notePatterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) return match[1].trim();
+        }
+        if (allowQuoted) {
+            const quoted = extractQuotedText(text);
+            if (quoted) return quoted;
+        }
+        return '';
+    }
+
+    function extractNameFromText(text) {
+        const match = text.match(/(?:কাস্টমার\s*নাম|গ্রাহক\s*নাম|customer\s*name|customer|name|নাম)\s*([A-Za-z\u0980-\u09FF\s]+?)(?:\s+(?:টাকা|taka|বাকি|দেনা|debt|due)|[.,]|$)/i);
+        if (match && match[1]) return match[1].trim();
+
+        // Bangla possessive forms: "করিমের কাছে ..."
+        const bnKache = text.match(/^\s*([\u0980-\u09FF]+?)(?:এর|র|ের)\s*(?:কাছে|কাছ)\b/);
+        if (bnKache && bnKache[1]) return bnKache[1].trim();
+
+        // Banglish: "Karim er kase ..."
+        const banglishKase = text.match(/^\s*([A-Za-z][A-Za-z\s.'-]*?)\s+(?:er|ir|or)\s+(?:kase|kache|kachhe|kashe)\b/i);
+        if (banglishKase && banglishKase[1]) return banglishKase[1].trim();
+
+        // Also allow "... Karim kache ..." style
+        const banglishKache = text.match(/\b([A-Za-z][A-Za-z.'-]*)\s+(?:kase|kache|kachhe|kashe)\b/i);
+        if (banglishKache && banglishKache[1]) {
+            const candidate = banglishKache[1].trim();
+            if (!['er', 'ir', 'or'].includes(candidate.toLowerCase())) return candidate;
+        }
+
+        const normalized = normalizeBanglaDigits(text);
+        const numberMatch = normalized.match(/(\d+(?:\.\d+)?)/);
+        if (!numberMatch) return '';
+        const prefix = text.slice(0, numberMatch.index).trim();
+        if (!prefix) return '';
+        return prefix
+            .replace(/(টাকা|taka|বাকি|দেনা|debt|due|owed|amount)$/i, '')
+            .trim();
+    }
+
+    function extractTimeFromText(text) {
+        const normalized = normalizeBanglaDigits(text).toLowerCase();
+        const hasHint = /(am|pm|a\.m\.|p\.m\.|সকাল|দুপুর|বিকাল|সন্ধ্যা|রাত|morning|afternoon|evening|night|টা|টায়|টায়)/.test(normalized);
+        const timeMatch = normalized.match(/(\d{1,2})(?::(\d{2}))?/);
+        if (!timeMatch || !hasHint) return null;
+
+        let hour = Number(timeMatch[1]);
+        let minute = Number(timeMatch[2] || '0');
+        if (Number.isNaN(hour) || hour > 23) return null;
+        if (Number.isNaN(minute) || minute > 59) minute = 0;
+
+        const ampmMatch = normalized.match(/\b(am|pm|a\.m\.|p\.m\.)\b/);
+        if (ampmMatch) {
+            const isPm = ampmMatch[1].includes('p');
+            if (isPm && hour < 12) hour += 12;
+            if (!isPm && hour === 12) hour = 0;
+        } else if (/রাত|সন্ধ্যা|evening|night|বিকাল/.test(normalized)) {
+            if (hour < 12) hour += 12;
+        } else if (/দুপুর|afternoon/.test(normalized)) {
+            if (hour < 12) hour += 12;
+        } else if (/সকাল|morning/.test(normalized)) {
+            if (hour === 12) hour = 0;
+        }
+
+        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    }
+
+    function parseDebtFromText(text, options = {}) {
+        const fallbackCustomerId = options.customerId || '';
+        let customer = findCustomerFromText(text);
+        if (!customer && fallbackCustomerId) {
+            customer = state.customers.find(c => c.id === fallbackCustomerId) || null;
+        }
+
+        let customerName = customer?.name || '';
+        let customerId = customer?.id || fallbackCustomerId || '';
+
+        if (!customerName) {
+            const extracted = extractNameFromText(text);
+            if (extracted) {
+                const matched = state.customers.find(c => c.name.toLowerCase().includes(extracted.toLowerCase()));
+                if (matched) {
+                    customer = matched;
+                    customerName = matched.name;
+                    customerId = matched.id;
+                } else {
+                    customerName = extracted;
+                }
+            }
+        }
+
+        const amount = extractAmountFromText(text);
+        const note = extractNoteFromText(text, true);
+        const date = extractDateFromText(text) || todayString();
+
+        const missing = [];
+        if (!customerId && !customerName) missing.push('customer');
+        if (!amount) missing.push('amount');
+
+        return { customerId, customerName, amount, note, date, missing };
+    }
+
+    function parseTaskFromText(text) {
+        const quotedTitle = extractQuotedText(text);
+        let title = quotedTitle || extractTaskText(text);
+        if (!title) {
+            title = text
+                .replace(/(?:টাস্ক|task|todo|কাজ)$/i, '')
+                .replace(/(?:যোগ করো|অ্যাড করো|add|create|new)\s*$/i, '')
+                .trim();
+        }
+        const date = extractDateFromText(text) || todayString();
+        const time = extractTimeFromText(text);
+        const note = extractNoteFromText(text, false);
+
+        const missing = [];
+        if (!title) missing.push('title');
+
+        return { title, date, time, note, missing };
+    }
+
+    function ensureCustomerByName(name) {
+        const trimmed = (name || '').trim();
+        if (!trimmed) return null;
+        const existing = state.customers.find(c => (c.name || '').toLowerCase() === trimmed.toLowerCase());
+        if (existing) return existing;
+        const customer = prepareCustomerRecord({
+            id: generateId('cust'),
+            name: trimmed,
+            phone: '',
+            repaymentDays: 7,
+            note: ''
+        });
+        state.customers.push(customer);
+        saveState();
+        renderCustomers();
+        renderDebtLedger();
+        renderAIDebtCalendar();
+        return customer;
+    }
+
+    function autoRecordDebtEntry(customer, amount, note, date) {
+        if (!customer || !amount) return null;
+        const debtRecord = {
+            id: generateId('debt'),
+            amount: Math.max(0, Number(amount) || 0),
+            paidAmount: 0,
+            date: date || todayString(),
+            description: note || '',
+            dueDate: computeDueDate(date || todayString(), Number(customer.repaymentDays) || 7),
+            reminders: { dueToday: false, overdue: false }
+        };
+        customer.debts = customer.debts || [];
+        customer.history = customer.history || [];
+        customer.debts.push(debtRecord);
+        customer.history.push({
+            id: generateId('hist'),
+            type: 'debt',
+            amount: debtRecord.amount,
+            date: debtRecord.date,
+            description: debtRecord.description
+        });
+        customer.updatedAt = Date.now();
+        saveState();
+        renderCustomers();
+        renderDebtLedger();
+        renderAIDebtCalendar();
+        return debtRecord;
+    }
+
+    function autoCreateTaskEntry(taskData) {
+        const task = {
+            id: generateId('task'),
+            name: taskData.title || translate('notesTasks.title'),
+            type: 'personal',
+            priority: 'medium',
+            dueDate: taskData.date || todayString(),
+            dueTime: taskData.time || '',
+            note: taskData.note || '',
+            recurring: false,
+            recurringType: 'daily',
+            done: false,
+            reminderSent: false,
+            createdAt: Date.now()
+        };
+        state.tasks.push(task);
+        saveState();
+        renderTasks();
+        renderNewTodoList(getCurrentTodoCategory());
+        updateTodoStats();
+        return task;
+    }
+
+    function parseBillItemsFromText(text) {
+        const normalized = normalizeBanglaDigits(text);
+        const parts = normalized.split(/[,|\n]/).map(p => p.trim()).filter(Boolean);
+        const items = [];
+        parts.forEach((part, idx) => {
+            const amountMatch = part.match(/(\d+(?:\.\d+)?)/);
+            if (!amountMatch) return;
+            const amount = Number(amountMatch[1]) || 0;
+            const name = part
+                .replace(amountMatch[0], '')
+                .replace(/(টাকা|taka|tk|৳)/gi, '')
+                .trim() || `Item ${idx + 1}`;
+            items.push({
+                name,
+                price: amount,
+                quantity: 1,
+                discount: 0,
+                subtotal: amount
+            });
+        });
+        return items;
+    }
+
+    function detectPaymentStatusFromText(text) {
+        const normalized = normalizeText(text);
+        if (/paid|পরিশোধ|দেওয়া|cleared|পেইড/.test(normalized)) return 'paid';
+        if (/partial|আংশিক|installment/.test(normalized)) return 'partial';
+        return 'pending';
+    }
+
+    function autoCreateBillFromItems(items, customer, paymentStatus = 'pending') {
+        const safeItems = Array.isArray(items) ? items : [];
+        const subtotal = safeItems.reduce((sum, item) => sum + (Number(item.subtotal) || Number(item.price) || 0), 0);
+        const bill = {
+            id: generateId('bill'),
+            customerId: customer?.id || null,
+            customerName: customer?.name || '',
+            invoiceNumber: generateInvoiceNumber(),
+            products: safeItems.map(item => Object.assign({ quantity: 1, discount: 0 }, item)),
+            subtotal,
+            totalDiscount: 0,
+            discountAmount: 0,
+            tax: 0,
+            taxAmount: 0,
+            total: subtotal,
+            dueDate: null,
+            paymentStatus: paymentStatus || 'pending',
+            notes: '',
+            date: todayString(),
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        state.bills = state.bills || [];
+        state.bills.unshift(bill);
+        saveState();
+        renderBills();
+        return bill;
+    }
+
+    function deleteCustomerByName(name) {
+        const trimmed = (name || '').trim().toLowerCase();
+        if (!trimmed) return null;
+        const idx = state.customers.findIndex(c => (c.name || '').toLowerCase().includes(trimmed));
+        if (idx === -1) return null;
+        const [removed] = state.customers.splice(idx, 1);
+        saveState();
+        renderCustomers();
+        renderDebtLedger();
+        renderAIDebtCalendar();
+        return removed;
+    }
+
+    function deleteTaskByText(text) {
+        const normalized = normalizeText(text || '').trim();
+        if (!normalized) return null;
+        const task = state.tasks.find(t => normalizeText(t.name).includes(normalized));
+        if (!task) return null;
+        state.tasks = state.tasks.filter(t => t.id !== task.id);
+        saveState();
+        renderTasks();
+        renderNewTodoList(getCurrentTodoCategory());
+        updateTodoStats();
+        return task;
+    }
+
+    function summarizePaymentStatus(customer) {
+        const outstanding = getCustomerOutstandingBalance(customer);
+        const customerBills = (state.bills || []).filter(b =>
+            b.customerId === customer.id || (b.customerName || '').toLowerCase() === (customer.name || '').toLowerCase()
+        );
+        const paidBills = customerBills.filter(b => b.paymentStatus === 'paid').length;
+        if (state.language === 'bn') {
+            return outstanding > 0
+                ? `${customer.name} এর বাকি আছে ${formatCurrency(outstanding)}। পরিশোধিত বিল: ${paidBills}/${customerBills.length}.`
+                : `${customer.name} এর কোনো বাকি নেই। পরিশোধিত বিল: ${paidBills}/${customerBills.length}.`;
+        }
+        return outstanding > 0
+            ? `${customer.name} owes ${formatCurrency(outstanding)}. Paid bills: ${paidBills}/${customerBills.length}.`
+            : `${customer.name} has no dues. Paid bills: ${paidBills}/${customerBills.length}.`;
+    }
+
+    function isCardThemeRequest(text) {
+        const cardKeywords = ['card', 'কার্ড'];
+        const themeKeywords = ['theme', 'থিম', 'style', 'স্টাইল', 'template', 'টেমপ্লেট', 'design', 'ডিজাইন'];
+        const actionKeywords = ['make', 'create', 'generate', 'change', 'update', 'বানাও', 'তৈরি', 'পরিবর্তন', 'আপডেট'];
+        const hasCard = cardKeywords.some(keyword => text.includes(keyword));
+        if (!hasCard) return false;
+        return themeKeywords.some(keyword => text.includes(keyword)) || actionKeywords.some(keyword => text.includes(keyword));
+    }
+
+    function extractThemeIntent(text) {
+        // Theme switching commands (Bangla/Banglish friendly).
+        // Examples:
+        // - "theme poriborton koro"
+        // - "onno theme deo"
+        // - "dark theme", "light mode", "cozy theme"
+        const themeKeywords = ['theme', 'themes', 'thim', 'থিম', 'mode', 'মোড', 'ui', 'appearance'];
+        const hasThemeWord = themeKeywords.some(keyword => text.includes(keyword));
+        if (!hasThemeWord) return null;
+
+        const changeKeywords = [
+            'change', 'chnage', 'switch', 'set', 'apply', 'update',
+            'koro', 'kor', 'deo', 'dao',
+            'poriborton', 'bodol', 'bodle', 'badlao', 'bodlao',
+            'পরিবর্তন', 'বদল', 'করো', 'দাও', 'দে',
+            'onno', 'another', 'next', 'different'
+        ];
+        const hasChangeWord = changeKeywords.some(keyword => text.includes(keyword));
+
+        const hasCozy = ['cozy', 'cosy', 'কোজি', 'আরামদায়ক', 'aramdayok', 'aramdaiok', 'warm'].some(token => text.includes(normalizeText(token)));
+        const hasDark = ['dark', 'ডার্ক', 'কালো', 'রাত', 'kalo', 'rat', 'night', 'nite', 'black'].some(token => text.includes(normalizeText(token)));
+        const hasLight = ['light', 'লাইট', 'সাদা', 'উজ্জ্বল', 'sada', 'shada', 'white', 'clean', 'minimal', 'simple'].some(token => text.includes(normalizeText(token)));
+
+        if (hasCozy && hasDark) return 'night-shop';
+        if (hasCozy) return 'cozy-ledger';
+        if (hasDark) return 'night-shop';
+        if (hasLight) return 'clean-business';
+
+        const themes = {
+            'studio': 'studio-pro',
+            'studio pro': 'studio-pro',
+            'premium': 'studio-pro',
+            'স্টুডিও': 'studio-pro',
+            'classic': 'classic-paper',
+            'ক্লাসিক': 'classic-paper',
+            'paper': 'classic-paper',
+            'ledger': 'classic-paper',
+            'traditional': 'classic-paper',
+            'street': 'street-ledger',
+            'স্ট্রিট': 'street-ledger',
+            'bold': 'street-ledger',
+            'zen': 'zen-finance',
+            'জেন': 'zen-finance',
+            'blue': 'zen-finance',
+            'nil': 'zen-finance',
+            'নীল': 'zen-finance',
+            'ocean': 'zen-finance'
+        };
+
+        for (const [key, value] of Object.entries(themes)) {
+            if (text.includes(normalizeText(key))) {
+                return value;
+            }
+        }
+
+        // If the user asked to change theme but didn't specify which theme, cycle to the next one.
+        if (hasChangeWord) return '__cycle__';
+        return null;
+    }
+
+    function getNextThemeInCycle(currentTheme) {
+        const cycle = ['studio-pro', 'cozy-ledger', 'clean-business', 'night-shop', 'zen-finance', 'street-ledger', 'classic-paper'];
+        const idx = cycle.indexOf(currentTheme);
+        if (idx === -1) return cycle[0];
+        return cycle[(idx + 1) % cycle.length];
+    }
+
+    function getThemeFriendlyName(theme, isBangla) {
+        const names = {
+            'studio-pro': { en: 'Studio', bn: 'স্টুডিও' },
+            'cozy-ledger': { en: 'Cozy', bn: 'কোজি' },
+            'clean-business': { en: 'Clean', bn: 'ক্লিন' },
+            'night-shop': { en: 'Night', bn: 'ডার্ক' },
+            'zen-finance': { en: 'Zen', bn: 'জেন' },
+            'street-ledger': { en: 'Street', bn: 'স্ট্রিট' },
+            'classic-paper': { en: 'Classic', bn: 'ক্লাসিক' },
+            'light': { en: 'Light', bn: 'লাইট' },
+            'dark': { en: 'Dark', bn: 'ডার্ক' },
+            'ocean': { en: 'Ocean', bn: 'ওশান' },
+            'rose': { en: 'Rose', bn: 'রোজ' }
+        };
+        const entry = names[theme];
+        if (!entry) return theme;
+        return isBangla ? entry.bn : entry.en;
+    }
+
+    function extractTaskText(text) {
+        const patterns = [
+            /(?:add|create|new)\s+(?:task|todo)\s*(.+)/i,
+            /(?:task|todo)\s*(.+)/i,
+            /(?:নতুন|যোগ|অ্যাড)\s*কাজ\s*(.+)/i,
+            /(?:টাস্ক|কাজ)\s*(.+)/i
+        ];
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) return match[1].trim();
+        }
+        return '';
+    }
+
+    function extractNoteText(text) {
+        const patterns = [
+            /(?:add|create|new)\s+note\s*(.+)/i,
+            /(?:note|memo)\s*(.+)/i,
+            /(?:নতুন|যোগ|অ্যাড)\s*নোট\s*(.+)/i,
+            /(?:নোট)\s*(.+)/i
+        ];
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) return match[1].trim();
+        }
+        return '';
+    }
+
+    function resetFieldMissing(form) {
+        if (!form) return;
+        form.querySelectorAll('.field-missing').forEach(el => el.classList.remove('field-missing'));
+    }
+
+    function markFieldMissing(form, fieldName) {
+        if (!form) return;
+        const field = form.querySelector(`[name="${fieldName}"]`);
+        const label = field?.closest('label');
+        if (label) label.classList.add('field-missing');
+    }
+
+    function hideDebtVoicePreview() {
+        const preview = document.getElementById('debt-voice-preview');
+        if (preview) preview.hidden = true;
+        resetFieldMissing(forms.debt);
+    }
+
+    function hideTaskVoicePreview() {
+        const preview = document.getElementById('task-voice-preview');
+        if (preview) preview.hidden = true;
+        resetFieldMissing(forms.task);
+    }
+
+    function showDebtVoicePreview(payload) {
+        const preview = document.getElementById('debt-voice-preview');
+        if (!preview) return;
+
+        const isBangla = state.language === 'bn';
+        const customerName = payload.customerId
+            ? state.customers.find(c => c.id === payload.customerId)?.name
+            : payload.customerName;
+        const amountText = payload.amount ? formatCurrency(payload.amount) : '—';
+        const dateText = payload.date ? formatDisplayDate(payload.date) : '—';
+        const noteText = payload.note ? payload.note : '—';
+
+        const customerEl = document.getElementById('debt-preview-customer');
+        const amountEl = document.getElementById('debt-preview-amount');
+        const typeEl = document.getElementById('debt-preview-type');
+        const dateEl = document.getElementById('debt-preview-date');
+        const noteEl = document.getElementById('debt-preview-note');
+        const questionEl = document.getElementById('debt-voice-question');
+        const confirmBtn = document.getElementById('debt-voice-confirm');
+
+        if (customerEl) customerEl.textContent = customerName || '—';
+        if (amountEl) amountEl.textContent = amountText;
+        if (typeEl) typeEl.textContent = isBangla ? 'বাকি' : 'Baki';
+        if (dateEl) dateEl.textContent = dateText;
+        if (noteEl) noteEl.textContent = noteText;
+
+        resetFieldMissing(forms.debt);
+        const missing = payload.missing || [];
+        let question = translate('voice.preview.confirmQuestion');
+        if (missing.includes('customer')) {
+            question = isBangla ? 'কোন কাস্টমারের জন্য বাকি যোগ করবো?' : 'Which customer is this debt for?';
+            markFieldMissing(forms.debt, 'customerId');
+        } else if (missing.includes('amount')) {
+            question = isBangla ? 'টাকার পরিমাণ কত?' : 'What amount should I record?';
+            markFieldMissing(forms.debt, 'amount');
+        }
+
+        if (questionEl) questionEl.textContent = question;
+        if (confirmBtn) confirmBtn.disabled = missing.length > 0;
+        preview.hidden = false;
+    }
+
+    function showTaskVoicePreview(payload) {
+        const preview = document.getElementById('task-voice-preview');
+        if (!preview) return;
+
+        const isBangla = state.language === 'bn';
+        const titleEl = document.getElementById('task-preview-title');
+        const dateEl = document.getElementById('task-preview-date');
+        const timeEl = document.getElementById('task-preview-time');
+        const noteEl = document.getElementById('task-preview-note');
+        const questionEl = document.getElementById('task-voice-question');
+        const confirmBtn = document.getElementById('task-voice-confirm');
+
+        if (titleEl) titleEl.textContent = payload.title || '—';
+        if (dateEl) dateEl.textContent = payload.date ? formatDisplayDate(payload.date) : '—';
+        if (timeEl) timeEl.textContent = payload.time || '—';
+        if (noteEl) noteEl.textContent = payload.note || '—';
+
+        resetFieldMissing(forms.task);
+        const missing = payload.missing || [];
+        let question = translate('voice.preview.confirmQuestion');
+        if (missing.includes('title')) {
+            question = isBangla ? 'কোন কাজটি যোগ করবো?' : 'Which task should I add?';
+            markFieldMissing(forms.task, 'name');
+        }
+
+        if (questionEl) questionEl.textContent = question;
+        if (confirmBtn) confirmBtn.disabled = missing.length > 0;
+        preview.hidden = false;
+    }
+
+    function openDebtModalPrefill(customer, amount, description, date) {
+        if (!forms.debt || !modals.debt) return;
+        forms.debt.reset();
+        populateDebtCustomerSelect();
+        if (customer?.id && forms.debt.elements.customerId) {
+            forms.debt.elements.customerId.value = customer.id;
+        }
+        if (amount && forms.debt.elements.amount) {
+            forms.debt.elements.amount.value = amount;
+        }
+        if (description && forms.debt.elements.description) {
+            forms.debt.elements.description.value = description;
+        }
+        if (forms.debt.elements.date) {
+            forms.debt.elements.date.value = date || todayString();
+        }
+        hideDebtVoicePreview();
+        modals.debt.showModal();
         playFeedback();
     }
 
+    function openTaskModalPrefill(taskName, dueDate, dueTime, note) {
+        if (!forms.task || !modals.task) return;
+        forms.task.reset();
+        if (forms.task.elements.name) forms.task.elements.name.value = taskName || '';
+        if (forms.task.elements.type) forms.task.elements.type.value = 'personal';
+        if (forms.task.elements.priority) forms.task.elements.priority.value = 'medium';
+        if (forms.task.elements.dueDate) forms.task.elements.dueDate.value = dueDate || todayString();
+        if (forms.task.elements.dueTime) forms.task.elements.dueTime.value = dueTime || '';
+        if (forms.task.elements.note) forms.task.elements.note.value = note || '';
+        if (forms.task.elements.taskId) forms.task.elements.taskId.value = '';
+        const recurringOptions = document.getElementById('recurring-options');
+        if (forms.task.elements.recurring) forms.task.elements.recurring.checked = false;
+        if (recurringOptions) recurringOptions.style.display = 'none';
+        hideTaskVoicePreview();
+        modals.task.showModal();
+        playFeedback();
+    }
+
+    function openNoteModalPrefill(noteTitle, noteBody) {
+        if (!forms.note || !modals.note) return;
+        forms.note.reset();
+        forms.note.querySelector('[name="title"]').value = noteTitle;
+        forms.note.querySelector('[name="body"]').value = noteBody || '';
+        forms.note.querySelector('[name="noteId"]').value = '';
+        modals.note.showModal();
+        playFeedback();
+    }
+
+    function resolvePendingIntent(userMessage) {
+        const pending = state.ai.pendingIntent;
+        if (!pending) return null;
+
+        const isBangla = state.language === 'bn';
+        if (pending.type === 'add_debt') {
+            const parsed = parseDebtFromText(userMessage, { customerId: pending.data.customerId });
+            const merged = {
+                customerId: parsed.customerId || pending.data.customerId,
+                customerName: parsed.customerName || pending.data.customerName,
+                amount: parsed.amount || pending.data.amount,
+                note: parsed.note || pending.data.note,
+                date: parsed.date || pending.data.date
+            };
+
+            const missing = [];
+            if (!merged.customerId && !merged.customerName) missing.push('customer');
+            if (!merged.amount) missing.push('amount');
+
+            if (missing.length > 0) {
+                state.ai.pendingIntent = { type: 'add_debt', data: merged };
+                return missing.includes('customer')
+                    ? (isBangla ? 'কোন কাস্টমারের জন্য বাকি যোগ করবো?' : 'Which customer is this debt for?')
+                    : (isBangla ? 'টাকার পরিমাণ কত?' : 'What amount should I record?');
+            }
+
+            const customer = merged.customerId
+                ? state.customers.find(c => c.id === merged.customerId)
+                : ensureCustomerByName(merged.customerName);
+            if (!customer) {
+                state.ai.pendingIntent = null;
+                return isBangla ? 'ক্রেতার নামটা আবার বলুন।' : 'Please repeat the customer name.';
+            }
+
+            state.ai.pendingIntent = null;
+            const debt = autoRecordDebtEntry(customer, merged.amount, merged.note, merged.date);
+            const dateLabel = debt?.dueDate ? formatDisplayDate(debt.dueDate) : '';
+            return isBangla
+                ? `${customer.name} এর জন্য ${formatCurrency(merged.amount)} বাকি নোট করলাম${dateLabel ? ` (শেষ তারিখ: ${dateLabel})` : ''}।`
+                : `Added a debt for ${customer.name}: ${formatCurrency(merged.amount)}${dateLabel ? ` (due: ${dateLabel})` : ''}.`;
+        }
+
+        if (pending.type === 'add_task') {
+            const parsed = parseTaskFromText(userMessage);
+            const merged = {
+                title: parsed.title || pending.data.title,
+                date: parsed.date || pending.data.date,
+                time: parsed.time || pending.data.time,
+                note: parsed.note || pending.data.note
+            };
+
+            const missing = [];
+            if (!merged.title) missing.push('title');
+
+            if (missing.length > 0) {
+                state.ai.pendingIntent = { type: 'add_task', data: merged };
+                return isBangla ? 'কোন কাজটি যোগ করবো?' : 'Which task should I add?';
+            }
+
+            state.ai.pendingIntent = null;
+            autoCreateTaskEntry({
+                title: merged.title,
+                date: merged.date,
+                time: merged.time,
+                note: merged.note
+            });
+            const dateLabel = merged.date ? formatDisplayDate(merged.date) : '';
+            const timeLabel = merged.time ? ` ${merged.time}` : '';
+            return isBangla
+                ? `টাস্ক "${merged.title}" সেভ করেছি${dateLabel ? ` — ${dateLabel}` : ''}${timeLabel ? ` ${timeLabel}` : ''}।`
+                : `Saved the task "${merged.title}"${dateLabel ? ` — ${dateLabel}` : ''}${timeLabel ? ` ${timeLabel}` : ''}.`;
+        }
+
+        if (pending.type === 'bill') {
+            const items = pending.data.items || [];
+            const providedName = extractNameFromText(userMessage) || extractCustomerName(userMessage) || pending.data.customerName || '';
+            const customer = ensureCustomerByName(providedName);
+            if (!customer) {
+                state.ai.pendingIntent = { type: 'bill', data: pending.data };
+                return isBangla ? 'রসিদের জন্য ক্রেতার নামটা বলুন।' : 'Please share the customer name for this receipt.';
+            }
+            const status = detectPaymentStatusFromText(userMessage) || pending.data.paymentStatus || 'pending';
+            const bill = autoCreateBillFromItems(items, customer, status);
+            state.ai.pendingIntent = null;
+            const totalText = formatCurrency(bill.total);
+            return isBangla
+                ? `${customer.name} এর নামে রসিদ তৈরি করেছি (${items.length} আইটেম, মোট ${totalText}).`
+                : `Created a receipt for ${customer.name} with ${items.length} item(s), total ${totalText}.`;
+        }
+
+        return null;
+    }
+
+    async function handleAIMessage() {
+        const input = document.getElementById('ai-input');
+        const messagesContainer = document.getElementById('ai-messages');
+        const suggestionsContainer = document.getElementById('ai-shortcuts');
+        if (!input) return;
+
+        const userMessage = input.value.trim();
+        if (!userMessage) return;
+        if (input.disabled) {
+            updateAIUsageUI();
+            return;
+        }
+
+        // Hide suggestions and show messages when conversation starts
+        if (suggestionsContainer && suggestionsContainer.hidden === false) {
+            suggestionsContainer.hidden = true;
+        }
+        if (messagesContainer) {
+            messagesContainer.hidden = false;
+        }
+
+        // Add user message (support both old and new UI)
+        const userMsgEl = document.createElement('div');
+        if (messagesContainer.classList.contains('ai-chat-messages-modern')) {
+            // New UI
+            userMsgEl.className = 'ai-message-modern user';
+            userMsgEl.innerHTML = `
+                <div class="ai-message-avatar-modern">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <div class="ai-message-content-modern"><p>${escapeHtml(userMessage)}</p></div>
+            `;
+        } else {
+            // Old UI
+            userMsgEl.className = 'ai-message ai-message-user';
+            userMsgEl.innerHTML = `
+                <div class="ai-avatar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <div class="ai-content"><p>${escapeHtml(userMessage)}</p></div>
+            `;
+        }
+        if (messagesContainer) {
+            messagesContainer.appendChild(userMsgEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        input.value = '';
+        playFeedback();
+        animateAIBuddy('thinking');
+
+        // Generate AI response
+        const aiResponse = await generateAIResponse(userMessage);
+
+        // Add AI response (support both old and new UI)
+        const aiMsgEl = document.createElement('div');
+        if (messagesContainer && messagesContainer.classList.contains('ai-chat-messages-modern')) {
+            // New UI
+            aiMsgEl.className = 'ai-message-modern assistant';
+            aiMsgEl.innerHTML = `
+                <div class="ai-message-avatar-modern">🤖</div>
+                <div class="ai-message-content-modern"><p style="white-space: pre-line;">${escapeHtml(aiResponse)}</p></div>
+            `;
+        } else {
+            // Old UI
+            aiMsgEl.className = 'ai-message ai-message-assistant';
+            aiMsgEl.innerHTML = `
+                <div class="ai-avatar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                </div>
+                <div class="ai-content"><p style="white-space: pre-line;">${escapeHtml(aiResponse)}</p></div>
+            `;
+        }
+        if (messagesContainer) {
+            messagesContainer.appendChild(aiMsgEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        playFeedback();
+        animateAIBuddy('idle');
+        updateAIUsageUI();
+
+        // Speak the response if voice output is enabled (optional feature)
+        // Uncomment to enable voice output:
+        // speakText(aiResponse, state.language);
+    }
+
     async function generateAIResponse(userMessage) {
-        if (getActivePlan() !== 'ultra') {
-            return state.language === 'bn'
-                ? 'AI চ্যাট শুধুমাত্র Ultra প্ল্যানে উপলব্ধ। এটি ব্যবহার করতে Ultra তে আপগ্রেড করুন।'
-                : 'AI Chat is only available on the Ultra plan. Upgrade to Ultra to use it.';
+        const usage = consumeAIUsage();
+        if (!usage.allowed) {
+            return usage.message;
         }
-        const lower = userMessage.toLowerCase();
 
-        // Trust ratio (Ultra only)
-        if (lower.includes('trust') || lower.includes('ratio') || lower.includes('reliability')) {
-            const customerName = extractCustomerName(userMessage);
-            if (customerName) {
-                const customer = state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()));
-                if (customer) {
-                    const trustRatio = calculateTrustRatio(customer);
-                    return `[AI Analysis] The trust ratio for ${customer.name} is ${trustRatio}%. ${getTrustRatioExplanation(trustRatio)} This is calculated based on payment history and timeliness.`;
-                }
+        const isBangla = state.language === 'bn';
+        const normalized = normalizeText(userMessage);
+        const amountMatches = normalizeBanglaDigits(userMessage).match(/(\d+(?:\.\d+)?)/g) || [];
+
+        const pendingReply = resolvePendingIntent(userMessage);
+        if (pendingReply) {
+            return pendingReply;
+        }
+
+        if (isCardThemeRequest(normalized)) {
+            const customer = findCustomerFromText(userMessage);
+            return isBangla
+                ? `${customer ? `${customer.name} এর জন্য` : ''} কার্ড বানাতে পারি। কোন কাস্টমারের জন্য কার্ড বানাবো?`
+                : `I can prepare a themed card${customer ? ` for ${customer.name}` : ''}. Which customer should this card be for?`;
+        }
+
+        const themeIntent = extractThemeIntent(normalized);
+        if (themeIntent) {
+            const resolvedTheme = themeIntent === '__cycle__'
+                ? getNextThemeInCycle(state.ui.theme)
+                : themeIntent;
+
+            applyTheme(resolvedTheme);
+            saveState();
+            playFeedbackStrong();
+            const themeLabel = getThemeFriendlyName(resolvedTheme, isBangla);
+            return isBangla
+                ? `ঠিক আছে, থিম ${themeLabel} করে দিলাম।`
+                : `Done! Theme switched to ${themeLabel}.`;
+        }
+
+        const billItems = parseBillItemsFromText(userMessage);
+        const billKeywords = ['bill', 'invoice', 'receipt', 'রসিদ', 'বিল', 'চালান'];
+        const isBillRequest = billKeywords.some(keyword => normalized.includes(keyword)) || billItems.length > 1 || amountMatches.length > 1;
+        if (isBillRequest && billItems.length > 0) {
+            const customerGuess = findCustomerFromText(userMessage);
+            const nameGuess = customerGuess?.name || extractNameFromText(userMessage);
+            const paymentStatus = detectPaymentStatusFromText(userMessage);
+            if (!nameGuess) {
+                state.ai.pendingIntent = {
+                    type: 'bill',
+                    data: {
+                        items: billItems,
+                        customerName: '',
+                        paymentStatus
+                    }
+                };
+                return isBangla
+                    ? 'রসিদ বানাচ্ছি। কার নামে বানাবো?'
+                    : 'I can make this bill. Which customer should I use?';
             }
-            return state.language === 'bn'
-                ? 'ক্রেতার ট্রাস্ট রেশিও জানতে "[ক্রেতার নাম]-এর ট্রাস্ট রেশিও কত?" বা "What is the trust ratio for [customer name]" লিখুন।'
-                : 'To see a customer\'s trust ratio, ask "What is the trust ratio for [customer name]" or "Calculate trust ratio for [customer name]".';
+            const customer = ensureCustomerByName(nameGuess);
+            const bill = autoCreateBillFromItems(billItems, customer, paymentStatus);
+            const totalText = formatCurrency(bill.total);
+            return isBangla
+                ? `${customer.name} এর জন্য ${billItems.length} আইটেমের রসিদ তৈরি: মোট ${totalText}।`
+                : `Created a ${billItems.length}-item receipt for ${customer.name}. Total ${totalText}.`;
         }
 
-        // Task management queries
-        if (lower.includes('show') && (lower.includes('task') || lower.includes('tasks'))) {
-            const incompleteTasks = state.tasks.filter(t => !t.completed);
+        const addCustomerMatch = userMessage.match(/(?:add|create|new)\s+(?:customer|client|buyer|গ্রাহক|কাস্টমার)\s*(.+)?/i);
+        if (addCustomerMatch) {
+            const guessedName = extractQuotedText(userMessage) || addCustomerMatch[1] || extractNameFromText(userMessage);
+            if (!guessedName) {
+                return isBangla ? 'কাস্টমারের নাম বলুন, সাথে সাথে যোগ করবো।' : 'Tell me the customer name and I will add right away.';
+            }
+            const customer = ensureCustomerByName(guessedName);
+            return isBangla
+                ? `${customer.name} কে কাস্টমার তালিকায় যোগ করেছি।`
+                : `Added ${customer.name} to your customer list.`;
+        }
+
+        const deleteCustomerMatch = userMessage.match(/(?:delete|remove|drop)\s+(?:customer|client|buyer|গ্রাহক|কাস্টমার)\s+(.+)/i);
+        if (deleteCustomerMatch) {
+            const nameToDelete = deleteCustomerMatch[1] || extractNameFromText(userMessage);
+            const removed = deleteCustomerByName(nameToDelete);
+            return removed
+                ? (isBangla ? `${removed.name} কে তালিকা থেকে মুছে ফেলেছি।` : `Removed ${removed.name} from your customers.`)
+                : (isBangla ? 'যে কাস্টমারকে মুছতে চান তার নামটা আরেকবার বলুন।' : 'Tell me which customer to remove.');
+        }
+
+        const debtKeywords = ['debt', 'due', 'owe', 'baki', 'দেনা', 'বাকি', 'ঋণ', 'ধার', 'পাওনা'];
+        if (debtKeywords.some(keyword => normalized.includes(keyword))) {
+            const parsed = parseDebtFromText(userMessage);
+            if (parsed.missing.includes('customer')) {
+                state.ai.pendingIntent = { type: 'add_debt', data: parsed };
+                return isBangla
+                    ? 'কোন কাস্টমারের জন্য বাকি যোগ করবো? নামটা বলুন।'
+                    : 'Which customer should I add debt for? Please tell me the name.';
+            }
+            if (parsed.missing.includes('amount')) {
+                state.ai.pendingIntent = { type: 'add_debt', data: parsed };
+                return isBangla
+                    ? 'টাকার পরিমাণটা কত হবে?'
+                    : 'What amount should I record?';
+            }
+            const customer = parsed.customerId
+                ? state.customers.find(c => c.id === parsed.customerId)
+                : ensureCustomerByName(parsed.customerName);
+            if (!customer) {
+                state.ai.pendingIntent = { type: 'add_debt', data: parsed };
+                return isBangla
+                    ? 'ক্রেতার নামটা আবার বলুন।'
+                    : 'Please repeat the customer name.';
+            }
+            const debt = autoRecordDebtEntry(customer, parsed.amount, parsed.note, parsed.date);
+            const dateLabel = debt?.dueDate ? formatDisplayDate(debt.dueDate) : '';
+            const noteLabel = parsed.note ? ` — ${parsed.note}` : '';
+            return isBangla
+                ? `${customer.name} এর জন্য ${formatCurrency(parsed.amount)} বাকি নিলাম${dateLabel ? ` — ${dateLabel}` : ''}${noteLabel}।`
+                : `Recorded ${formatCurrency(parsed.amount)} debt for ${customer.name}${dateLabel ? ` — ${dateLabel}` : ''}${noteLabel}.`;
+        }
+
+        const paidKeywords = ['paid', 'clear', 'cleared', 'পরিশোধ', 'পরিশোধিত', 'মিটেছে'];
+        if (paidKeywords.some(keyword => normalized.includes(keyword))) {
+            const customerName = extractCustomerName(userMessage) || extractNameFromText(userMessage);
+            const customer = customerName
+                ? state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()))
+                : findCustomerFromText(userMessage);
+            if (customer) {
+                return summarizePaymentStatus(customer);
+            }
+            return isBangla ? 'কোন ক্রেতার পেমেন্ট জানতে চান? নাম বলুন।' : 'Which customer should I check for payment status?';
+        }
+
+        const summaryKeywords = ['summarize', 'summary', 'overview', 'সারাংশ', 'সারসংক্ষেপ'];
+        if (summaryKeywords.some(keyword => normalized.includes(keyword))) {
+            const incompleteTasks = state.tasks.filter(t => !t.done);
+            const overdueTasks = incompleteTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date());
+            const totalDebt = state.customers.reduce((sum, c) => sum + getCustomerOutstandingBalance(c), 0);
+            if (isBangla) {
+                return `আপনার ব্যবসার সারাংশ:\n• মোট বকেয়া পাওনা: ${formatCurrency(totalDebt)}\n• বাকি কাজ: ${incompleteTasks.length}টি\n• মেয়াদোত্তীর্ণ কাজ: ${overdueTasks.length}টি\n\nআপনি চাইলে আজকের সবচেয়ে জরুরি কাজটা আগে করে ফেলতে পারেন।`;
+            }
+            return `Here is your summary:\n• Total Outstanding Debt: ${formatCurrency(totalDebt)}\n• Pending Tasks: ${incompleteTasks.length}\n• Overdue Tasks: ${overdueTasks.length}\n\nYou could start with your most urgent task today.`;
+        }
+
+        const deleteTaskMatch = userMessage.match(/(?:delete|remove|done|complete)\s+(?:task|todo)\s*(.+)?/i);
+        if (deleteTaskMatch) {
+            const targetTitle = deleteTaskMatch[1] || extractQuotedText(userMessage);
+            const removedTask = deleteTaskByText(targetTitle || '');
+            return removedTask
+                ? (isBangla ? `"${removedTask.name}" টাস্ক মুছে দিয়েছি।` : `Removed the task "${removedTask.name}".`)
+                : (isBangla ? 'কোন টাস্কটি মুছবো? নাম বলুন।' : 'Which task should I remove?');
+        }
+
+        const showTaskKeywords = ['show', 'list', 'view', 'দেখাও', 'তালিকা'];
+        const taskKeywords = ['task', 'tasks', 'todo', 'কাজ', 'টাস্ক'];
+        if (showTaskKeywords.some(keyword => normalized.includes(keyword)) && taskKeywords.some(keyword => normalized.includes(keyword))) {
+            const incompleteTasks = state.tasks.filter(t => !t.done);
             if (incompleteTasks.length === 0) {
-                return 'You have no pending tasks Great job staying organized';
+                return isBangla
+                    ? 'আপনার কোনো বাকি কাজ নেই। দারুণ!'
+                    : 'You have no pending tasks. Great job staying organized.';
             }
-            let taskList = `You have ${incompleteTasks.length} pending task(s):\n\n`;
+            const locale = isBangla ? 'bn-BD' : 'en-US';
+            let taskList = isBangla
+                ? `আপনার ${incompleteTasks.length}টি বাকি কাজ আছে:\n\n`
+                : `You have ${incompleteTasks.length} pending task(s):\n\n`;
             incompleteTasks.forEach((task, i) => {
-                const dueDate = new Date(task.dueDate).toLocaleDateString();
-                taskList += `${i + 1}. ${task.name} (Due: ${dueDate})\n`;
+                const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString(locale) : '';
+                taskList += `${i + 1}. ${task.name}${dueDate ? (isBangla ? ` (শেষ তারিখ: ${dueDate})` : ` (Due: ${dueDate})`) : ''}\n`;
             });
             return taskList;
         }
 
-        if (lower.includes('add task') || (lower.includes('create') && lower.includes('task'))) {
-            return 'To add a task click the "+ Task" button in the Notes & Tasks section or tell me what task you want to add and when its due';
+        if (taskKeywords.some(keyword => normalized.includes(keyword))) {
+            const parsed = parseTaskFromText(userMessage);
+            if (parsed.missing.includes('title')) {
+                state.ai.pendingIntent = { type: 'add_task', data: parsed };
+                return isBangla
+                    ? 'কোন কাজটি যোগ করবো? ছোট করে বলুন।'
+                    : 'Which task should I add?';
+            }
+            autoCreateTaskEntry({
+                title: parsed.title,
+                date: parsed.date,
+                time: parsed.time,
+                note: parsed.note
+            });
+            const dateLabel = parsed.date ? formatDisplayDate(parsed.date) : '';
+            const timeLabel = parsed.time ? ` ${parsed.time}` : '';
+            return isBangla
+                ? `টাস্ক "${parsed.title}" যোগ করা হয়েছে${dateLabel ? ` — ${dateLabel}` : ''}${timeLabel}.`
+                : `Added the task "${parsed.title}"${dateLabel ? ` — ${dateLabel}` : ''}${timeLabel}.`;
         }
 
-        if (lower.includes('remaining') || lower.includes('left') || lower.includes('pending')) {
-            const incompleteTasks = state.tasks.filter(t => !t.completed);
-            const today = new Date().toISOString().slice(0, 10);
-            const todayTasks = incompleteTasks.filter(t => t.dueDate === today);
-            const overdueTasks = incompleteTasks.filter(t => t.dueDate < today);
-            
-            let response = `Task Summary:\n`;
-            response += `• Total pending: ${incompleteTasks.length}\n`;
-            response += `• Due today: ${todayTasks.length}\n`;
-            response += `• Overdue: ${overdueTasks.length}\n`;
-            
+        const noteKeywords = ['note', 'memo', 'নোট'];
+        if (noteKeywords.some(keyword => normalized.includes(keyword))) {
+            const noteText = extractNoteText(userMessage);
+            if (!noteText) {
+                return isBangla
+                    ? 'কী নোট লিখবো? ছোট করে বলুন।'
+                    : 'What note should I write?';
+            }
+            openNoteModalPrefill(noteText, '');
+            return isBangla
+                ? `নোট "${noteText}" তৈরি করেছি। ঠিক থাকলে সেভ করবেন?`
+                : `I prepared the note "${noteText}". Please confirm before saving.`;
+        }
+
+        const trustKeywords = ['trust', 'ratio', 'reliability', 'ট্রাস্ট', 'বিশ্বাস', 'বিশ্বাসযোগ্যতা'];
+        if (trustKeywords.some(keyword => normalized.includes(keyword))) {
+            const customerName = extractCustomerName(userMessage);
+            const customer = customerName
+                ? state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()))
+                : findCustomerFromText(userMessage);
+            if (customer) {
+                const trustRatio = calculateTrustRatio(customer);
+                return isBangla
+                    ? `${customer.name} এর ট্রাস্ট রেশিও ${trustRatio}%. ${getTrustRatioExplanation(trustRatio)}`
+                    : `The trust ratio for ${customer.name} is ${trustRatio}%. ${getTrustRatioExplanation(trustRatio)}`;
+            }
+            return isBangla
+                ? 'ক্রেতার ট্রাস্ট রেশিও জানতে বলুন: "[ক্রেতার নাম] এর ট্রাস্ট রেশিও কত?"'
+                : 'To see a customer\'s trust ratio, ask: "What is the trust ratio for [customer name]?"';
+        }
+
+        const pendingKeywords = ['remaining', 'left', 'pending', 'বাকি'];
+        if (pendingKeywords.some(keyword => normalized.includes(keyword)) && taskKeywords.some(keyword => normalized.includes(keyword))) {
+            const incompleteTasks = state.tasks.filter(t => !t.done);
+            const todayDate = todayString();
+            const todayTasks = incompleteTasks.filter(t => t.dueDate === todayDate);
+            const overdueTasks = incompleteTasks.filter(t => t.dueDate && t.dueDate < todayDate);
+
+            let response = isBangla ? `কাজের সারাংশ:\n` : `Task Summary:\n`;
+            response += isBangla ? `• মোট বাকি: ${incompleteTasks.length}\n` : `• Total pending: ${incompleteTasks.length}\n`;
+            response += isBangla ? `• আজকের: ${todayTasks.length}\n` : `• Due today: ${todayTasks.length}\n`;
+            response += isBangla ? `• মেয়াদোত্তীর্ণ: ${overdueTasks.length}\n` : `• Overdue: ${overdueTasks.length}\n`;
+
             if (todayTasks.length > 0) {
-                response += `\nTodays tasks:\n`;
+                response += isBangla ? `\nআজকের কাজ:\n` : `\nToday's tasks:\n`;
                 todayTasks.forEach((task, i) => {
                     response += `${i + 1}. ${task.name}\n`;
                 });
             }
-            
             return response;
         }
-        
-        // Generate card query
-        if (lower.includes('card') || lower.includes('generate')) {
-            const customerName = extractCustomerName(userMessage);
-            if (customerName) {
-                const customer = state.customers.find(c => c.name.toLowerCase().includes(customerName.toLowerCase()));
-                if (customer) {
-                    const balance = getCustomerBalance(customer);
-                    return `I can generate a payment card for ${customer.name} with a balance of ${formatCurrency(balance)} Would you like me to create it?`;
-                }
-            }
-            return 'I can generate payment cards for your customers Tell me which customer you want a card for';
-        }
 
-        // General stats
-        if (lower.includes('summary') || lower.includes('stats') || lower.includes('overview')) {
-            return buildAISummary();
-        }
-
-        // Payment prediction query
-        if (lower.includes('predict') || lower.includes('late') || lower.includes('who will pay late') || lower.includes('payment prediction')) {
+        const predictionKeywords = ['predict', 'late', 'payment prediction', 'দেরি', 'লেট'];
+        if (predictionKeywords.some(keyword => normalized.includes(keyword))) {
             return generatePaymentPrediction();
         }
 
-        // Default response
-        return `I understand youre asking about "${userMessage}" I can help you with:\n- Show your tasks and whats remaining\n- Add new tasks\n- Calculate customer trust ratios\n- Generate payment cards\n- View monthly summaries\n- Predict who will pay late\n\nWhat would you like to know?`;
+        if (normalized.includes('stats')) {
+            return buildAISummary();
+        }
+
+        const remainingInfo = usage.info;
+        const remainingText = remainingInfo.limit === Infinity
+            ? (isBangla ? 'এআই ব্যবহার: আনলিমিটেড' : 'AI usage: Unlimited')
+            : remainingInfo.plan === 'max'
+                ? (isBangla ? `এই সাইকেলে বাকি: ${remainingInfo.remaining} বার` : `Remaining this cycle: ${remainingInfo.remaining} uses`)
+                : (isBangla ? `আজ বাকি: ${remainingInfo.remaining} বার` : `Remaining today: ${remainingInfo.remaining} uses`);
+
+        return isBangla
+            ? `আমি সাহায্য করতে পারি:\n- বিল/রসিদ বানানো\n- ক্রেতা যোগ বা মুছে ফেলা\n- বাকি যোগ ও পেমেন্ট স্ট্যাটাস বলা\n- টাস্ক যোগ/ডিলিট\n- নোট ও থিম বদল\n- ট্রাস্ট রেশিও\n\n${remainingText}`
+            : `I can help you with:\n- Create bills/receipts\n- Add or remove customers\n- Add debts and report payment status\n- Add/delete tasks\n- Notes, themes, and trust ratio\n\n${remainingText}`;
     }
 
     function generatePaymentPrediction() {
+        const isBangla = state.language === 'bn';
         const predictions = [];
         const today = new Date();
-        
+
         state.customers.forEach(customer => {
             if (customer.debts.length === 0) return;
-            
+
             const trustRatio = calculateTrustRatio(customer);
             const overdueDebts = customer.debts.filter(d => {
                 if (!d.dueDate) return false;
                 return new Date(d.dueDate) < today && getDebtOutstanding(d) > 0;
             });
-            
+
             const latePayments = customer.payments.filter(p => {
-                const relatedDebt = customer.debts.find(d => 
+                const relatedDebt = customer.debts.find(d =>
                     d.dueDate && new Date(p.date) > new Date(d.dueDate)
                 );
                 return relatedDebt;
             }).length;
-            
+
             const totalPayments = customer.payments.length;
             const lateRate = totalPayments > 0 ? (latePayments / totalPayments) * 100 : 0;
-            
+
             if (trustRatio < 60 || lateRate > 30 || overdueDebts.length > 0) {
                 let riskLevel = 'Medium';
                 if (trustRatio < 40 || lateRate > 50) riskLevel = 'High';
                 else if (trustRatio >= 60 && lateRate < 20) riskLevel = 'Low';
-                
+
                 predictions.push({
                     name: customer.name,
                     trustRatio,
@@ -7245,27 +9352,32 @@
                 });
             }
         });
-        
+
         if (predictions.length === 0) {
-            return 'Great news! Based on payment history, all your customers are likely to pay on time. No high-risk customers detected.';
+            return isBangla
+                ? 'দারুণ খবর! পেমেন্ট ইতিহাস অনুযায়ী সবাই সময়মতো পরিশোধ করার সম্ভাবনা বেশি।'
+                : 'Great news! Based on payment history, all your customers are likely to pay on time. No high-risk customers detected.';
         }
-        
+
         predictions.sort((a, b) => {
             if (a.riskLevel === 'High' && b.riskLevel !== 'High') return -1;
             if (b.riskLevel === 'High' && a.riskLevel !== 'High') return 1;
             return a.trustRatio - b.trustRatio;
         });
-        
-        let response = `[AI Payment Prediction]\n\nBased on payment history analysis, here are customers who may pay late:\n\n`;
+
+        let response = isBangla
+            ? `[এআই পেমেন্ট পূর্বাভাস]\n\nপেমেন্টে দেরি হতে পারে এমন ক্রেতারা:\n\n`
+            : `[AI Payment Prediction]\n\nBased on payment history analysis, here are customers who may pay late:\n\n`;
         predictions.forEach((pred, i) => {
+            const riskLabel = isBangla
+                ? (pred.riskLevel === 'High' ? 'উচ্চ' : pred.riskLevel === 'Medium' ? 'মাঝারি' : 'কম')
+                : pred.riskLevel;
             response += `${i + 1}. ${pred.name}\n`;
-            response += `   Risk Level: ${pred.riskLevel}\n`;
-            response += `   Trust Ratio: ${pred.trustRatio}%\n`;
-            response += `   Late Payment Rate: ${pred.lateRate.toFixed(1)}%\n`;
-            response += `   Overdue Debts: ${pred.overdueCount}\n`;
-            response += `   Current Balance: ${formatCurrency(pred.balance)}\n\n`;
+            response += isBangla
+                ? `   ঝুঁকির মাত্রা: ${riskLabel}\n   ট্রাস্ট রেশিও: ${pred.trustRatio}%\n   দেরি করার হার: ${pred.lateRate.toFixed(1)}%\n   বাকি দেনা: ${pred.overdueCount}\n   বর্তমান বাকি: ${formatCurrency(pred.balance)}\n\n`
+                : `   Risk Level: ${riskLabel}\n   Trust Ratio: ${pred.trustRatio}%\n   Late Payment Rate: ${pred.lateRate.toFixed(1)}%\n   Overdue Debts: ${pred.overdueCount}\n   Current Balance: ${formatCurrency(pred.balance)}\n\n`;
         });
-        
+
         return response;
     }
 
@@ -7274,10 +9386,18 @@
 
     function startVoiceInput(type) {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert(state.language === 'bn' 
+            alert(state.language === 'bn'
                 ? 'আপনার ব্রাউজার ভয়েস ইনপুট সমর্থন করে না। Chrome বা Edge ব্যবহার করুন।'
                 : 'Your browser does not support voice input. Please use Chrome or Edge.');
             return;
+        }
+
+        if (type === 'ai') {
+            const usage = getAIUsageInfo();
+            if (usage.limit !== Infinity && usage.remaining <= 0) {
+                updateAIUsageUI(usage);
+                return;
+            }
         }
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -7285,8 +9405,8 @@
             recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
-            recognition.lang = state.language === 'bn' ? 'bn-BD' : 'en-US';
         }
+        recognition.lang = state.language === 'bn' ? 'bn-BD' : 'en-US';
 
         if (isRecording) {
             recognition.stop();
@@ -7310,9 +9430,7 @@
             isRecording = false;
             updateVoiceButtonState(type, false);
             if (event.error === 'no-speech') {
-                alert(state.language === 'bn' 
-                    ? 'কোন শব্দ শোনা যায়নি। আবার চেষ্টা করুন।'
-                    : 'No speech detected. Please try again.');
+                // Silent fail or toast
             }
         };
 
@@ -7325,11 +9443,23 @@
     }
 
     function updateVoiceButtonState(type, recording) {
-        const btn = type === 'ai' 
-            ? document.getElementById('ai-voice-btn')
-            : document.getElementById('debt-amount-voice-btn');
-        if (btn) {
+        const buttons = document.querySelectorAll(`[data-voice-target="${type}"]`);
+        const overlay = document.getElementById('voice-overlay');
+
+        buttons.forEach(btn => {
             btn.classList.toggle('recording', recording);
+            btn.classList.toggle('listening', recording);
+        });
+
+        // Animate AI buddy when listening
+        if (type === 'ai') {
+            animateAIBuddy(recording ? 'listening' : 'idle');
+        }
+
+        // Toggle overlay for all voice input types
+        if (overlay) {
+            if (recording) overlay.classList.add('active');
+            else overlay.classList.remove('active');
         }
     }
 
@@ -7338,45 +9468,34 @@
             const aiInput = document.getElementById('ai-input');
             if (aiInput) {
                 aiInput.value = transcript;
-                // Process AI commands
-                const lower = transcript.toLowerCase();
-                if (lower.includes('add debt') || lower.includes('নতুন দেনা') || lower.includes('দেনা যোগ')) {
-                    // Extract amount and customer name
-                    const amountMatch = transcript.match(/(\d+)/);
-                    const customerMatch = extractCustomerName(transcript);
-                    if (amountMatch) {
-                        // Open debt modal with pre-filled amount
-                        setTimeout(() => {
-                            const debtModal = modals.debt;
-                            const debtForm = forms.debt;
-                            if (debtModal && debtForm) {
-                                debtForm.querySelector('[name="amount"]').value = amountMatch[1];
-                                if (customerMatch) {
-                                    const customer = state.customers.find(c => 
-                                        c.name.toLowerCase().includes(customerMatch.toLowerCase())
-                                    );
-                                    if (customer) {
-                                        debtForm.querySelector('[name="customerId"]').value = customer.id;
-                                    }
-                                }
-                                debtModal.showModal();
-                            }
-                        }, 500);
-                        return;
-                    }
-                }
-                // Auto-send after processing
-                setTimeout(() => handleAIMessage(), 300);
+                setTimeout(() => handleAIMessage(), 200);
             }
-        } else if (type === 'debt-amount') {
-            const amountInput = document.querySelector('#debt-form [name="amount"]');
-            if (amountInput) {
-                const amountMatch = transcript.match(/(\d+)/);
-                if (amountMatch) {
-                    amountInput.value = amountMatch[1];
-                    playFeedback();
+        } else if (type === 'debt') {
+            const fallbackCustomerId = forms.debt?.elements?.customerId?.value || '';
+            const payload = parseDebtFromText(transcript, { customerId: fallbackCustomerId });
+            if (forms.debt) {
+                forms.debt.reset();
+                populateDebtCustomerSelect();
+                if (payload.customerId && forms.debt.elements.customerId) {
+                    forms.debt.elements.customerId.value = payload.customerId;
+                }
+                if (payload.amount && forms.debt.elements.amount) {
+                    forms.debt.elements.amount.value = payload.amount;
+                }
+                if (payload.note && forms.debt.elements.description) {
+                    forms.debt.elements.description.value = payload.note;
+                }
+                if (forms.debt.elements.date) {
+                    forms.debt.elements.date.value = payload.date || todayString();
                 }
             }
+            showDebtVoicePreview(payload);
+            playFeedback();
+        } else if (type === 'task') {
+            const payload = parseTaskFromText(transcript);
+            openTaskModalPrefill(payload.title || '', payload.date, payload.time, payload.note);
+            showTaskVoicePreview(payload);
+            playFeedback();
         }
     }
 
@@ -7395,21 +9514,27 @@
 
     function calculateTrustRatio(customer) {
         if (!customer || customer.debts.length === 0) return 100;
-        
+
         const totalDebts = customer.debts.length;
         const paidDebts = customer.debts.filter(d => getDebtOutstanding(d) <= 0).length;
         const onTimePayments = customer.payments.filter(p => {
             const debt = customer.debts.find(d => d.dueDate && new Date(p.date) <= new Date(d.dueDate));
             return debt;
         }).length;
-        
+
         const paymentRatio = totalDebts > 0 ? (paidDebts / totalDebts) * 50 : 0;
         const timelinessRatio = totalDebts > 0 ? (onTimePayments / totalDebts) * 50 : 0;
-        
+
         return Math.round(paymentRatio + timelinessRatio);
     }
 
     function getTrustRatioExplanation(ratio) {
+        if (state.language === 'bn') {
+            if (ratio >= 90) return 'চমৎকার! এই ক্রেতা খুবই নির্ভরযোগ্য।';
+            if (ratio >= 70) return 'ভালো। সাধারণত নির্ভরযোগ্য।';
+            if (ratio >= 50) return 'মোটামুটি। পেমেন্টে একটু নজর রাখুন।';
+            return 'কম। সতর্ক থাকা ভালো।';
+        }
         if (ratio >= 90) return 'Excellent! This customer is very reliable.';
         if (ratio >= 70) return 'Good. This customer is generally reliable.';
         if (ratio >= 50) return 'Fair. Keep an eye on payments.';
@@ -7430,7 +9555,7 @@
             return billDate >= monthStart && billDate <= monthEnd;
         });
 
-        const monthPayments = state.customers.flatMap(c => 
+        const monthPayments = state.customers.flatMap(c =>
             c.payments.filter(p => {
                 const payDate = new Date(p.date);
                 return payDate >= monthStart && payDate <= monthEnd;
@@ -7474,14 +9599,14 @@
     }
 
     function applyDockScale(scale) {
-        const normalized = clampNumber(Number(scale) || 1, 0.2, 1.0); // Range: 0.2 (really small) to 1.0 (normal)
+        const normalized = clampNumber(Number(scale) || 1, 0.6, 1.15); // Range: 0.6 (compact) to 1.15 (large)
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:6423',message:'applyDockScale called',data:{input:scale,normalized},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:6423', message: 'applyDockScale called', data: { input: scale, normalized }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
         // #endregion
         console.log('applyDockScale:', { input: scale, normalized });
         document.documentElement.style.setProperty('--dock-scale', normalized);
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app.js:6427',message:'CSS variable set',data:{cssVarValue:getComputedStyle(document.documentElement).getPropertyValue('--dock-scale')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:6427', message: 'CSS variable set', data: { cssVarValue: getComputedStyle(document.documentElement).getPropertyValue('--dock-scale') }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
         // #endregion
         return normalized;
     }
@@ -7510,12 +9635,12 @@
     // Calculator Functions
     function initCalculator() {
         if (!selectors.calculatorButtons) return;
-        
+
         selectors.calculatorButtons.forEach(btn => {
             btn.addEventListener('click', () => {
                 const value = btn.dataset.value;
                 const action = btn.dataset.action;
-                
+
                 if (action) {
                     handleCalculatorAction(action);
                 } else if (value) {
@@ -7523,7 +9648,7 @@
                 }
             });
         });
-        
+
         updateCalculatorDisplay();
     }
 
@@ -7538,7 +9663,7 @@
     }
 
     function handleCalculatorAction(action) {
-        switch(action) {
+        switch (action) {
             case 'clear':
                 state.calculator.expression = state.calculator.expression.slice(0, -1);
                 break;
@@ -7584,19 +9709,19 @@
     function initAITools() {
         // AI Chat: Ultra only; ensureAIChatAccessible() shows chat for Ultra, subscription message for others
         ensureAIChatAccessible();
-        
+
         // AI tools tab switching
         const aiTabBtns = document.querySelectorAll('.ai-tab-btn');
         const aiToolPanels = document.querySelectorAll('.ai-tool-panel');
-        
+
         aiTabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 const targetTab = btn.dataset.aiTab;
-                
+
                 // Update active tab button
                 aiTabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
+
                 // Update active panel
                 aiToolPanels.forEach(panel => {
                     panel.classList.remove('active');
@@ -7604,16 +9729,16 @@
                         panel.classList.add('active');
                     }
                 });
-                
+
                 // AI Chat tab: Ultra sees chat; non-Ultra sees subscription upsell (trust ratio available when user asks, in Ultra)
                 if (targetTab === 'chat') ensureAIChatAccessible();
             });
         });
-        
+
         // Populate customer and logo dropdowns
         populateCardCustomerSelect();
         populateCardLogoSelect();
-        
+
         // Customer selection change handler
         const customerSelect = document.getElementById('card-customer-select');
         if (customerSelect) {
@@ -7628,7 +9753,7 @@
                 updateDebtCardPreview();
             });
         }
-        
+
         // Debt card generator
         const debtCardForm = document.getElementById('debt-card-form');
         if (debtCardForm) {
@@ -7672,46 +9797,90 @@
                 });
             });
         }
-        
+
         // Download and share buttons
-        const downloadBtn = document.getElementById('download-debt-card-btn');
+        const downloadPngBtn = document.getElementById('download-debt-card-png-btn');
+        const downloadPdfBtn = document.getElementById('download-debt-card-pdf-btn');
         const shareBtn = document.getElementById('share-debt-card-btn');
-        
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', downloadDebtCard);
-        }
-        if (shareBtn) {
-            shareBtn.addEventListener('click', shareDebtCard);
-        }
+
+        downloadPngBtn?.addEventListener('click', async () => {
+            try {
+                await downloadDebtCardPng();
+                playFeedback();
+            } catch (err) {
+                console.error('Debt card PNG download failed', err);
+                if (typeof alert !== 'undefined') alert(err?.message || 'Could not download PNG. Please try again.');
+            }
+        });
+
+        downloadPdfBtn?.addEventListener('click', async () => {
+            try {
+                await downloadDebtCardPdf();
+                playFeedback();
+            } catch (err) {
+                console.error('Debt card PDF download failed', err);
+                if (typeof alert !== 'undefined') alert(err?.message || 'Could not download PDF. Please try again.');
+            }
+        });
+
+        shareBtn?.addEventListener('click', async () => {
+            try {
+                await shareDebtCard();
+                playFeedback();
+            } catch (err) {
+                console.error('Debt card share failed', err);
+                if (typeof alert !== 'undefined') alert(err?.message || 'Share failed. Please try again.');
+            }
+        });
     }
-    
+
     function populateCardCustomerSelect() {
         const customerSelect = document.getElementById('card-customer-select');
-        if (!customerSelect) return;
-        
-        // Clear existing options except the first one
-        while (customerSelect.options.length > 1) {
-            customerSelect.remove(1);
+        if (customerSelect) {
+            // Clear existing options except the first one
+            while (customerSelect.options.length > 1) {
+                customerSelect.remove(1);
+            }
+
+            // Add customers
+            state.customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = customer.name;
+                customerSelect.appendChild(option);
+            });
         }
-        
-        // Add customers
+        populateDebtCustomerSelect();
+    }
+
+    function populateDebtCustomerSelect() {
+        const debtSelect = document.getElementById('debt-customer-select');
+        if (!debtSelect) return;
+
+        const currentValue = debtSelect.value;
+        while (debtSelect.options.length > 1) {
+            debtSelect.remove(1);
+        }
         state.customers.forEach(customer => {
             const option = document.createElement('option');
             option.value = customer.id;
             option.textContent = customer.name;
-            customerSelect.appendChild(option);
+            debtSelect.appendChild(option);
         });
+        if (currentValue) {
+            debtSelect.value = currentValue;
+        }
     }
-    
+
     function populateCardLogoSelect() {
         const logoSelect = document.getElementById('card-logo-select');
         if (!logoSelect) return;
-        
+
         // Clear existing options except the first one
         while (logoSelect.options.length > 1) {
             logoSelect.remove(1);
         }
-        
+
         // Add logos
         if (state.shopLogos && state.shopLogos.length > 0) {
             state.shopLogos.forEach(logo => {
@@ -7917,8 +10086,8 @@
 
     function generateDebtCard(event) {
         event.preventDefault();
-        
-        
+
+
         const payload = buildDebtCardPayload(new FormData(event.target));
         renderDebtCardPreview(payload, { scroll: true });
     }
@@ -7932,44 +10101,325 @@
         return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
     }
 
-    function downloadDebtCard() {
-        const cardContent = document.getElementById('generated-card-content');
-        if (!cardContent) return;
-        
-        // Use html2canvas if available, otherwise show message
-        if (typeof html2canvas !== 'undefined') {
-            html2canvas(cardContent).then(canvas => {
-                canvas.toBlob(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `debt-card-${Date.now()}.png`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                });
+    function resolveCardLogoUrl(selectedLogoId) {
+        if (selectedLogoId) {
+            const selectedLogo = state.shopLogos?.find(l => l.id === selectedLogoId);
+            if (selectedLogo?.image) return selectedLogo.image;
+        }
+        return state.shop?.shopLogo || '';
+    }
+
+    function safeFilenamePart(value) {
+        const cleaned = String(value || '')
+            .trim()
+            .replace(/[^a-z0-9._-]+/gi, '-')
+            .replace(/-+/g, '-')
+            .replace(/^[-.]+|[-.]+$/g, '')
+            .slice(0, 40);
+        return cleaned || 'card';
+    }
+
+    async function generateDebtCardPng(payload, options = {}) {
+        const scale = Number(options.scale) || 3;
+        const width = 1200;
+        const hasMessage = !!(payload.customMessage && String(payload.customMessage).trim());
+        const height = hasMessage ? 820 : 680;
+        const margin = 72;
+        const radius = 28;
+
+        const style = payload.cardStyle || 'classic';
+        const accent = payload.cardColor || '#22c55e';
+        const accentStrong = adjustColor(accent, -30);
+        const accentDeep = adjustColor(accent, -55);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+
+        const roundRect = (x, y, w, h, r) => {
+            const rr = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + rr, y);
+            ctx.arcTo(x + w, y, x + w, y + h, rr);
+            ctx.arcTo(x + w, y + h, x, y + h, rr);
+            ctx.arcTo(x, y + h, x, y, rr);
+            ctx.arcTo(x, y, x + w, y, rr);
+            ctx.closePath();
+        };
+
+        const fillRoundRect = (x, y, w, h, r, fill, stroke) => {
+            roundRect(x, y, w, h, r);
+            if (fill) {
+                ctx.fillStyle = fill;
+                ctx.fill();
+            }
+            if (stroke) {
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        };
+
+        const drawText = (text, x, y, opts = {}) => {
+            const {
+                size = 18,
+                weight = 600,
+                color = '#ffffff',
+                align = 'left',
+                baseline = 'alphabetic',
+                family = 'Space Grotesk, ui-sans-serif, system-ui'
+            } = opts;
+            ctx.fillStyle = color;
+            ctx.textAlign = align;
+            ctx.textBaseline = baseline;
+            ctx.font = `${weight} ${size}px ${family}`;
+            ctx.fillText(String(text ?? ''), x, y);
+        };
+
+        const wrapText = (text, x, y, maxWidth, lineHeight, opts = {}) => {
+            const words = String(text ?? '').split(/\s+/).filter(Boolean);
+            let line = '';
+            let cy = y;
+            words.forEach((word, idx) => {
+                const testLine = line ? `${line} ${word}` : word;
+                ctx.font = `${opts.weight || 500} ${opts.size || 16}px ${opts.family || 'Space Grotesk, ui-sans-serif, system-ui'}`;
+                if (ctx.measureText(testLine).width > maxWidth && line) {
+                    drawText(line, x, cy, opts);
+                    line = word;
+                    cy += lineHeight;
+                } else {
+                    line = testLine;
+                }
+                if (idx === words.length - 1 && line) {
+                    drawText(line, x, cy, opts);
+                }
             });
+            return cy;
+        };
+
+        // Background
+        if (style === 'minimal') {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            fillRoundRect(24, 24, width - 48, height - 48, radius, null, 'rgba(15, 23, 42, 0.10)');
         } else {
-            alert('Download feature requires additional library. Please take a screenshot of the card instead.');
+            const grad = ctx.createLinearGradient(0, 0, width, height);
+            grad.addColorStop(0, accent);
+            grad.addColorStop(1, style === 'modern' ? accentStrong : adjustColor(accent, -20));
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Subtle atmosphere
+            const glow = ctx.createRadialGradient(width * 0.75, height * 0.25, 40, width * 0.75, height * 0.25, 520);
+            glow.addColorStop(0, 'rgba(255,255,255,0.20)');
+            glow.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        const textColor = style === 'minimal' ? '#0f172a' : '#ffffff';
+        const textSoft = style === 'minimal' ? 'rgba(15, 23, 42, 0.70)' : 'rgba(255,255,255,0.80)';
+        const pillBg = style === 'minimal' ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255,255,255,0.18)';
+
+        // Header: logo + shop name
+        const logoUrl = resolveCardLogoUrl(payload.selectedLogoId);
+        const logoBox = 68;
+        const logoX = margin;
+        const logoY = margin - 6;
+        if (logoUrl) {
+            try {
+                const img = await loadImage(logoUrl);
+                const iw = img.naturalWidth || img.width || 1;
+                const ih = img.naturalHeight || img.height || 1;
+                const ratio = Math.min(logoBox / iw, logoBox / ih);
+                const w = Math.max(1, Math.round(iw * ratio));
+                const h = Math.max(1, Math.round(ih * ratio));
+                fillRoundRect(logoX, logoY, logoBox, logoBox, 18, style === 'minimal' ? '#ffffff' : 'rgba(255,255,255,0.16)', style === 'minimal' ? 'rgba(15, 23, 42, 0.10)' : 'rgba(255,255,255,0.22)');
+                ctx.save();
+                roundRect(logoX, logoY, logoBox, logoBox, 18);
+                ctx.clip();
+                ctx.drawImage(img, logoX + (logoBox - w) / 2, logoY + (logoBox - h) / 2, w, h);
+                ctx.restore();
+            } catch (err) {
+                console.warn('Debt card logo load failed', err);
+            }
+        } else {
+            fillRoundRect(logoX, logoY, logoBox, logoBox, 18, style === 'minimal' ? '#f1f5f9' : 'rgba(255,255,255,0.18)');
+            drawText('🏪', logoX + logoBox / 2, logoY + logoBox / 2 + 8, { size: 32, weight: 700, align: 'center', baseline: 'middle', color: textColor });
+        }
+
+        const shopName = payload.shopName || state.shop?.shopName || 'Your Shop';
+        drawText(shopName, logoX + logoBox + 18, logoY + 28, { size: 22, weight: 800, color: textColor, baseline: 'alphabetic' });
+        drawText(translate('ai.reminderTagline') || 'Please settle the balance by the due date.', logoX + logoBox + 18, logoY + 54, { size: 13, weight: 600, color: textSoft });
+
+        // Badge (top-right)
+        const badgeText = (translate('ai.reminderBadge') || 'Payment Reminder').toUpperCase();
+        ctx.font = `800 12px Space Grotesk, ui-sans-serif, system-ui`;
+        const badgePadX = 14;
+        const badgePadY = 10;
+        const badgeW = ctx.measureText(badgeText).width + badgePadX * 2;
+        const badgeH = 32;
+        const badgeX = width - margin - badgeW;
+        const badgeY = margin - 2;
+        const badgeFill = style === 'minimal' ? accent : pillBg;
+        const badgeTextColor = style === 'minimal' ? '#ffffff' : textColor;
+        fillRoundRect(badgeX, badgeY, badgeW, badgeH, 999, badgeFill, style === 'minimal' ? null : 'rgba(255,255,255,0.18)');
+        drawText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2 + 1, { size: 12, weight: 900, color: badgeTextColor, align: 'center', baseline: 'middle' });
+
+        // Due pill (under badge)
+        if (payload.dueDate) {
+            const daysLeft = daysUntil(payload.dueDate);
+            const dueLabel = Number.isFinite(daysLeft) ? formatDaysLeftText(daysLeft) : '';
+            const dueDateFormatted = new Date(payload.dueDate).toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            const pillText = dueLabel ? `${dueLabel} • ${dueDateFormatted}` : dueDateFormatted;
+            ctx.font = `700 12px Space Grotesk, ui-sans-serif, system-ui`;
+            const pillW = Math.min(ctx.measureText(pillText).width + 22, 380);
+            const pillH = 30;
+            const pillX = width - margin - pillW;
+            const pillY = badgeY + badgeH + 10;
+            let pillColor = pillBg;
+            let pillInk = textColor;
+            if (Number.isFinite(daysLeft)) {
+                if (daysLeft < 0) {
+                    pillColor = style === 'minimal' ? 'rgba(239,68,68,0.14)' : 'rgba(239,68,68,0.25)';
+                    pillInk = style === 'minimal' ? '#991b1b' : '#ffffff';
+                } else if (daysLeft === 0) {
+                    pillColor = style === 'minimal' ? 'rgba(59,130,246,0.14)' : 'rgba(59,130,246,0.25)';
+                    pillInk = style === 'minimal' ? '#1e3a8a' : '#ffffff';
+                } else if (daysLeft <= 2) {
+                    pillColor = style === 'minimal' ? 'rgba(245,158,11,0.16)' : 'rgba(245,158,11,0.25)';
+                    pillInk = style === 'minimal' ? '#92400e' : '#ffffff';
+                }
+            }
+            fillRoundRect(pillX, pillY, pillW, pillH, 999, pillColor, style === 'minimal' ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255,255,255,0.14)');
+            drawText(pillText, pillX + pillW / 2, pillY + pillH / 2 + 1, { size: 12, weight: 800, color: pillInk, align: 'center', baseline: 'middle' });
+        }
+
+        // Main body
+        const bodyTop = 230;
+        const labelColor = style === 'minimal' ? 'rgba(15, 23, 42, 0.62)' : 'rgba(255,255,255,0.75)';
+        drawText((translate('ai.customerName') || 'Customer').toUpperCase(), margin, bodyTop, { size: 12, weight: 900, color: labelColor });
+        drawText(payload.customerName || '—', margin, bodyTop + 44, { size: 42, weight: 900, color: textColor });
+
+        const amountText = payload.debtAmount > 0 ? formatCurrency(payload.debtAmount) : formatCurrency(0);
+        drawText(amountText, margin, bodyTop + 118, { size: 54, weight: 900, color: style === 'minimal' ? accentDeep : '#ffffff' });
+
+        // Details cards
+        const detailsTop = bodyTop + 190;
+        const detailCardH = 150;
+        const detailGap = 18;
+        const detailW = (width - margin * 2 - detailGap) / 2;
+
+        const drawDetailCard = (x, title, value) => {
+            const bg = style === 'minimal' ? '#f8fafc' : 'rgba(255,255,255,0.12)';
+            const border = style === 'minimal' ? 'rgba(15, 23, 42, 0.10)' : 'rgba(255,255,255,0.18)';
+            fillRoundRect(x, detailsTop, detailW, detailCardH, 22, bg, border);
+            drawText(String(title).toUpperCase(), x + 18, detailsTop + 34, { size: 11, weight: 900, color: labelColor });
+            wrapText(String(value || '—'), x + 18, detailsTop + 74, detailW - 36, 22, { size: 18, weight: 900, color: textColor });
+        };
+
+        const paymentMethod = payload.paymentMethod || '';
+        const paymentNumber = payload.paymentNumber || '';
+        drawDetailCard(margin, translate('ai.paymentMethod') || 'Payment Method', paymentMethod || '—');
+        drawDetailCard(margin + detailW + detailGap, translate('ai.paymentNumber') || 'Payment', paymentNumber || '—');
+
+        // Optional message
+        if (hasMessage) {
+            const msgTop = detailsTop + detailCardH + 22;
+            const msgBg = style === 'minimal' ? 'rgba(15, 23, 42, 0.03)' : 'rgba(255,255,255,0.10)';
+            const msgBorder = style === 'minimal' ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255,255,255,0.16)';
+            const msgH = Math.max(120, height - msgTop - margin);
+            fillRoundRect(margin, msgTop, width - margin * 2, msgH, 22, msgBg, msgBorder);
+            drawText((translate('ai.customMessage') || 'Message').toUpperCase(), margin + 18, msgTop + 30, { size: 11, weight: 900, color: labelColor });
+            wrapText(`"${payload.customMessage}"`, margin + 18, msgTop + 68, width - margin * 2 - 36, 24, { size: 16, weight: 700, color: textSoft });
+        }
+
+        try {
+            return canvas.toDataURL('image/png', 1.0);
+        } catch (err) {
+            console.warn('Debt card export failed', err);
+            throw new Error('Could not generate PNG. If using an external logo, try removing it.');
         }
     }
 
-    async function shareDebtCard() {
-        const cardContent = document.getElementById('generated-card-content');
-        if (!cardContent) return;
-        
-        try {
-            if (navigator.share) {
-                // For browsers that support Web Share API
-                await navigator.share({
-                    title: 'Debt Reminder Card',
-                    text: 'Payment reminder from ' + (state.shop?.shopName || 'my shop')
-                });
-            } else {
-                alert('Sharing is not supported on this browser. Please take a screenshot to share.');
-            }
-        } catch (error) {
-            console.error('Error sharing:', error);
+    async function downloadDebtCardPng() {
+        const debtCardForm = document.getElementById('debt-card-form');
+        if (!debtCardForm) throw new Error('Debt card is not available.');
+        const payload = buildDebtCardPayload(new FormData(debtCardForm));
+        if (!payload.customerName || !(payload.debtAmount > 0)) {
+            throw new Error('Please enter customer name and amount first.');
         }
+        const pngUrl = await generateDebtCardPng(payload, { scale: 3 });
+        const base = safeFilenamePart(payload.customerName);
+        const filenameBase = base === 'card' ? `debt-card-${Date.now()}` : `${base}-debt-card`;
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `${filenameBase}.png`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    async function downloadDebtCardPdf() {
+        const debtCardForm = document.getElementById('debt-card-form');
+        if (!debtCardForm) throw new Error('Debt card is not available.');
+        const payload = buildDebtCardPayload(new FormData(debtCardForm));
+        if (!payload.customerName || !(payload.debtAmount > 0)) {
+            throw new Error('Please enter customer name and amount first.');
+        }
+        const pngUrl = await generateDebtCardPng(payload, { scale: 3 });
+        const base = safeFilenamePart(payload.customerName);
+        const filenameBase = base === 'card' ? `debt-card-${Date.now()}` : `${base}-debt-card`;
+        const jpeg = await pngDataUrlToJpegBytes(pngUrl, 0.92);
+        const pdfBlob = buildSinglePagePdfFromJpeg(jpeg.bytes, jpeg.width, jpeg.height);
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filenameBase}.pdf`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async function shareDebtCard() {
+        const debtCardForm = document.getElementById('debt-card-form');
+        if (!debtCardForm) throw new Error('Debt card is not available.');
+        const payload = buildDebtCardPayload(new FormData(debtCardForm));
+        if (!payload.customerName || !(payload.debtAmount > 0)) {
+            throw new Error('Please enter customer name and amount first.');
+        }
+
+        const pngUrl = await generateDebtCardPng(payload, { scale: 3 });
+        const base = safeFilenamePart(payload.customerName);
+        const filenameBase = base === 'card' ? `debt-card-${Date.now()}` : `${base}-debt-card`;
+        const file = await dataUrlToFile(pngUrl, `${filenameBase}.png`);
+        const text = state.language === 'bn'
+            ? `${payload.customerName} এর বাকি: ${formatCurrency(payload.debtAmount)}`
+            : `Balance due for ${payload.customerName}: ${formatCurrency(payload.debtAmount)}`;
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], text });
+            return;
+        }
+
+        if (navigator.share) {
+            await navigator.share({ text });
+            return;
+        }
+
+        // Fallback: download the PNG
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `${filenameBase}.png`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 
     function escapeHtml(text) {
@@ -7983,24 +10433,23 @@
         if (state.ui.activeNotesTab !== tab) playFeedback();
         state.ui.activeNotesTab = tab;
         saveState();
-        
-        document.querySelectorAll('[data-tab]').forEach(btn => {
+
+        document.querySelectorAll('.tab-btn-nt').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tab);
         });
-        
-        if (selectors.notesSection) {
-            selectors.notesSection.hidden = tab !== 'notes';
-        }
-        if (selectors.tasksSection) {
-            selectors.tasksSection.hidden = tab !== 'tasks';
-        }
+
+        const tasksSec = document.getElementById('tasks-section');
+        const notesSec = document.getElementById('notes-section');
+
+        if (tasksSec) tasksSec.hidden = tab !== 'tasks';
+        if (notesSec) notesSec.hidden = tab !== 'notes';
 
         if (tab === 'tasks') {
-            renderCalendar();
-            renderTaskCards();
+            renderHabitTracker();
         } else {
-            renderNotes();
+            renderNotesV3();
         }
+        updateDockActiveState(state.ui.activePanel);
     }
 
     function setCustomersTab(tab, options = {}) {
@@ -8022,6 +10471,7 @@
         } else {
             renderDebtLedger();
         }
+        updateDockActiveState(state.ui.activePanel);
     }
 
     function initDebtLedgerHandlers() {
@@ -8062,14 +10512,14 @@
         const logoId = formData.get('logoId');
         const logoName = formData.get('logoName');
         const logoFile = formData.get('logoImage');
-        
+
         if (!logoFile || !logoFile.size) {
             alert('Please select an image');
             return;
         }
-        
+
         const logoDataUrl = await readFileAsDataUrl(logoFile);
-        
+
         if (logoId) {
             const idx = state.shopLogos.findIndex(l => l.id === logoId);
             if (idx >= 0) {
@@ -8083,7 +10533,7 @@
                 createdAt: Date.now()
             });
         }
-        
+
         saveState();
         renderLogoList();
         populateCardLogoSelect();
@@ -8093,19 +10543,19 @@
 
     function renderLogoList() {
         if (!selectors.logoListContainer) return;
-        
+
         if (!state.shopLogos || state.shopLogos.length === 0) {
             selectors.logoListContainer.innerHTML = '<p class="data-empty">No logos added yet.</p>';
             return;
         }
-        
+
         selectors.logoListContainer.innerHTML = state.shopLogos.map(logo => `
             <div class="logo-item">
                 <img src="${logo.image}" alt="${logo.name}">
                 <button class="logo-item-remove" data-logo-id="${logo.id}">×</button>
             </div>
         `).join('');
-        
+
         selectors.logoListContainer.querySelectorAll('.logo-item-remove').forEach(btn => {
             btn.addEventListener('click', () => {
                 const logoId = btn.dataset.logoId;
