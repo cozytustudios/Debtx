@@ -3,6 +3,135 @@
 (function () {
     const STORAGE_KEY = 'debtx-data-v1';
     const LS_VERSION = 2;
+    const ENV_DEFAULTS = {
+        DEEPSEEK_MODEL: 'deepseek-chat',
+        DEEPSEEK_BASE_URL: 'https://api.deepseek.com',
+        DEEPSEEK_TIMEOUT_MS: 20000,
+        DEEPSEEK_SYSTEM_PROMPT:
+            'You are Debtx AI, a helpful assistant for Bangladeshi shopkeepers. ' +
+            'Keep replies short, clear, and practical. If the user asks to change data, ' +
+            'ask for missing details and confirm before saving.'
+    };
+    const DEEPSEEK_TOOL_INSTRUCTIONS = [
+        'When the user asks to do something inside the app, respond with JSON only.',
+        'Use this schema:',
+        '{ "action": "add_task|add_debt|add_note|delete_task|delete_note|delete_customer|change_theme|create_bill|mark_bill_paid|record_payment|complete_task|open_panel|cancel_subscription", "data": { ... }, "reply": "optional user message" }',
+        'For multiple actions use: { "actions": [ { ... }, { ... } ], "reply": "optional user message" }.',
+        'Action data examples:',
+        '- add_task: { "title": "task name", "date": "YYYY-MM-DD", "time": "HH:MM" }',
+        '- add_debt: { "customerName": "name", "amount": 500, "note": "reason" }',
+        '- delete_task: { "title": "task to delete" }',
+        '- delete_note: { "title": "note to delete" }',
+        '- record_payment: { "customerName": "name", "amount": 500 }',
+        '- complete_task: { "title": "task to complete" }',
+        '- change_theme: { "theme": "theme-name" }',
+        '- mark_bill_paid: { "customerName": "name" } or { "invoiceNumber": "INV-001" }',
+        '- open_panel: { "panel": "premium|customers|bills|ai|notes|settings" }',
+        '- cancel_subscription: {} (no data needed)',
+        'Dates must be YYYY-MM-DD and time must be HH:MM (24h).',
+        'Themes: studio-pro, cozy-ledger, clean-business, night-shop, zen-finance, street-ledger, classic-paper, midnight-purple, sunset-orange.',
+        'If details are missing, ask a short follow-up question instead of guessing.',
+        'If the user is only asking a question, respond normally (no JSON).'
+    ].join('\n');
+    const MAX_DEEPSEEK_HISTORY = 12;
+
+    if (typeof window !== 'undefined' && !window.__DEBTX_ENV) {
+        window.__DEBTX_ENV = {};
+    }
+
+    function getEnvConfig() {
+        const env = typeof window !== 'undefined' ? window.__DEBTX_ENV : null;
+        return env && typeof env === 'object' ? env : {};
+    }
+
+    function getDeepSeekConfig() {
+        const env = getEnvConfig();
+        const apiKey = (env.DEEPSEEK_API_KEY || '').toString().trim();
+        const model = (env.DEEPSEEK_MODEL || ENV_DEFAULTS.DEEPSEEK_MODEL).toString().trim();
+        const baseUrl = (env.DEEPSEEK_BASE_URL || ENV_DEFAULTS.DEEPSEEK_BASE_URL).toString().trim();
+        const timeoutMs = Number(env.DEEPSEEK_TIMEOUT_MS) || ENV_DEFAULTS.DEEPSEEK_TIMEOUT_MS;
+        const systemPrompt = buildDeepSeekSystemPrompt(env.DEEPSEEK_SYSTEM_PROMPT || ENV_DEFAULTS.DEEPSEEK_SYSTEM_PROMPT);
+        return {
+            apiKey,
+            model,
+            baseUrl,
+            timeoutMs: Math.max(5000, timeoutMs),
+            systemPrompt
+        };
+    }
+
+    function normalizeBaseUrl(baseUrl) {
+        if (!baseUrl) return ENV_DEFAULTS.DEEPSEEK_BASE_URL;
+        return baseUrl.replace(/\/+$/, '');
+    }
+
+    function buildDeepSeekChatUrl(baseUrl) {
+        const normalized = normalizeBaseUrl(baseUrl);
+        if (normalized.endsWith('/chat/completions')) {
+            return normalized;
+        }
+        return `${normalized}/chat/completions`;
+    }
+
+    function hasDeepSeekKey() {
+        return Boolean(getDeepSeekConfig().apiKey);
+    }
+
+    function updateNoApiBadge() {
+        const badge = document.querySelector('.ai-noapi-badge');
+        if (!badge) return;
+        badge.style.display = hasDeepSeekKey() ? 'none' : 'inline-flex';
+    }
+
+    function appendChatHistory(role, content) {
+        if (!content) return;
+        if (!state.ai.chatHistory || !Array.isArray(state.ai.chatHistory)) {
+            state.ai.chatHistory = [];
+        }
+        state.ai.chatHistory.push({ role, content: String(content) });
+        if (state.ai.chatHistory.length > MAX_DEEPSEEK_HISTORY * 2) {
+            state.ai.chatHistory = state.ai.chatHistory.slice(-MAX_DEEPSEEK_HISTORY * 2);
+        }
+    }
+
+    function buildDeepSeekMessages(userMessage, systemPrompt) {
+        const messages = [];
+        if (systemPrompt) {
+            messages.push({ role: 'system', content: systemPrompt });
+        }
+        const history = Array.isArray(state.ai.chatHistory) ? state.ai.chatHistory : [];
+        history.slice(-MAX_DEEPSEEK_HISTORY * 2).forEach(msg => {
+            if (!msg || !msg.role || !msg.content) return;
+            messages.push({ role: msg.role, content: String(msg.content) });
+        });
+        messages.push({ role: 'user', content: String(userMessage) });
+        return messages;
+    }
+
+    function buildDeepSeekMessagesWithHistory(userMessage, systemPrompt, history) {
+        const messages = [];
+        if (systemPrompt) {
+            messages.push({ role: 'system', content: systemPrompt });
+        }
+        const safeHistory = Array.isArray(history) ? history : [];
+        safeHistory.slice(-MAX_DEEPSEEK_HISTORY * 2).forEach(msg => {
+            if (!msg || !msg.role || !msg.content) return;
+            messages.push({ role: msg.role, content: String(msg.content) });
+        });
+        messages.push({ role: 'user', content: String(userMessage) });
+        return messages;
+    }
+
+    function buildDeepSeekSystemPrompt(basePrompt) {
+        const base = (basePrompt || ENV_DEFAULTS.DEEPSEEK_SYSTEM_PROMPT).toString().trim();
+        if (!base) return DEEPSEEK_TOOL_INSTRUCTIONS;
+        if (base.includes('respond with JSON only') || (base.includes('action') && base.includes('open_panel'))) {
+            return base;
+        }
+        return `${base}\n\n${DEEPSEEK_TOOL_INSTRUCTIONS}`;
+    }
+
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
     const todayString = () => {
         const now = new Date();
@@ -60,6 +189,7 @@
             debtFilter: 'all',
             dockScale: 1,
             uiScale: 1,
+            viewMode: 'phone',
             theme: 'studio-pro', // Default theme - premium and crisp
             haptics: true,
             sounds: true,
@@ -76,7 +206,12 @@
             lastUsageKey: null,
             lastUsagePlan: null,
             pendingIntent: null,
-            buddyName: 'Assistant' // Default AI buddy name
+            buddyName: 'Assistant', // Default AI buddy name
+            proChatHistory: [],
+            proChatUsageCount: 0,
+            proChatUsageKey: null,
+            proChatUsagePlan: null,
+            proChatUsageDate: null
         },
         calculator: {
             expression: '',
@@ -1235,6 +1370,7 @@
         applyTextSize(state.ui.textSize || 3);
         applyDockScale(state.ui.dockScale || 1);
         applyUiScale(state.ui.uiScale || 1);
+        applyViewMode(state.ui.viewMode || 'phone');
         applyTodoMode(state.ui.simpleTodo);
         applyPlanBranding();
         highlightPlanCards();
@@ -1260,6 +1396,12 @@
         // Initialize notes/tasks tab on load
         if (state.ui.activeNotesTab) {
             switchNotesTab(state.ui.activeNotesTab);
+        }
+
+        // Show welcome toast once per session
+        if (!sessionStorage.getItem('debtx-welcome-shown')) {
+            showToast("World's First AI Agent Digital Khata App");
+            sessionStorage.setItem('debtx-welcome-shown', 'true');
         }
     }
 
@@ -1336,7 +1478,9 @@
                     haptics: state.ui.haptics,
                     sounds: state.ui.sounds,
                     textSize: state.ui.textSize,
-                    dockScale: state.ui.dockScale
+                    dockScale: state.ui.dockScale,
+                    uiScale: state.ui.uiScale,
+                    viewMode: state.ui.viewMode
                 }
             };
             const jsonString = JSON.stringify(exportData, null, 2);
@@ -1469,6 +1613,10 @@
                     applyUiScale(state.ui.uiScale);
                     if (selectors.uiScaleInput) selectors.uiScaleInput.value = state.ui.uiScale;
                     updateUiScaleDisplay();
+                }
+                if (typeof imported.ui.viewMode === 'string') {
+                    state.ui.viewMode = imported.ui.viewMode === 'desktop' ? 'desktop' : 'phone';
+                    applyViewMode(state.ui.viewMode);
                 }
                 if (typeof imported.ui.simpleTodo === 'boolean') {
                     state.ui.simpleTodo = imported.ui.simpleTodo;
@@ -2558,7 +2706,8 @@
             nano: isBangla ? 'ন্যানো' : 'Nano',
             pro: isBangla ? 'প্রো' : 'Pro',
             max: isBangla ? 'ম্যাক্স' : 'Max',
-            ultra: isBangla ? 'আল্ট্রা' : 'Ultra'
+            ultra: isBangla ? 'আল্ট্রা' : 'Ultra',
+            agentic_ultra: isBangla ? 'এজেন্টিক আল্ট্রা' : 'Agentic Ultra'
         };
 
         const planEl = document.getElementById('premium-current-plan');
@@ -2577,16 +2726,20 @@
         if (usageEl) {
             const usageText = (() => {
                 switch (activePlan) {
-                    case 'nano':
+                    case 'free':
                         return isBangla ? 'এআই এজেন্ট: ২০/মাস' : 'AI agent: 20/month';
+                    case 'nano':
+                        return isBangla ? 'এআই এজেন্ট: ৫/দিন' : 'AI agent: 5/day';
                     case 'pro':
-                        return isBangla ? 'এআই এজেন্ট: ৬০/মাস' : 'AI agent: 60/month';
-                    case 'max':
                         return isBangla ? 'এআই এজেন্ট: ১০০/মাস' : 'AI agent: 100/month';
+                    case 'max':
+                        return isBangla ? 'এআই এজেন্ট: ১০০/বছর' : 'AI agent: 100/year';
                     case 'ultra':
-                        return isBangla ? 'এআই এজেন্ট: আনলিমিটেড' : 'AI agent: Unlimited';
+                        return isBangla ? 'এআই এজেন্ট: ২০০/বছর' : 'AI agent: 200/year';
+                    case 'agentic_ultra':
+                        return isBangla ? 'এআই এজেন্ট: ১০০০/বছর বা ২০০/মাস' : 'AI agent: 1000/year or 200/month';
                     default:
-                        return isBangla ? 'এআই এজেন্ট: দিনে ৩০ বার' : 'AI agent: 30/day';
+                        return isBangla ? 'এআই এজেন্ট: ২০/মাস' : 'AI agent: 20/month';
                 }
             })();
             usageEl.textContent = usageText;
@@ -2607,11 +2760,43 @@
         highlightPlanCards();
     }
 
+    function bindCancelSubscriptionButton(btn) {
+        if (!btn || btn.dataset.bound) return;
+        btn.dataset.bound = '1';
+
+        btn.addEventListener('click', () => {
+            const isBangla = state.language === 'bn';
+            const activePlan = getActivePlan();
+
+            if (activePlan === 'free') {
+                alert(isBangla
+                    ? 'আপনি ফ্রি প্ল্যানে আছেন। বাতিল করার মতো কোনো সক্রিয় সাবস্ক্রিপশন নেই।'
+                    : 'You are already on the Free plan—there is no active subscription to cancel.');
+                return;
+            }
+
+            const ok = confirm(isBangla
+                ? 'সাবস্ক্রিপশন বাতিল করলে আপনি ফ্রি প্ল্যানে চলে যাবেন। চালিয়ে যেতে চান?'
+                : 'Cancel your subscription now? You will move back to the Free plan.');
+
+            if (ok) {
+                cancelSubscription(false);
+                alert(isBangla
+                    ? 'সাবস্ক্রিপশন বাতিল হয়েছে। আপনি এখন ফ্রি প্ল্যানে।'
+                    : 'Subscription cancelled. You are now on the Free plan.');
+            }
+        });
+    }
+
     function updateSettingsSubscriptionOverview() {
-        const planEl = document.getElementById('settings-current-plan');
-        const daysEl = document.getElementById('settings-days-left');
-        const noteEl = document.getElementById('settings-expiry-note');
-        if (!planEl && !daysEl && !noteEl) return;
+        const planEls = Array.from(document.querySelectorAll('#settings-current-plan'));
+        const daysEls = Array.from(document.querySelectorAll('#settings-days-left'));
+        const noteEls = Array.from(document.querySelectorAll('#settings-expiry-note'));
+        const renewBoxEls = Array.from(document.querySelectorAll('#settings-renew-box'));
+        const renewTitleEls = Array.from(document.querySelectorAll('#settings-renew-title'));
+        const renewValueEls = Array.from(document.querySelectorAll('#settings-renew-value'));
+        const renewSubEls = Array.from(document.querySelectorAll('#settings-renew-sub'));
+        if (planEls.length === 0 && daysEls.length === 0 && noteEls.length === 0) return;
 
         const activePlan = getActivePlan();
         const isBangla = state.language === 'bn';
@@ -2620,33 +2805,96 @@
             nano: isBangla ? 'ন্যানো' : 'Nano',
             pro: isBangla ? 'প্রো' : 'Pro',
             max: isBangla ? 'ম্যাক্স' : 'Max',
-            ultra: isBangla ? 'আল্ট্রা' : 'Ultra'
+            ultra: isBangla ? 'আল্ট্রা' : 'Ultra',
+            agentic_ultra: isBangla ? 'এজেন্টিক আল্ট্রা' : 'Agentic Ultra'
         };
 
         const sub = state.subscription || { plan: 'free' };
         const now = Date.now();
         const expiresAt = sub.expiresAt && sub.expiresAt > now ? sub.expiresAt : null;
-        const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000))) : null;
+        let daysLeft = 0;
+        if (expiresAt) {
+            daysLeft = Math.ceil((expiresAt - now) / (24 * 60 * 60 * 1000));
+        }
 
-        if (planEl) planEl.textContent = planNames[activePlan] || planNames.free;
-        if (daysEl) daysEl.textContent = !expiresAt || activePlan === 'free' ? '—' : String(daysLeft);
+        planEls.forEach(el => { el.textContent = planNames[activePlan] || planNames.free; });
+        daysEls.forEach(el => {
+            el.textContent = !expiresAt || activePlan === 'free' ? (isBangla ? 'আজীবন' : 'Lifetime') : String(daysLeft);
+        });
 
-        if (noteEl) {
+        renewBoxEls.forEach(el => {
             if (!expiresAt || activePlan === 'free') {
-                noteEl.textContent = isBangla
-                    ? 'প্ল্যান চালু করতে কুপন রিডিম করুন অথবা ফেসবুকে মেসেজ দিন।'
-                    : 'Redeem a coupon to activate, or message us on Facebook to buy/renew.';
+                el.hidden = true;
+            } else {
+                el.hidden = false;
+            }
+        });
+        if (expiresAt && activePlan !== 'free') {
+            const expiryDate = new Date(expiresAt);
+            const dateStr = expiryDate.toLocaleDateString(isBangla ? 'bn-BD' : 'en-US');
+            renewTitleEls.forEach(el => { el.textContent = isBangla ? 'রিনিউ হতে বাকি' : 'Renews in'; });
+            renewValueEls.forEach(el => { el.textContent = isBangla ? `${daysLeft} দিন` : `${daysLeft} days`; });
+            renewSubEls.forEach(el => { el.textContent = isBangla ? `রিনিউ তারিখ: ${dateStr}` : `Renew date: ${dateStr}`; });
+        }
+
+        noteEls.forEach(el => {
+            if (!expiresAt || activePlan === 'free') {
+                el.textContent = isBangla
+                    ? 'আপনার বর্তমান প্ল্যানে কোনো মেয়াদ নেই।'
+                    : 'No expiration date for your current plan.';
             } else {
                 const expiryDate = new Date(expiresAt);
                 const dateStr = expiryDate.toLocaleDateString(isBangla ? 'bn-BD' : 'en-US');
-                noteEl.textContent = isBangla
+                el.textContent = isBangla
                     ? `মেয়াদ শেষ: ${dateStr} • রিনিউ করার জন্য ফেসবুকে মেসেজ দিন।`
                     : `Expires: ${dateStr} • Message us on Facebook to renew.`;
             }
+        });
+
+        const cancelBtns = Array.from(document.querySelectorAll('#settings-cancel-sub-btn'));
+        cancelBtns.forEach(btn => {
+            const currentPlan = getActivePlan();
+            if (currentPlan === 'free') {
+                btn.hidden = true;
+                btn.disabled = true;
+                btn.setAttribute('aria-disabled', 'true');
+            } else {
+                btn.hidden = false;
+                btn.disabled = false;
+                btn.setAttribute('aria-disabled', 'false');
+                btn.textContent = isBangla ? 'সাবস্ক্রিপশন বাতিল করুন' : 'Cancel subscription';
+                bindCancelSubscriptionButton(btn);
+            }
+        });
+    }
+
+    function cancelSubscription(showFeedback = true) {
+        state.subscription = {
+            plan: 'free',
+            activatedAt: null,
+            expiresAt: null,
+            couponUsed: null
+        };
+        saveState();
+        playFeedback();
+        applyPlanBranding();
+        if (typeof updatePremiumStatus === 'function') updatePremiumStatus();
+        updatePremiumPanelStatus();
+        updateSettingsSubscriptionOverview();
+        updateNewSettingsUI();
+        ensureAIChatAccessible();
+        updateDockPremiumVisibility();
+        if (typeof highlightPlanCards === 'function') highlightPlanCards();
+
+        if (showFeedback) {
+            alert(state.language === 'bn'
+                ? 'সাবস্ক্রিপশন বাতিল হয়েছে। আপনি এখন ফ্রি প্ল্যানে।'
+                : 'Subscription cancelled. You are now on the Free plan.');
         }
     }
 
     function normalizePlan(plan) {
+        if (plan === 'agentic_ultra') return 'agentic_ultra';
         if (plan === 'ultra') return 'ultra';
         if (plan === 'max') return 'max';
         if (plan === 'pro') return 'pro';
@@ -2679,7 +2927,8 @@
             nano: state.language === 'bn' ? 'ন্যানো' : 'Nano',
             pro: state.language === 'bn' ? 'প্রো' : 'Pro',
             max: state.language === 'bn' ? 'ম্যাক্স' : 'Max',
-            ultra: state.language === 'bn' ? 'আল্ট্রা' : 'Ultra'
+            ultra: state.language === 'bn' ? 'আল্ট্রা' : 'Ultra',
+            agentic_ultra: state.language === 'bn' ? 'এজেন্টিক আল্ট্রা' : 'Agentic Ultra'
         };
         if (badge) badge.textContent = planLabels[plan] || planLabels.free;
         if (nameEl) nameEl.textContent = 'DebtX';
@@ -2707,6 +2956,26 @@
             btn.classList.toggle('active', btn.dataset.billingToggle === normalized);
         });
         if (stack) stack.dataset.activeBilling = normalized;
+
+        // Keep Agentic Ultra pricing in sync with the billing toggle (monthly vs annual).
+        const agenticCard = stack?.querySelector('[data-plan-card="agentic_ultra"]');
+        if (agenticCard) {
+            const monthlyPrice = agenticCard.dataset.priceMonthly;
+            const annualPrice = agenticCard.dataset.priceAnnual;
+            const priceEl = agenticCard.querySelector('[data-agentic-ultra-price]');
+            const periodEl = agenticCard.querySelector('[data-agentic-ultra-period]');
+            const altEl = agenticCard.querySelector('[data-agentic-ultra-alt]');
+            if (normalized === 'monthly') {
+                if (priceEl && monthlyPrice) priceEl.textContent = `৳${monthlyPrice}`;
+                if (periodEl) periodEl.textContent = '/month';
+                if (altEl && annualPrice) altEl.textContent = `৳${annualPrice}/year`;
+            } else {
+                if (priceEl && annualPrice) priceEl.textContent = `৳${annualPrice}`;
+                if (periodEl) periodEl.textContent = '/year';
+                if (altEl && monthlyPrice) altEl.textContent = `৳${monthlyPrice}/month`;
+            }
+        }
+
         saveState();
     }
 
@@ -2729,6 +2998,7 @@
         applyPlanBranding();
         highlightPlanCards();
         updateSettingsSubscriptionOverview();
+        updateProChatUsageUI();
         // Update language buttons
         const langBtns = document.querySelectorAll('.lang-btn-new');
         langBtns.forEach(btn => {
@@ -2739,6 +3009,12 @@
         const sizeBtns = document.querySelectorAll('.size-btn-new');
         sizeBtns.forEach(btn => {
             btn.classList.toggle('active', parseInt(btn.dataset.size) === state.ui.textSize);
+        });
+
+        // Update view mode buttons
+        const viewBtns = document.querySelectorAll('.view-btn-new');
+        viewBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === (state.ui.viewMode || 'phone'));
         });
 
         if (selectors.uiScaleInput) {
@@ -4960,6 +5236,14 @@
             showAuthOverlay();
         });
 
+        // Upgrade Plan Button - Navigate to Premium
+        document.querySelectorAll('.upgrade-plan-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setActivePanel('premium');
+                playFeedback();
+            });
+        });
+
         // Settings Menu Items
         const showSettingsDetailedContent = () => {
             const detailedContent = document.getElementById('settings-detailed-content');
@@ -5294,9 +5578,27 @@
             aiSendBtn.addEventListener('click', handleAIMessage);
         }
         if (aiInput) {
+            let lastReactAt = 0;
+            const syncSendDisabled = () => {
+                if (!aiSendBtn) return;
+                const hasText = !!aiInput.value.trim();
+                aiSendBtn.disabled = aiInput.disabled || !hasText;
+            };
             aiInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleAIMessage();
             });
+            aiInput.addEventListener('input', () => {
+                const now = Date.now();
+                if (now - lastReactAt > 180) {
+                    animateAIBuddy('react');
+                    lastReactAt = now;
+                }
+                syncSendDisabled();
+            });
+            aiInput.addEventListener('focus', () => {
+                animateAIBuddy('react');
+            });
+            syncSendDisabled();
         }
         if (aiVoiceBtn) {
             aiVoiceBtn.addEventListener('click', () => startVoiceInput('ai'));
@@ -5521,7 +5823,8 @@
             nano: ['OPTITERENCENANO'],
             pro: ['OPTIPROMAX'],
             max: ['TERENCEMAXO', 'MAX2024', 'MAX50'],
-            ultra: ['TERENCEULTRAOFCL']
+            ultra: ['TERENCEULTRAOFCL'],
+            agentic_ultra: ['HELLOPIE60', 'HELLOPIE90']
         };
 
         // Function to validate and activate a plan
@@ -5564,6 +5867,12 @@
             // Monthly plans: 30 days, Annual plans: 365 days
             if (plan === 'nano' || plan === 'pro') {
                 expiresAt = now + (30 * 24 * 60 * 60 * 1000);
+            } else if (plan === 'agentic_ultra') {
+                if (couponCode === 'HELLOPIE60') {
+                    expiresAt = now + (30 * 24 * 60 * 60 * 1000);
+                } else {
+                    expiresAt = now + (365 * 24 * 60 * 60 * 1000);
+                }
             } else {
                 expiresAt = now + (365 * 24 * 60 * 60 * 1000);
             }
@@ -5659,6 +5968,88 @@
         const aiChatContainer = document.getElementById('ai-chat-container');
         if (aiChatContainer) aiChatContainer.style.display = 'flex';
         updateAIUsageUI();
+        renderAIChatHistory();
+    }
+
+    function ensureProChatAccessible() {
+        updateProChatUsageUI();
+        renderProChatHistory();
+    }
+
+    function renderAIChatHistory() {
+        const messagesContainer = document.getElementById('ai-messages');
+        if (!messagesContainer) return;
+        const history = Array.isArray(state.ai.chatHistory) ? state.ai.chatHistory : [];
+        if (history.length === 0) return;
+
+        messagesContainer.innerHTML = '';
+        messagesContainer.hidden = false;
+        history.forEach(msg => {
+            if (!msg || !msg.role || !msg.content) return;
+            const isUser = msg.role === 'user';
+            const msgEl = document.createElement('div');
+            if (messagesContainer.classList.contains('ai-chat-messages-modern')) {
+                msgEl.className = isUser ? 'ai-message-modern user' : 'ai-message-modern assistant';
+                msgEl.innerHTML = isUser
+                    ? `
+                        <div class="ai-message-avatar-modern">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <div class="ai-message-content-modern"><p>${escapeHtml(String(msg.content))}</p></div>
+                    `
+                    : `
+                        <div class="ai-message-avatar-modern">🤖</div>
+                        <div class="ai-message-content-modern"><p style="white-space: pre-line;">${escapeHtml(String(msg.content))}</p></div>
+                    `;
+            } else {
+                msgEl.className = isUser ? 'ai-message ai-message-user' : 'ai-message ai-message-assistant';
+                msgEl.innerHTML = isUser
+                    ? `
+                        <div class="ai-avatar">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <div class="ai-content"><p>${escapeHtml(String(msg.content))}</p></div>
+                    `
+                    : `
+                        <div class="ai-avatar">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                        </div>
+                        <div class="ai-content"><p style="white-space: pre-line;">${escapeHtml(String(msg.content))}</p></div>
+                    `;
+            }
+            messagesContainer.appendChild(msgEl);
+        });
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function renderProChatHistory() {
+        const messagesContainer = document.getElementById('prochat-messages');
+        if (!messagesContainer) return;
+        const history = Array.isArray(state.ai.proChatHistory) ? state.ai.proChatHistory : [];
+        if (history.length === 0) return;
+        messagesContainer.innerHTML = '';
+        history.forEach(msg => {
+            if (!msg || !msg.role || !msg.content) return;
+            const msgEl = document.createElement('div');
+            msgEl.className = `prochat-message ${msg.role === 'user' ? 'user' : 'assistant'}`;
+            msgEl.innerHTML = `
+                <div class="prochat-bubble">
+                    <p>${escapeHtml(String(msg.content))}</p>
+                </div>
+            `;
+            messagesContainer.appendChild(msgEl);
+        });
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
     function updatePremiumStatus() {
@@ -5684,7 +6075,8 @@
             nano: state.language === 'bn' ? 'ন্যানো' : 'Nano',
             pro: state.language === 'bn' ? 'প্রো' : 'Pro',
             max: state.language === 'bn' ? 'ম্যাক্স' : 'Max',
-            ultra: state.language === 'bn' ? 'আল্ট্রা' : 'Ultra'
+            ultra: state.language === 'bn' ? 'আল্ট্রা' : 'Ultra',
+            agentic_ultra: state.language === 'bn' ? 'এজেন্টিক আল্ট্রা' : 'Agentic Ultra'
         };
 
         currentPlanEl.textContent = planNames[activePlan] || planNames.free;
@@ -6466,6 +6858,18 @@
             });
         });
 
+        // View mode buttons (phone / desktop)
+        document.querySelectorAll('.view-btn-new').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const view = btn.dataset.view === 'desktop' ? 'desktop' : 'phone';
+                applyViewMode(view);
+                document.querySelectorAll('.view-btn-new').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                saveState();
+                playFeedback();
+            });
+        });
+
         // Theme tiles (new UI)
         document.querySelectorAll('.theme-tile-new').forEach(tile => {
             tile.addEventListener('click', () => {
@@ -6494,41 +6898,19 @@
             });
         }
 
-        // Cancel Subscription button
-        const cancelSubBtn = document.getElementById('cancel-subscription-btn');
-        if (cancelSubBtn) {
-            cancelSubBtn.addEventListener('click', () => {
-                const subscription = state.subscription || { plan: 'free' };
-                if (subscription.plan === 'free') {
-                    alert(state.language === 'bn'
-                        ? 'আপনি ইতিমধ্যে ফ্রি প্ল্যানে আছেন।'
-                        : 'You are already on the free plan.');
-                    return;
-                }
-
-                const confirmMsg = state.language === 'bn'
-                    ? `আপনি কি ${subscription.plan.toUpperCase()} সাবস্ক্রিপশন বাতিল করতে চান? এটি আপনাকে ফ্রি প্ল্যানে ফিরিয়ে দেবে।`
-                    : `Cancel your ${subscription.plan.toUpperCase()} subscription? This will return you to the free plan.`;
-
-                if (confirm(confirmMsg)) {
-                    state.subscription = {
-                        plan: 'free',
-                        activatedAt: null,
-                        expiresAt: null,
-                        couponUsed: null
-                    };
-                    saveState();
-                    updatePremiumStatus();
-                    updateDockPremiumVisibility();
-                    updatePremiumPanelStatus();
-
-                    alert(state.language === 'bn'
-                        ? 'সাবস্ক্রিপশন সফলভাবে বাতিল হয়েছে।'
-                        : 'Subscription cancelled successfully.');
-                    playFeedback();
-                }
+        // Upgrade plan buttons (Settings + Pro Chat lock)
+        document.querySelectorAll('.upgrade-plan-btn').forEach(btn => {
+            if (btn.dataset.boundUpgrade) return;
+            btn.dataset.boundUpgrade = '1';
+            btn.addEventListener('click', () => {
+                setActivePanel('premium');
             });
-        }
+        });
+
+        // Cancel subscription buttons (new + legacy id)
+        document.querySelectorAll('#settings-cancel-sub-btn, #cancel-subscription-btn').forEach(btn => {
+            bindCancelSubscriptionButton(btn);
+        });
 
         // Initialize dock premium visibility
         updateDockPremiumVisibility();
@@ -8046,15 +8428,43 @@
 
     function getAIUsageInfo() {
         const plan = getActivePlan();
-        // Limits: Free/Nano/Pro=30/day, Max=100/cycle, Ultra=Infinity
-        let limit = 30; // Default for Free, Nano, Pro
-        if (plan === 'max') limit = 100;
-        else if (plan === 'ultra') limit = Infinity;
+        // Limits: 
+        // Free = 20/month
+        // Nano = 5/day
+        // Pro = 100/month
+        // Max = 100/year (effectively per cycle if cycle is year, but let's assume year)
+        // Ultra = 200/year
+        // Agentic Ultra = 200/month or 1000/year depending on cycle
+
+        let limit = 20; // Default (Free)
+        let cycle = 'month';
+
+        if (plan === 'nano') { limit = 5; cycle = 'day'; }
+        else if (plan === 'pro') { limit = 100; cycle = 'month'; }
+        else if (plan === 'max') { limit = 100; cycle = 'year'; }
+        else if (plan === 'ultra') { limit = 200; cycle = 'year'; }
+        else if (plan === 'agentic_ultra') {
+            // Check if monthly or yearly based on expiry duration
+            const sub = state.subscription;
+            // If expiry is > 40 days away from activation, it's roughly a year. 
+            // Or simpler: check coupon used.
+            if (sub && sub.couponUsed === 'HELLOPIE90') {
+                limit = 1000; cycle = 'year';
+            } else {
+                limit = 200; cycle = 'month';
+            }
+        }
 
         const now = new Date();
-        const windowKey = plan === 'max'
-            ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-            : todayString();
+        let windowKey = '';
+        if (cycle === 'day') {
+            windowKey = todayString();
+        } else if (cycle === 'month') {
+            windowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        } else {
+            // Year
+            windowKey = `${now.getFullYear()}`;
+        }
         const lastKey = state.ai.lastUsageKey || state.ai.lastUsageDate;
 
         if (lastKey !== windowKey || state.ai.lastUsagePlan !== plan) {
@@ -8067,25 +8477,137 @@
 
         const used = Number(state.ai.usageCount) || 0;
         const remaining = limit === Infinity ? Infinity : Math.max(0, limit - used);
-        return { plan, limit, used, remaining, windowKey };
+        return { plan, limit, used, remaining, windowKey, cycle };
     }
 
-    function buildLimitMessage(info) {
-        const isBangla = state.language === 'bn';
-        if (info.plan === 'max') {
-            return isBangla
-                ? 'আপনার Max সাইকেলের লিমিট শেষ হয়েছে। আনলিমিটেড সহায়তার জন্য Ultra নিন।'
-                : 'You have reached your Max cycle limit. Upgrade to Ultra for unlimited support.';
+    function getProChatUsageInfo() {
+        const plan = getActivePlan();
+        let limit = 0;
+        let cycle = 'month';
+
+        if (plan === 'nano' || plan === 'pro') {
+            limit = 2;
+            cycle = 'day';
+        } else if (plan === 'max' || plan === 'ultra' || plan === 'agentic_ultra') {
+            limit = 100;
+            cycle = 'month';
+        } else {
+            limit = 0;
+            cycle = 'month';
         }
+
+        const now = new Date();
+        let windowKey = '';
+        if (cycle === 'day') {
+            windowKey = todayString();
+        } else if (cycle === 'month') {
+            windowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        } else {
+            windowKey = `${now.getFullYear()}`;
+        }
+
+        const lastKey = state.ai.proChatUsageKey || state.ai.proChatUsageDate;
+        if (lastKey !== windowKey || state.ai.proChatUsagePlan !== plan) {
+            state.ai.proChatUsageCount = 0;
+            state.ai.proChatUsageKey = windowKey;
+            state.ai.proChatUsagePlan = plan;
+            state.ai.proChatUsageDate = windowKey;
+            saveState();
+        }
+
+        const used = Number(state.ai.proChatUsageCount) || 0;
+        const remaining = limit === Infinity ? Infinity : Math.max(0, limit - used);
+        return { plan, limit, used, remaining, windowKey, cycle };
+    }
+
+    function consumeProChatUsage() {
+        const info = getProChatUsageInfo();
+        if (info.limit <= 0) {
+            return { allowed: false, info, message: buildLimitMessage(info, 'Pro Chat') };
+        }
+        if (info.limit !== Infinity && info.remaining <= 0) {
+            return { allowed: false, info, message: buildLimitMessage(info, 'Pro Chat') };
+        }
+        if (info.limit !== Infinity) {
+            state.ai.proChatUsageCount += 1;
+            saveState();
+            info.used = state.ai.proChatUsageCount;
+            info.remaining = Math.max(0, info.limit - info.used);
+        }
+        return { allowed: true, info };
+    }
+
+    function updateProChatUsageUI(usageInfo) {
+        const info = usageInfo || getProChatUsageInfo();
+        const isBangla = state.language === 'bn';
+        const planLabels = {
+            free: isBangla ? 'ফ্রি' : 'Free',
+            nano: isBangla ? 'ন্যানো' : 'Nano',
+            pro: isBangla ? 'প্রো' : 'Pro',
+            max: isBangla ? 'ম্যাক্স' : 'Max',
+            ultra: isBangla ? 'আল্ট্রা' : 'Ultra',
+            agentic_ultra: isBangla ? 'এজেন্টিক আল্ট্রা' : 'Agentic Ultra'
+        };
+
+        const planEl = document.getElementById('prochat-usage-plan');
+        const countEl = document.getElementById('prochat-usage-count');
+        const hintEl = document.getElementById('prochat-usage-hint');
+        const barEl = document.getElementById('prochat-usage-bar');
+        const lockEl = document.getElementById('prochat-lock');
+        const inputEl = document.getElementById('prochat-input');
+        const sendBtn = document.getElementById('prochat-send-btn');
+        const noApiBadge = document.getElementById('prochat-noapi-badge');
+
+        const cycle = info?.cycle === 'day' || info?.cycle === 'month' || info?.cycle === 'year'
+            ? info.cycle
+            : 'month';
+        const resetEn = cycle === 'day' ? 'Resets daily' : (cycle === 'year' ? 'Resets yearly' : 'Resets monthly');
+        const resetBn = cycle === 'day' ? 'প্রতিদিন রিসেট' : (cycle === 'year' ? 'প্রতি বছরে রিসেট' : 'প্রতি মাসে রিসেট');
+
+        if (planEl) planEl.textContent = planLabels[info.plan] || planLabels.free;
+        if (countEl) {
+            if (info.limit === Infinity) {
+                countEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
+            } else {
+                countEl.textContent = `${info.used}/${info.limit}`;
+            }
+        }
+        if (hintEl) hintEl.textContent = isBangla ? resetBn : resetEn;
+        if (barEl) {
+            if (info.limit === Infinity || info.limit === 0) {
+                barEl.style.width = '0%';
+            } else {
+                const percent = Math.min(100, (info.used / info.limit) * 100);
+                barEl.style.width = `${percent}%`;
+            }
+        }
+
+        if (noApiBadge) noApiBadge.style.display = hasDeepSeekKey() ? 'none' : 'inline-flex';
+
+        const locked = info.limit <= 0 || !hasDeepSeekKey();
+        if (lockEl) lockEl.hidden = !locked;
+        if (inputEl) inputEl.disabled = locked || (info.limit !== Infinity && info.remaining <= 0);
+        if (sendBtn) sendBtn.disabled = locked || (info.limit !== Infinity && info.remaining <= 0);
+    }
+
+    function buildLimitMessage(info, label = 'AI') {
+        const isBangla = state.language === 'bn';
+        const cycle = info?.cycle === 'day' || info?.cycle === 'month' || info?.cycle === 'year'
+            ? info.cycle
+            : 'month';
+        const periodEn = cycle === 'day' ? 'today' : (cycle === 'year' ? 'this year' : 'this month');
+        const periodBn = cycle === 'day' ? 'আজকের' : (cycle === 'year' ? 'এই বছরের' : 'এই মাসের');
+        const resetEn = cycle === 'day' ? 'Resets daily' : (cycle === 'year' ? 'Resets yearly' : 'Resets monthly');
+        const resetBn = cycle === 'day' ? 'প্রতিদিন রিসেট' : (cycle === 'year' ? 'প্রতি বছরে রিসেট' : 'প্রতি মাসে রিসেট');
         return isBangla
-            ? 'আজকের এআই লিমিট শেষ হয়েছে। আরও ব্যবহারের জন্য Max নিন।'
-            : 'You have reached today’s AI limit. Upgrade to Max for more usage.';
+            ? `${periodBn} ${label} লিমিট শেষ হয়েছে। ${resetBn}।`
+            : `You have reached your ${label} limit for ${periodEn}. ${resetEn}.`;
     }
 
     function consumeAIUsage() {
         const info = getAIUsageInfo();
         if (info.limit !== Infinity && info.remaining <= 0) {
-            return { allowed: false, info, message: buildLimitMessage(info) };
+            return { allowed: false, info, message: buildLimitMessage(info, 'AI') };
         }
         if (info.limit !== Infinity) {
             state.ai.usageCount += 1;
@@ -8111,11 +8633,23 @@
         const orb = document.getElementById('ai-buddy-orb');
         if (!orb) return;
 
-        orb.classList.remove('listening', 'thinking');
+        orb.classList.remove('listening', 'thinking', 'happy', 'react');
+
+        // Force reflow for animation restart if needed
+        if (state === 'happy' || state === 'react') {
+            void orb.offsetWidth;
+        }
+
         if (state === 'listening') {
             orb.classList.add('listening');
         } else if (state === 'thinking') {
             orb.classList.add('thinking');
+        } else if (state === 'happy') {
+            orb.classList.add('happy');
+            setTimeout(() => orb.classList.remove('happy'), 1000);
+        } else if (state === 'react') {
+            orb.classList.add('react');
+            setTimeout(() => orb.classList.remove('react'), 500);
         }
     }
 
@@ -8145,11 +8679,15 @@
     function updateAIUsageUI(usageInfo) {
         const info = usageInfo || getAIUsageInfo();
         const isBangla = state.language === 'bn';
-        const planLabel = info.plan === 'ultra'
-            ? (isBangla ? 'আল্ট্রা' : 'Ultra')
-            : info.plan === 'max'
-                ? (isBangla ? 'ম্যাক্স' : 'Max')
-                : isBangla ? 'ফ্রি' : 'Free';
+        const planLabel = info.plan === 'agentic_ultra'
+            ? (isBangla ? 'এজেন্টিক আল্ট্রা' : 'Agentic Ultra')
+            : info.plan === 'ultra'
+                ? (isBangla ? 'আল্ট্রা' : 'Ultra')
+                : info.plan === 'max'
+                    ? (isBangla ? 'ম্যাক্স' : 'Max')
+                    : info.plan === 'free'
+                        ? (isBangla ? 'ফ্রি' : 'Free')
+                        : (info.plan.charAt(0).toUpperCase() + info.plan.slice(1));
 
         const planEl = document.getElementById('ai-usage-plan');
         const countEl = document.getElementById('ai-usage-count');
@@ -8163,22 +8701,26 @@
         const sendBtn = document.getElementById('ai-send-btn');
         const voiceBtn = document.getElementById('ai-voice-btn');
 
+        const cycle = info?.cycle === 'day' || info?.cycle === 'month' || info?.cycle === 'year'
+            ? info.cycle
+            : 'month';
+        const periodEn = cycle === 'day' ? 'today' : (cycle === 'year' ? 'this year' : 'this month');
+        const periodBn = cycle === 'day' ? 'আজকে' : (cycle === 'year' ? 'এই বছরে' : 'এই মাসে');
+        const resetEn = cycle === 'day' ? 'Resets daily' : (cycle === 'year' ? 'Resets yearly' : 'Resets monthly');
+        const resetBn = cycle === 'day' ? 'প্রতিদিন রিসেট' : (cycle === 'year' ? 'প্রতি বছরে রিসেট' : 'প্রতি মাসে রিসেট');
+
         if (planEl) planEl.textContent = planLabel;
         if (countEl) {
             if (info.limit === Infinity) {
                 countEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
             } else {
-                countEl.textContent = info.plan === 'max'
-                    ? (isBangla ? `${info.remaining}/${info.limit} এই সাইকেলে বাকি` : `${info.remaining}/${info.limit} left this cycle`)
-                    : (isBangla ? `${info.remaining}/${info.limit} আজকে বাকি` : `${info.remaining}/${info.limit} left today`);
+                countEl.textContent = isBangla
+                    ? `${info.remaining}/${info.limit} ${periodBn} বাকি`
+                    : `${info.remaining}/${info.limit} left ${periodEn}`;
             }
         }
         if (hintEl) {
-            hintEl.textContent = info.plan === 'ultra'
-                ? (isBangla ? 'সীমাহীন ব্যবহার' : 'Always unlimited')
-                : info.plan === 'max'
-                    ? (isBangla ? 'প্রতি বিলিং সাইকেলে রিসেট' : 'Resets each billing cycle')
-                    : (isBangla ? 'প্রতিদিন রিসেট' : 'Resets daily');
+            hintEl.textContent = isBangla ? resetBn : resetEn;
         }
         if (barEl) {
             if (info.limit === Infinity) {
@@ -8196,16 +8738,14 @@
         // Update old UI limit message
         if (limitMessage) {
             if (limitReached) {
-                if (limitTitle) {
-                    limitTitle.textContent = info.plan === 'max'
-                        ? translate('ai.limitTitleMax')
-                        : translate('ai.limitTitleFree');
-                }
-                if (limitBody) {
-                    limitBody.textContent = info.plan === 'max'
-                        ? translate('ai.limitBodyMax')
-                        : translate('ai.limitBodyFree');
-                }
+                const titleText = isBangla
+                    ? (cycle === 'day' ? 'আজকের এআই লিমিট শেষ হয়েছে' : (cycle === 'year' ? 'এই বছরের এআই লিমিট শেষ হয়েছে' : 'এই মাসের এআই লিমিট শেষ হয়েছে'))
+                    : `Your AI limit is finished for ${periodEn}`;
+                const bodyText = isBangla
+                    ? `${resetBn}। আরও ব্যবহারের জন্য প্ল্যান আপগ্রেড করুন।`
+                    : `${resetEn}. Upgrade your plan for more usage.`;
+                if (limitTitle) limitTitle.textContent = titleText;
+                if (limitBody) limitBody.textContent = bodyText;
                 limitMessage.removeAttribute('hidden');
             } else {
                 limitMessage.setAttribute('hidden', 'hidden');
@@ -8215,11 +8755,23 @@
         // Update new UI limit message
         if (limitMessageModern) {
             if (limitReached) {
+                const modernTitle = limitMessageModern.querySelector('h3');
+                const modernBody = limitMessageModern.querySelector('p');
+                const titleText = isBangla
+                    ? (cycle === 'day' ? 'আজকের এআই লিমিট শেষ হয়েছে' : (cycle === 'year' ? 'এই বছরের এআই লিমিট শেষ হয়েছে' : 'এই মাসের এআই লিমিট শেষ হয়েছে'))
+                    : `Your AI limit is finished for ${periodEn}`;
+                const bodyText = isBangla
+                    ? `${resetBn}। আরও ব্যবহারের জন্য প্ল্যান দেখুন।`
+                    : `${resetEn}. See plans for more usage.`;
+                if (modernTitle) modernTitle.textContent = titleText;
+                if (modernBody) modernBody.textContent = bodyText;
                 limitMessageModern.removeAttribute('hidden');
             } else {
                 limitMessageModern.setAttribute('hidden', 'hidden');
             }
         }
+
+        updateNoApiBadge();
 
         if (inputEl) inputEl.disabled = limitReached;
         if (sendBtn) sendBtn.disabled = limitReached;
@@ -8577,6 +9129,50 @@
         return task;
     }
 
+    function completeTaskByText(text) {
+        const normalized = normalizeText(text || '').trim();
+        if (!normalized) return null;
+        const task = state.tasks.find(t => normalizeText(t.name).includes(normalized));
+        if (!task) return null;
+        task.done = true;
+        task.updatedAt = Date.now();
+        saveState();
+        renderTasks();
+        renderNewTodoList(getCurrentTodoCategory());
+        renderSimpleTodoList();
+        updateTodoStats();
+        return task;
+    }
+
+    function findBillByInvoiceNumber(invoiceNumber) {
+        if (!invoiceNumber) return null;
+        const normalized = normalizeText(invoiceNumber);
+        return (state.bills || []).find(b => normalizeText(b.invoiceNumber || '').includes(normalized)) || null;
+    }
+
+    function markLatestBillPaidForCustomer(customerName) {
+        if (!customerName) return null;
+        const normalized = customerName.toLowerCase();
+        const matchingBills = (state.bills || []).filter(b => {
+            if (!b) return false;
+            const byName = (b.customerName || '').toLowerCase().includes(normalized);
+            const byId = b.customerId
+                ? state.customers.find(c => c.id === b.customerId)?.name?.toLowerCase().includes(normalized)
+                : false;
+            return byName || byId;
+        });
+        if (matchingBills.length === 0) return null;
+        const unpaidBills = matchingBills.filter(b => b.paymentStatus !== 'paid');
+        if (unpaidBills.length === 0) return { bill: null, status: 'already_paid' };
+        unpaidBills.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        const bill = unpaidBills[0];
+        bill.paymentStatus = 'paid';
+        bill.updatedAt = Date.now();
+        saveState();
+        renderBills();
+        return { bill, status: 'paid' };
+    }
+
     function summarizePaymentStatus(customer) {
         const outstanding = getCustomerOutstandingBalance(customer);
         const customerBills = (state.bills || []).filter(b =>
@@ -8686,6 +9282,393 @@
         const entry = names[theme];
         if (!entry) return theme;
         return isBangla ? entry.bn : entry.en;
+    }
+
+    const DEEPSEEK_ACTION_KEYWORDS = [
+        // English action keywords
+        'add', 'create', 'new', 'delete', 'remove', 'change', 'switch', 'update',
+        'theme', 'task', 'note', 'debt', 'bill', 'invoice', 'customer', 'settings',
+        'lock', 'open', 'show', 'panel', 'subscription', 'cancel', 'paid', 'payment',
+        'complete', 'finish', 'done', 'mark', 'record', 'toggle', 'go', 'navigate',
+        'list', 'help', 'premium', 'upgrade', 'downgrade',
+        // Bangla action keywords
+        'যোগ', 'নতুন', 'মুছুন', 'মুছে', 'পরিবর্তন', 'থিম', 'টাস্ক', 'কাজ', 'নোট',
+        'বাকি', 'বিল', 'রসিদ', 'কাস্টমার', 'সেটিংস', 'পরিশোধ', 'বাতিল', 'সম্পন্ন',
+        'খোলো', 'দেখাও', 'প্রিমিয়াম', 'আপগ্রেড'
+    ];
+
+    function shouldAttemptDeepSeekFirst(normalizedText) {
+        if (!hasDeepSeekKey()) return false;
+        return DEEPSEEK_ACTION_KEYWORDS.some(keyword => normalizedText.includes(keyword));
+    }
+
+    function extractJsonFromText(text) {
+        if (!text) return null;
+        const trimmed = String(text).trim();
+        const fenced = trimmed.match(/```json([\s\S]*?)```/i) || trimmed.match(/```([\s\S]*?)```/i);
+        const candidates = [];
+        if (fenced && fenced[1]) candidates.push(fenced[1].trim());
+        candidates.push(trimmed);
+
+        for (const candidate of candidates) {
+            if (!candidate) continue;
+            if (candidate.startsWith('{') || candidate.startsWith('[')) {
+                try {
+                    return JSON.parse(candidate);
+                } catch (err) {
+                    // continue
+                }
+            }
+        }
+
+        const firstBrace = trimmed.indexOf('{');
+        const lastBrace = trimmed.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            const slice = trimmed.slice(firstBrace, lastBrace + 1);
+            try {
+                return JSON.parse(slice);
+            } catch (err) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    function resolveThemeValue(value) {
+        const normalized = normalizeText(value || '');
+        const directThemes = [
+            'studio-pro',
+            'cozy-ledger',
+            'clean-business',
+            'night-shop',
+            'zen-finance',
+            'street-ledger',
+            'classic-paper',
+            'midnight-purple',
+            'sunset-orange'
+        ];
+        if (directThemes.includes(normalized)) return normalized;
+        const themeMap = {
+            'studio': 'studio-pro',
+            'premium': 'studio-pro',
+            'cozy': 'cozy-ledger',
+            'cosy': 'cozy-ledger',
+            'clean': 'clean-business',
+            'night': 'night-shop',
+            'dark': 'night-shop',
+            'zen': 'zen-finance',
+            'street': 'street-ledger',
+            'classic': 'classic-paper',
+            'paper': 'classic-paper',
+            'midnight': 'midnight-purple',
+            'sunset': 'sunset-orange'
+        };
+        return themeMap[normalized] || '';
+    }
+
+    function executeDeepSeekAction(action, isBangla) {
+        if (!action || typeof action !== 'object') return null;
+        const actionName = normalizeText(action.action || action.type || '').replace(/\s+/g, '_');
+        const data = action.data || action.payload || {};
+
+        if (actionName === 'add_task') {
+            const title = (data.title || data.task || '').toString().trim();
+            const date = (data.date || todayString()).toString().trim();
+            const time = (data.time || '').toString().trim();
+            const note = (data.note || '').toString().trim();
+            if (!title) {
+                state.ai.pendingIntent = { type: 'add_task', data: { title: '', date, time, note } };
+                return isBangla ? 'কোন কাজটি যোগ করবো?' : 'Which task should I add?';
+            }
+            autoCreateTaskEntry({ title, date, time, note });
+            const dateLabel = date ? formatDisplayDate(date) : '';
+            return isBangla
+                ? `টাস্ক "${title}" যোগ করা হয়েছে${dateLabel ? ` — ${dateLabel}` : ''}${time ? ` ${time}` : ''}.`
+                : `Added the task "${title}"${dateLabel ? ` — ${dateLabel}` : ''}${time ? ` ${time}` : ''}.`;
+        }
+
+        if (actionName === 'add_debt') {
+            const customerName = (data.customerName || data.customer || data.name || '').toString().trim();
+            const amount = Number(data.amount || data.value || 0);
+            const note = (data.note || '').toString().trim();
+            const date = (data.date || todayString()).toString().trim();
+            if (!customerName) {
+                state.ai.pendingIntent = { type: 'add_debt', data: { customerName: '', amount, note, date } };
+                return isBangla ? 'কোন কাস্টমারের জন্য বাকি যোগ করবো?' : 'Which customer is this debt for?';
+            }
+            if (!amount) {
+                state.ai.pendingIntent = { type: 'add_debt', data: { customerName, amount: 0, note, date } };
+                return isBangla ? 'টাকার পরিমাণ কত?' : 'What amount should I record?';
+            }
+            const customer = ensureCustomerByName(customerName);
+            const debt = autoRecordDebtEntry(customer, amount, note, date);
+            const dateLabel = debt?.dueDate ? formatDisplayDate(debt.dueDate) : '';
+            const noteLabel = note ? ` — ${note}` : '';
+            return isBangla
+                ? `${customer.name} এর জন্য ${formatCurrency(amount)} বাকি নিলাম${dateLabel ? ` — ${dateLabel}` : ''}${noteLabel}।`
+                : `Recorded ${formatCurrency(amount)} debt for ${customer.name}${dateLabel ? ` — ${dateLabel}` : ''}${noteLabel}.`;
+        }
+
+        if (actionName === 'add_note') {
+            const title = (data.title || data.subject || '').toString().trim();
+            const body = (data.body || data.text || data.note || '').toString().trim();
+            if (!title && !body) {
+                return isBangla ? 'কী নোট লিখবো?' : 'What note should I write?';
+            }
+            const safeTitle = title || (body.length > 32 ? `${body.slice(0, 32)}...` : body);
+            state.notes.unshift({
+                id: generateId('note'),
+                title: safeTitle,
+                body,
+                color: (data.color || 'yellow').toString().trim() || 'yellow',
+                pinned: !!data.pinned,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            });
+            saveState();
+            renderNotes();
+            playFeedback();
+            return isBangla
+                ? `নোট "${safeTitle}" যোগ করা হয়েছে।`
+                : `Added the note "${safeTitle}".`;
+        }
+
+        if (actionName === 'delete_task') {
+            const target = (data.title || data.task || '').toString().trim();
+            if (!target) {
+                return isBangla ? 'কোন টাস্কটি মুছবো?' : 'Which task should I remove?';
+            }
+            const removed = deleteTaskByText(target);
+            return removed
+                ? (isBangla ? `"${removed.name}" টাস্ক মুছে দিয়েছি।` : `Removed the task "${removed.name}".`)
+                : (isBangla ? 'এই নামে কোনো টাস্ক পাইনি।' : 'I could not find that task.');
+        }
+
+        if (actionName === 'delete_customer') {
+            const target = (data.name || data.customer || '').toString().trim();
+            if (!target) {
+                return isBangla ? 'কোন কাস্টমারকে মুছবো?' : 'Which customer should I remove?';
+            }
+            const removed = deleteCustomerByName(target);
+            return removed
+                ? (isBangla ? `${removed.name} কে তালিকা থেকে মুছে ফেলেছি।` : `Removed ${removed.name} from your customers.`)
+                : (isBangla ? 'এই নামে কোনো কাস্টমার পাইনি।' : 'I could not find that customer.');
+        }
+
+        if (actionName === 'change_theme') {
+            const requested = resolveThemeValue(data.theme || data.value || data.name || '');
+            if (!requested) {
+                return isBangla ? 'কোন থিমে যেতে চান?' : 'Which theme should I switch to?';
+            }
+            applyTheme(requested);
+            saveState();
+            playFeedbackStrong();
+            const themeLabel = getThemeFriendlyName(requested, isBangla);
+            return isBangla
+                ? `ঠিক আছে, থিম ${themeLabel} করে দিলাম।`
+                : `Done! Theme switched to ${themeLabel}.`;
+        }
+
+        if (actionName === 'create_bill') {
+            const items = Array.isArray(data.items) ? data.items : [];
+            const customerName = (data.customerName || data.customer || data.name || '').toString().trim();
+            const paymentStatus = data.paymentStatus || 'pending';
+            if (!items.length) {
+                return isBangla ? 'রসিদের আইটেমগুলো দিন।' : 'Please share the bill items.';
+            }
+            if (!customerName) {
+                state.ai.pendingIntent = { type: 'bill', data: { items, customerName: '', paymentStatus } };
+                return isBangla ? 'রসিদ কার নামে হবে?' : 'Which customer should I use for this bill?';
+            }
+            const customer = ensureCustomerByName(customerName);
+            const bill = autoCreateBillFromItems(items, customer, paymentStatus);
+            const totalText = formatCurrency(bill.total);
+            return isBangla
+                ? `${customer.name} এর জন্য ${items.length} আইটেমের রসিদ তৈরি: মোট ${totalText}।`
+                : `Created a ${items.length}-item receipt for ${customer.name}. Total ${totalText}.`;
+        }
+
+        if (actionName === 'mark_bill_paid') {
+            const invoiceNumber = (data.invoiceNumber || data.invoice || data.number || '').toString().trim();
+            const customerName = (data.customerName || data.customer || data.name || '').toString().trim();
+            let result = null;
+            if (invoiceNumber) {
+                const bill = findBillByInvoiceNumber(invoiceNumber);
+                if (!bill) {
+                    return isBangla ? 'এই ইনভয়েস নম্বর পাইনি।' : 'I could not find that invoice number.';
+                }
+                if (bill.paymentStatus === 'paid') {
+                    return isBangla ? 'বিলটি আগেই পরিশোধ করা আছে।' : 'That bill is already marked as paid.';
+                }
+                bill.paymentStatus = 'paid';
+                bill.updatedAt = Date.now();
+                saveState();
+                renderBills();
+                result = bill;
+            } else if (customerName) {
+                const outcome = markLatestBillPaidForCustomer(customerName);
+                if (!outcome) {
+                    return isBangla ? 'এই নামে কোনো বিল পেলাম না।' : 'I could not find a bill for that customer.';
+                }
+                if (outcome.status === 'already_paid') {
+                    return isBangla ? 'এই কাস্টমারের সব বিল আগেই পরিশোধ করা আছে।' : 'All bills for this customer are already paid.';
+                }
+                result = outcome.bill;
+            } else {
+                return isBangla ? 'কোন বিলটি পরিশোধ হয়েছে? ইনভয়েস নম্বর বা নাম বলুন।' : 'Which bill was paid? Share an invoice number or customer name.';
+            }
+            if (!result) return null;
+            return isBangla
+                ? `${result.customerName || 'বিল'} পরিশোধ হয়ে গেছে বলে চিহ্নিত করেছি।`
+                : `Marked the bill for ${result.customerName || 'this customer'} as paid.`;
+        }
+
+        if (actionName === 'open_panel') {
+            const panelRaw = normalizeText(data.panel || data.view || data.target || '');
+            const panelMap = {
+                home: 'premium',
+                premium: 'premium',
+                pricing: 'premium',
+                customers: 'customers',
+                debts: 'customers',
+                bills: 'bills',
+                ai: 'ai',
+                agent: 'ai',
+                notes: 'notes',
+                tasks: 'notes',
+                settings: 'settings'
+            };
+            const panel = panelMap[panelRaw];
+            if (!panel) {
+                return isBangla ? 'কোন প্যানেলে যেতে চান?' : 'Which panel should I open?';
+            }
+            setActivePanel(panel);
+            if (panel === 'notes' && data.tab) {
+                const tab = normalizeText(data.tab);
+                if (tab.includes('task')) switchNotesTab('tasks');
+                else switchNotesTab('notes');
+            }
+            return isBangla
+                ? 'ঠিক আছে, খুলে দিলাম।'
+                : 'Done. Opening it now.';
+        }
+
+        // Delete note action
+        if (actionName === 'delete_note') {
+            const target = (data.title || data.note || data.name || '').toString().trim();
+            if (!target) {
+                return isBangla ? 'কোন নোটটি মুছবো?' : 'Which note should I delete?';
+            }
+            const lowerTarget = target.toLowerCase();
+            const noteIdx = state.notes.findIndex(n =>
+                (n.title || '').toLowerCase().includes(lowerTarget) ||
+                (n.body || '').toLowerCase().includes(lowerTarget)
+            );
+            if (noteIdx === -1) {
+                return isBangla ? 'এই নামে কোনো নোট পাইনি।' : 'I could not find that note.';
+            }
+            const removedNote = state.notes.splice(noteIdx, 1)[0];
+            saveState();
+            renderNotes();
+            playFeedback();
+            return isBangla
+                ? `"${removedNote.title || 'নোট'}" মুছে ফেলেছি।`
+                : `Deleted the note "${removedNote.title || 'note'}".`;
+        }
+
+        // Complete/mark task as done action
+        if (actionName === 'complete_task' || actionName === 'mark_done' || actionName === 'finish_task') {
+            const target = (data.title || data.task || data.name || '').toString().trim();
+            if (!target) {
+                return isBangla ? 'কোন টাস্কটি সম্পন্ন করবো?' : 'Which task should I complete?';
+            }
+            const lowerTarget = target.toLowerCase();
+            const task = state.tasks.find(t =>
+                (t.name || '').toLowerCase().includes(lowerTarget) ||
+                (t.title || '').toLowerCase().includes(lowerTarget)
+            );
+            if (!task) {
+                return isBangla ? 'এই নামে কোনো টাস্ক পাইনি।' : 'I could not find that task.';
+            }
+            task.completed = true;
+            task.completedAt = Date.now();
+            saveState();
+            renderTasks();
+            playFeedback();
+            return isBangla
+                ? `"${task.name}" সম্পন্ন হয়েছে বলে চিহ্নিত করেছি।`
+                : `Marked "${task.name}" as completed.`;
+        }
+
+        // Record payment action - reduce customer debt
+        if (actionName === 'record_payment') {
+            const customerName = (data.customerName || data.customer || data.name || '').toString().trim();
+            const amount = Number(data.amount || data.value || 0);
+            if (!customerName) {
+                return isBangla ? 'কোন কাস্টমার টাকা দিয়েছে?' : 'Which customer made the payment?';
+            }
+            if (!amount) {
+                state.ai.pendingIntent = { type: 'record_payment', data: { customerName, amount: 0 } };
+                return isBangla ? 'কত টাকা পরিশোধ করেছে?' : 'How much did they pay?';
+            }
+            const lowerName = customerName.toLowerCase();
+            const customer = state.customers.find(c =>
+                (c.name || '').toLowerCase().includes(lowerName)
+            );
+            if (!customer) {
+                return isBangla ? 'এই নামে কোনো কাস্টমার পাইনি।' : 'I could not find that customer.';
+            }
+            // Add a payment record (negative debt entry)
+            const paymentEntry = {
+                id: generateId('debt'),
+                amount: -Math.abs(amount),
+                description: isBangla ? 'পেমেন্ট গ্রহণ' : 'Payment received',
+                date: todayString(),
+                createdAt: Date.now()
+            };
+            customer.debts = customer.debts || [];
+            customer.debts.push(paymentEntry);
+            saveState();
+            renderCustomers();
+            playFeedback();
+            return isBangla
+                ? `${customer.name} থেকে ${formatCurrency(amount)} পেমেন্ট রেকর্ড করেছি।`
+                : `Recorded ${formatCurrency(amount)} payment from ${customer.name}.`;
+        }
+
+        // Cancel subscription action
+        if (actionName === 'cancel_subscription') {
+            const currentPlan = getActivePlan();
+            if (currentPlan === 'free') {
+                return isBangla
+                    ? 'আপনি এখন ফ্রি প্ল্যানে আছেন। বাতিল করার কিছু নেই।'
+                    : 'You are already on the Free plan. Nothing to cancel.';
+            }
+            cancelSubscription(false);
+            return isBangla
+                ? 'সাবস্ক্রিপশন বাতিল হয়েছে। আপনি এখন ফ্রি প্ল্যানে।'
+                : 'Subscription cancelled. You are now on the Free plan.';
+        }
+
+        return null;
+    }
+
+    function tryHandleDeepSeekActions(responseText, isBangla) {
+        const payload = extractJsonFromText(responseText);
+        if (!payload) return null;
+        const actions = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload.actions)
+                ? payload.actions
+                : [payload];
+        const replies = [];
+        actions.forEach(action => {
+            const result = executeDeepSeekAction(action, isBangla);
+            if (result) replies.push(result);
+        });
+        if (replies.length === 0) return null;
+        const responseOverride = typeof payload.reply === 'string' && payload.reply.trim() ? payload.reply.trim() : '';
+        return responseOverride || replies.join('\n');
     }
 
     function extractTaskText(text) {
@@ -8951,6 +9934,44 @@
                 : `Created a receipt for ${customer.name} with ${items.length} item(s), total ${totalText}.`;
         }
 
+        // Handle record_payment pending intent
+        if (pending.type === 'record_payment') {
+            const amountMatch = userMessage.match(/(\d+)/);
+            const amount = amountMatch ? Number(amountMatch[1]) : pending.data.amount;
+            const customerName = pending.data.customerName;
+
+            if (!amount) {
+                return isBangla ? 'কত টাকা পরিশোধ করেছে?' : 'How much did they pay?';
+            }
+
+            const lowerName = customerName.toLowerCase();
+            const customer = state.customers.find(c =>
+                (c.name || '').toLowerCase().includes(lowerName)
+            );
+            if (!customer) {
+                state.ai.pendingIntent = null;
+                return isBangla ? 'এই নামে কোনো কাস্টমার পাইনি।' : 'I could not find that customer.';
+            }
+
+            // Add a payment record (negative debt entry)
+            const paymentEntry = {
+                id: generateId('debt'),
+                amount: -Math.abs(amount),
+                description: isBangla ? 'পেমেন্ট গ্রহণ' : 'Payment received',
+                date: todayString(),
+                createdAt: Date.now()
+            };
+            customer.debts = customer.debts || [];
+            customer.debts.push(paymentEntry);
+            saveState();
+            renderCustomers();
+            playFeedback();
+            state.ai.pendingIntent = null;
+            return isBangla
+                ? `${customer.name} থেকে ${formatCurrency(amount)} পেমেন্ট রেকর্ড করেছি।`
+                : `Recorded ${formatCurrency(amount)} payment from ${customer.name}.`;
+        }
+
         return null;
     }
 
@@ -9009,6 +10030,8 @@
         input.value = '';
         playFeedback();
         animateAIBuddy('thinking');
+        const sendBtn = document.getElementById('ai-send-btn');
+        if (sendBtn) sendBtn.disabled = true;
 
         // Generate AI response
         const aiResponse = await generateAIResponse(userMessage);
@@ -9041,12 +10064,204 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         playFeedback();
-        animateAIBuddy('idle');
+        animateAIBuddy('happy');
         updateAIUsageUI();
+        if (sendBtn) {
+            // After sending, keep disabled until user types again.
+            sendBtn.disabled = true;
+        }
 
         // Speak the response if voice output is enabled (optional feature)
         // Uncomment to enable voice output:
         // speakText(aiResponse, state.language);
+    }
+
+    async function handleProChatMessage() {
+        const input = document.getElementById('prochat-input');
+        const messagesContainer = document.getElementById('prochat-messages');
+        if (!input || !messagesContainer) return;
+
+        if (input.disabled) {
+            updateProChatUsageUI();
+            return;
+        }
+
+        const userMessage = input.value.trim();
+        if (!userMessage) return;
+
+        const usage = consumeProChatUsage();
+        if (!usage.allowed) {
+            appendProChatMessage('assistant', usage.message);
+            updateProChatUsageUI(usage.info);
+            return;
+        }
+
+        appendProChatMessage('user', userMessage);
+        input.value = '';
+        updateProChatUsageUI(usage.info);
+
+        try {
+            const reply = await requestDeepSeekProChatResponse(userMessage);
+            const responseText = reply || 'No response received.';
+            appendProChatMessage('assistant', responseText);
+        } catch (error) {
+            console.error('DeepSeek Pro Chat failed:', error);
+            appendProChatMessage('assistant', error?.message || 'DeepSeek Pro Chat failed.');
+        } finally {
+            updateProChatUsageUI();
+        }
+    }
+
+    function appendProChatMessage(role, text) {
+        const messagesContainer = document.getElementById('prochat-messages');
+        if (!messagesContainer) return;
+        const emptyState = messagesContainer.querySelector('.prochat-empty');
+        if (emptyState) emptyState.remove();
+
+        const msg = document.createElement('div');
+        msg.className = `prochat-message ${role}`;
+        msg.innerHTML = `
+            <div class="prochat-bubble">
+                <p>${escapeHtml(String(text))}</p>
+            </div>
+        `;
+        messagesContainer.appendChild(msg);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    async function requestDeepSeekResponse(userMessage) {
+        const config = getDeepSeekConfig();
+        if (!config.apiKey) return null;
+
+        const messages = buildDeepSeekMessages(userMessage, config.systemPrompt);
+        const url = buildDeepSeekChatUrl(config.baseUrl);
+        const payload = {
+            model: config.model,
+            messages,
+            stream: false
+        };
+
+        const attemptRequest = async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${config.apiKey}`
+                    },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+
+                const text = await response.text();
+                let data = null;
+                if (text) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (err) {
+                        data = null;
+                    }
+                }
+                return { response, data, text };
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        };
+
+        let attempt = await attemptRequest();
+        if (!attempt.response.ok && (attempt.response.status >= 500 || attempt.response.status === 429)) {
+            await sleep(400);
+            attempt = await attemptRequest();
+        }
+
+        if (!attempt.response.ok) {
+            const errorMessage = attempt.data?.error?.message || attempt.text || `DeepSeek API error (${attempt.response.status})`;
+            throw new Error(errorMessage);
+        }
+
+        const content = attempt.data?.choices?.[0]?.message?.content;
+        if (!content) {
+            throw new Error('DeepSeek API returned an empty response.');
+        }
+
+        appendChatHistory('user', userMessage);
+        appendChatHistory('assistant', content);
+        saveState();
+        return String(content).trim();
+    }
+
+    async function requestDeepSeekProChatResponse(userMessage) {
+        const config = getDeepSeekConfig();
+        if (!config.apiKey) return null;
+
+        const env = getEnvConfig();
+        const basePrompt = (env.DEEPSEEK_SYSTEM_PROMPT || ENV_DEFAULTS.DEEPSEEK_SYSTEM_PROMPT).toString().trim();
+        const history = Array.isArray(state.ai.proChatHistory) ? state.ai.proChatHistory : [];
+        const messages = buildDeepSeekMessagesWithHistory(userMessage, basePrompt, history);
+        const url = buildDeepSeekChatUrl(config.baseUrl);
+        const payload = {
+            model: config.model,
+            messages,
+            stream: false
+        };
+
+        const attemptRequest = async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${config.apiKey}`
+                    },
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+
+                const text = await response.text();
+                let data = null;
+                if (text) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (err) {
+                        data = null;
+                    }
+                }
+                return { response, data, text };
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        };
+
+        let attempt = await attemptRequest();
+        if (!attempt.response.ok && (attempt.response.status >= 500 || attempt.response.status === 429)) {
+            await sleep(400);
+            attempt = await attemptRequest();
+        }
+
+        if (!attempt.response.ok) {
+            const errorMessage = attempt.data?.error?.message || attempt.text || `DeepSeek API error (${attempt.response.status})`;
+            throw new Error(errorMessage);
+        }
+
+        const content = attempt.data?.choices?.[0]?.message?.content;
+        if (!content) {
+            throw new Error('DeepSeek API returned an empty response.');
+        }
+
+        if (!state.ai.proChatHistory || !Array.isArray(state.ai.proChatHistory)) {
+            state.ai.proChatHistory = [];
+        }
+        state.ai.proChatHistory.push({ role: 'user', content: String(userMessage) });
+        state.ai.proChatHistory.push({ role: 'assistant', content: String(content) });
+        if (state.ai.proChatHistory.length > MAX_DEEPSEEK_HISTORY * 2) {
+            state.ai.proChatHistory = state.ai.proChatHistory.slice(-MAX_DEEPSEEK_HISTORY * 2);
+        }
+        saveState();
+        return String(content).trim();
     }
 
     async function generateAIResponse(userMessage) {
@@ -9058,10 +10273,24 @@
         const isBangla = state.language === 'bn';
         const normalized = normalizeText(userMessage);
         const amountMatches = normalizeBanglaDigits(userMessage).match(/(\d+(?:\.\d+)?)/g) || [];
+        let deepSeekReply = null;
+        let deepSeekAttempted = false;
 
         const pendingReply = resolvePendingIntent(userMessage);
         if (pendingReply) {
             return pendingReply;
+        }
+
+        if (shouldAttemptDeepSeekFirst(normalized)) {
+            deepSeekAttempted = true;
+            try {
+                deepSeekReply = await requestDeepSeekResponse(userMessage);
+                const deepSeekActionReply = tryHandleDeepSeekActions(deepSeekReply, isBangla);
+                if (deepSeekActionReply) return deepSeekActionReply;
+            } catch (error) {
+                console.error('DeepSeek API failed:', error);
+                deepSeekReply = null;
+            }
         }
 
         if (isCardThemeRequest(normalized)) {
@@ -9135,6 +10364,42 @@
                 : (isBangla ? 'যে কাস্টমারকে মুছতে চান তার নামটা আরেকবার বলুন।' : 'Tell me which customer to remove.');
         }
 
+        const billPaidKeywords = ['paid bill', 'bill paid', 'invoice paid', 'paid invoice', 'payment received', 'paid receipt', 'রসিদ পরিশোধ', 'বিল পরিশোধ', 'পরিশোধ'];
+        if (billPaidKeywords.some(keyword => normalized.includes(keyword)) && billKeywords.some(keyword => normalized.includes(keyword))) {
+            const invoiceMatch = userMessage.match(/(?:invoice|bill|receipt)\s*#?\s*([A-Za-z0-9-]+)/i);
+            const invoiceNumber = invoiceMatch?.[1] || '';
+            const customerName = extractCustomerName(userMessage) || extractNameFromText(userMessage);
+            if (invoiceNumber) {
+                const bill = findBillByInvoiceNumber(invoiceNumber);
+                if (!bill) {
+                    return isBangla ? 'এই ইনভয়েস নম্বর পাইনি।' : 'I could not find that invoice number.';
+                }
+                if (bill.paymentStatus === 'paid') {
+                    return isBangla ? 'বিলটি আগেই পরিশোধ করা আছে।' : 'That bill is already marked as paid.';
+                }
+                bill.paymentStatus = 'paid';
+                bill.updatedAt = Date.now();
+                saveState();
+                renderBills();
+                return isBangla
+                    ? `${bill.customerName || 'বিল'} পরিশোধ হয়েছে বলে চিহ্নিত করেছি।`
+                    : `Marked the bill for ${bill.customerName || 'this customer'} as paid.`;
+            }
+            if (customerName) {
+                const outcome = markLatestBillPaidForCustomer(customerName);
+                if (!outcome) {
+                    return isBangla ? 'এই নামে কোনো বিল পেলাম না।' : 'I could not find a bill for that customer.';
+                }
+                if (outcome.status === 'already_paid') {
+                    return isBangla ? 'এই কাস্টমারের সব বিল আগেই পরিশোধ করা আছে।' : 'All bills for this customer are already paid.';
+                }
+                return isBangla
+                    ? `${outcome.bill?.customerName || 'বিল'} পরিশোধ হয়েছে বলে চিহ্নিত করেছি।`
+                    : `Marked the latest bill for ${outcome.bill?.customerName || 'this customer'} as paid.`;
+            }
+            return isBangla ? 'কোন বিলটি পরিশোধ হয়েছে? ইনভয়েস নম্বর বা নাম বলুন।' : 'Which bill was paid? Share an invoice number or customer name.';
+        }
+
         const debtKeywords = ['debt', 'due', 'owe', 'baki', 'দেনা', 'বাকি', 'ঋণ', 'ধার', 'পাওনা'];
         if (debtKeywords.some(keyword => normalized.includes(keyword))) {
             const parsed = parseDebtFromText(userMessage);
@@ -9190,7 +10455,17 @@
             return `Here is your summary:\n• Total Outstanding Debt: ${formatCurrency(totalDebt)}\n• Pending Tasks: ${incompleteTasks.length}\n• Overdue Tasks: ${overdueTasks.length}\n\nYou could start with your most urgent task today.`;
         }
 
-        const deleteTaskMatch = userMessage.match(/(?:delete|remove|done|complete)\s+(?:task|todo)\s*(.+)?/i);
+        const completeTaskMatch = userMessage.match(/(?:complete|done|finish|mark)\s+(?:task|todo)\s*(.+)?/i)
+            || userMessage.match(/(?:কাজ|টাস্ক)\s*(?:শেষ|কমপ্লিট|সম্পন্ন)\s*(.+)?/i);
+        if (completeTaskMatch) {
+            const targetTitle = completeTaskMatch[1] || extractQuotedText(userMessage);
+            const completedTask = completeTaskByText(targetTitle || '');
+            return completedTask
+                ? (isBangla ? `"${completedTask.name}" কাজটি শেষ করেছি।` : `Marked "${completedTask.name}" as done.`)
+                : (isBangla ? 'কোন কাজটি শেষ করতে চান?' : 'Which task should I mark as done?');
+        }
+
+        const deleteTaskMatch = userMessage.match(/(?:delete|remove)\s+(?:task|todo)\s*(.+)?/i);
         if (deleteTaskMatch) {
             const targetTitle = deleteTaskMatch[1] || extractQuotedText(userMessage);
             const removedTask = deleteTaskByText(targetTitle || '');
@@ -9307,6 +10582,24 @@
             : remainingInfo.plan === 'max'
                 ? (isBangla ? `এই সাইকেলে বাকি: ${remainingInfo.remaining} বার` : `Remaining this cycle: ${remainingInfo.remaining} uses`)
                 : (isBangla ? `আজ বাকি: ${remainingInfo.remaining} বার` : `Remaining today: ${remainingInfo.remaining} uses`);
+
+        if (!deepSeekAttempted && hasDeepSeekKey()) {
+            try {
+                deepSeekReply = await requestDeepSeekResponse(userMessage);
+                if (deepSeekReply) {
+                    const deepSeekActionReply = tryHandleDeepSeekActions(deepSeekReply, isBangla);
+                    if (deepSeekActionReply) return deepSeekActionReply;
+                    return deepSeekReply;
+                }
+            } catch (error) {
+                console.error('DeepSeek API failed:', error);
+                return isBangla
+                    ? `DeepSeek API কাজ করেনি। কারণ: ${error?.message || 'অজানা সমস্যা'}`
+                    : `DeepSeek API failed. Reason: ${error?.message || 'Unknown error'}`;
+            }
+        }
+
+        if (deepSeekReply) return deepSeekReply;
 
         return isBangla
             ? `আমি সাহায্য করতে পারি:\n- বিল/রসিদ বানানো\n- ক্রেতা যোগ বা মুছে ফেলা\n- বাকি যোগ ও পেমেন্ট স্ট্যাটাস বলা\n- টাস্ক যোগ/ডিলিট\n- নোট ও থিম বদল\n- ট্রাস্ট রেশিও\n\n${remainingText}`
@@ -9617,6 +10910,13 @@
         return normalized;
     }
 
+    function applyViewMode(mode) {
+        const normalized = mode === 'desktop' ? 'desktop' : 'phone';
+        state.ui.viewMode = normalized;
+        document.body.dataset.view = normalized;
+        return normalized;
+    }
+
     function applyTodoMode(isSimple) {
         const simplePanel = document.getElementById('todo-simple');
         const advancedPanel = document.getElementById('todo-app-advanced');
@@ -9709,6 +11009,7 @@
     function initAITools() {
         // AI Chat: Ultra only; ensureAIChatAccessible() shows chat for Ultra, subscription message for others
         ensureAIChatAccessible();
+        ensureProChatAccessible();
 
         // AI tools tab switching
         const aiTabBtns = document.querySelectorAll('.ai-tab-btn');
@@ -9732,8 +11033,20 @@
 
                 // AI Chat tab: Ultra sees chat; non-Ultra sees subscription upsell (trust ratio available when user asks, in Ultra)
                 if (targetTab === 'chat') ensureAIChatAccessible();
+                if (targetTab === 'prochat') ensureProChatAccessible();
             });
         });
+
+        const proChatSendBtn = document.getElementById('prochat-send-btn');
+        const proChatInput = document.getElementById('prochat-input');
+        if (proChatSendBtn && proChatInput) {
+            proChatSendBtn.addEventListener('click', () => handleProChatMessage());
+            proChatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleProChatMessage();
+                }
+            });
+        }
 
         // Populate customer and logo dropdowns
         populateCardCustomerSelect();
