@@ -40,7 +40,7 @@
     </script>
 </head>
 
-<body>
+<body data-view="phone">
     <!-- SVG Gradients for Icons -->
     <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
         <defs>
@@ -458,10 +458,73 @@
 
                 <!-- AI Tools Tabs -->
                 <div class="ai-tools-tabs">
-                    <button class="ai-tab-btn active" data-ai-tab="chat" data-i18n="ai.chat">AI Agent</button>
+                    <button class="ai-tab-btn active" data-ai-tab="prochat">Optichain Pro Chat</button>
+                    <button class="ai-tab-btn" data-ai-tab="chat" data-i18n="ai.chat">AI Agent</button>
                     <button class="ai-tab-btn" data-ai-tab="cardgen" data-i18n="ai.cardGenerator">Card
                         Generator</button>
-                    <button class="ai-tab-btn" data-ai-tab="calculator" data-i18n="ai.calculator">Calculator</button>
+                </div>
+
+                <!-- Optichain Pro Chat -->
+                <div class="ai-tool-panel active" id="ai-prochat-panel">
+                    <div class="prochat-shell">
+                        <div class="prochat-hero">
+                            <div class="prochat-orb"></div>
+                            <h2 class="prochat-title">Optichain Pro Chat</h2>
+                            <p class="prochat-subtitle">
+                                DeepSeek-first chat for quick answers and actions.
+                            </p>
+                        </div>
+
+                        <div class="prochat-usage" aria-live="polite">
+                            <div class="prochat-usage-plan">
+                                <span class="prochat-usage-label">Plan</span>
+                                <strong id="prochat-usage-plan">Free</strong>
+                            </div>
+                            <div class="prochat-usage-meter">
+                                <div class="prochat-usage-row">
+                                    <span>Usage</span>
+                                    <span id="prochat-usage-count">0/0</span>
+                                </div>
+                                <div class="prochat-usage-bar">
+                                    <span id="prochat-usage-bar"></span>
+                                </div>
+                                <span class="prochat-usage-hint" id="prochat-usage-hint">Resets monthly</span>
+                            </div>
+                            <span class="prochat-noapi-badge" id="prochat-noapi-badge">No API</span>
+                        </div>
+
+                        <div class="prochat-lock" id="prochat-lock" hidden>
+                            <div class="prochat-lock-card">
+                                <h3>Optichain Pro Chat is locked</h3>
+                                <p>Upgrade to Max or Ultra to unlock 100 chats per month.</p>
+                                <button type="button" class="support-btn-new upgrade upgrade-plan-btn">
+                                    <span class="title-en">Upgrade Plan</span>
+                                    <span class="title-bn">আপগ্রেড প্ল্যান</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="prochat-messages" id="prochat-messages">
+                            <div class="prochat-empty">
+                                <p>Ask anything to start chatting.</p>
+                            </div>
+                        </div>
+
+                        <div class="prochat-input-bar">
+                            <button class="prochat-add-btn" id="prochat-add-btn" aria-label="Add">+</button>
+                            <div class="prochat-input-wrap">
+                                <span class="prochat-input-icon">🌐</span>
+                                <input type="text" id="prochat-input" placeholder="Message Optichain Pro Chat..." />
+                            </div>
+                            <button class="prochat-send-btn" id="prochat-send-btn" aria-label="Send">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Debt Card Generator -->
@@ -665,42 +728,8 @@
                     </div>
                 </div>
 
-                <!-- Calculator -->
-                <div class="ai-tool-panel" id="ai-calculator-panel">
-                    <div class="calculator-container">
-                        <h2 data-i18n="calculator.title">Calculator</h2>
-                        <p class="settings-muted" data-i18n="calculator.subtitle">Quick calculations for your shop</p>
-
-                        <div class="calculator-display">
-                            <div class="calculator-expression" id="calc-expression"></div>
-                            <div class="calculator-result" id="calc-result">0</div>
-                        </div>
-                        <div class="calculator-buttons">
-                            <button class="calc-btn calc-btn-clear" data-action="clear">C</button>
-                            <button class="calc-btn calc-btn-clear" data-action="clear-all">AC</button>
-                            <button class="calc-btn calc-btn-operator" data-action="backspace">⌫</button>
-                            <button class="calc-btn calc-btn-operator" data-value="/">÷</button>
-                            <button class="calc-btn" data-value="7">7</button>
-                            <button class="calc-btn" data-value="8">8</button>
-                            <button class="calc-btn" data-value="9">9</button>
-                            <button class="calc-btn calc-btn-operator" data-value="*">×</button>
-                            <button class="calc-btn" data-value="4">4</button>
-                            <button class="calc-btn" data-value="5">5</button>
-                            <button class="calc-btn" data-value="6">6</button>
-                            <button class="calc-btn calc-btn-operator" data-value="-">−</button>
-                            <button class="calc-btn" data-value="1">1</button>
-                            <button class="calc-btn" data-value="2">2</button>
-                            <button class="calc-btn" data-value="3">3</button>
-                            <button class="calc-btn calc-btn-operator" data-value="+">+</button>
-                            <button class="calc-btn calc-btn-zero" data-value="0">0</button>
-                            <button class="calc-btn" data-value=".">.</button>
-                            <button class="calc-btn calc-btn-equals" data-action="equals">=</button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- AI Chat -->
-                <div class="ai-tool-panel active" id="ai-chat-panel">
+                <div class="ai-tool-panel" id="ai-chat-panel">
                     <div class="ai-agent-ui-modern">
                         <!-- Top Navigation -->
                         <div class="ai-nav-modern">
@@ -780,6 +809,13 @@
                             <button class="ai-input-add-btn" id="ai-input-add-btn" aria-label="Add">+</button>
                             <input type="text" id="ai-input" class="ai-input-modern" placeholder="Ask me anything..."
                                 data-i18n-placeholder="ai.placeholder" />
+                            <button class="ai-send-btn-modern" id="ai-send-btn" aria-label="Send">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
                             <button class="ai-voice-btn-modern" id="ai-voice-btn" data-voice-target="ai"
                                 aria-label="Voice Input">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -907,664 +943,792 @@
                 </div>
             </section>
 
-    <!-- Premium Panel -->
-    <section class="panel" id="panel-premium" aria-label="Pricing">
-        <div class="premium-panel-new pricing-screen">
-            <div class="pricing-hero-new">
-                <div class="pricing-hero-copy">
-                    <p class="pricing-kicker" data-i18n="pricing.kicker">Simple, calm pricing</p>
-                    <h1 class="pricing-title-modern" data-i18n="pricing.title">Choose the plan that fits</h1>
-                    <p class="pricing-subtitle-modern" data-i18n="pricing.subtitle">Annual saves more, monthly stays
-                        light. Fully mobile-ready.</p>
+            <!-- Premium Panel -->
+            <section class="panel" id="panel-premium" aria-label="Pricing">
+                <div class="premium-panel-new pricing-screen">
+                    <div class="pricing-hero-new">
+                        <div class="pricing-hero-copy">
+                            <p class="pricing-kicker" data-i18n="pricing.kicker">Simple, calm pricing</p>
+                            <h1 class="pricing-title-modern" data-i18n="pricing.title">Choose the plan that fits</h1>
+                            <p class="pricing-subtitle-modern" data-i18n="pricing.subtitle">Annual saves more, monthly
+                                stays
+                                light. Fully mobile-ready.</p>
+                        </div>
+                        <div class="pricing-status-card" id="premium-current-status">
+                            <div class="status-row">
+                                <span data-i18n="pricing.currentLabel">Current plan</span>
+                                <strong id="premium-current-plan">Free</strong>
+                            </div>
+                            <div class="status-row">
+                                <span data-i18n="pricing.aiUsageLabel">AI usage</span>
+                                <strong id="premium-current-usage">0/30 today</strong>
+                            </div>
+                            <div class="status-row">
+                                <span>Days left</span>
+                                <strong id="premium-days-left">—</strong>
+                            </div>
+                            <p class="status-hint" id="premium-current-hint"></p>
+                        </div>
+                    </div>
+
+                    <div class="pricing-toggle-row">
+                        <div class="pricing-billing-toggle" role="group" aria-label="Billing frequency">
+                            <button class="billing-toggle-btn active" data-billing-toggle="annual">Annual</button>
+                            <button class="billing-toggle-btn" data-billing-toggle="monthly">Monthly</button>
+                        </div>
+                        <div class="pricing-save-pill">Save 25% on annual</div>
+                    </div>
+
+                    <div class="pricing-support-promo">
+                        <span>To buy a subscription coupon, message us on Facebook:</span>
+                        <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank"
+                            rel="noopener noreferrer">facebook.com/profile.php?id=61560074175677</a>
+                    </div>
+
+                    <div class="pricing-card-stack" id="pricing-card-stack">
+                        <article class="pricing-pill-card" data-billing="all" data-plan-card="free">
+                            <header class="pill-card-header">
+                                <div>
+                                    <p class="pill-plan-label">Free</p>
+                                    <p class="pill-plan-note">Kick off with basics</p>
+                                </div>
+                                <span class="pill-status active" data-i18n="pricing.currentLabel">Active</span>
+                            </header>
+                            <div class="pill-price-line">
+                                <span class="pill-price">৳0</span>
+                                <span class="pill-period">forever</span>
+                            </div>
+                            <ul class="pill-features">
+                                <li class="included">Core baki, bills & tasks</li>
+                                <li class="included">AI agent: 20 / month</li>
+                                <li class="included">Offline-first data</li>
+                                <li class="excluded">Advanced exports</li>
+                            </ul>
+                            <button class="pill-cta ghost" data-plan-select="free" data-billing-mode="annual">Stay on
+                                Free</button>
+                        </article>
+
+                        <article class="pricing-pill-card bright" data-billing="annual" data-plan-card="max">
+                            <header class="pill-card-header">
+                                <div>
+                                    <p class="pill-plan-label">Max</p>
+                                    <p class="pill-plan-note">Annual • Most Flexible</p>
+                                </div>
+                                <span class="pill-status">Save 27%</span>
+                            </header>
+                            <div class="pill-price-line">
+                                <span class="pill-price">৳400</span>
+                                <span class="pill-period">/year</span>
+                            </div>
+                            <p class="pill-slashed">৳550</p>
+                            <ul class="pill-features">
+                                <li class="included">AI agent: 100 / year</li>
+                                <li class="included">Full agent button across app</li>
+                                <li class="included">Themes + automation</li>
+                                <li class="included">Priority reminders</li>
+                            </ul>
+                            <div class="pricing-coupon-modern">
+                                <input class="coupon-input-modern" id="premium-coupon-max" type="text"
+                                    autocapitalize="characters" placeholder="Enter coupon code"
+                                    data-i18n-placeholder="pricing.couponPlaceholder" />
+                                <button class="coupon-btn-modern" id="premium-activate-max" type="button"
+                                    data-i18n="settings.redeemCoupon">Redeem</button>
+                            </div>
+                            <div class="premium-coupon-feedback" id="premium-feedback-max" aria-live="polite"></div>
+                        </article>
+
+                        <article class="pricing-pill-card dark" data-billing="annual" data-plan-card="ultra">
+                            <header class="pill-card-header">
+                                <div>
+                                    <p class="pill-plan-label">Ultra</p>
+                                    <p class="pill-plan-note">Annual • Unlimited</p>
+                                </div>
+                                <span class="pill-status popular">Popular</span>
+                            </header>
+                            <div class="pill-price-line">
+                                <span class="pill-price">৳800</span>
+                                <span class="pill-period">/year</span>
+                            </div>
+                            <ul class="pill-features">
+                                <li class="included">AI agent: 200 / year</li>
+                                <li class="included">All pro controls unlocked</li>
+                                <li class="included">Concierge support</li>
+                                <li class="included">Early features access</li>
+                            </ul>
+                            <div class="pricing-coupon-modern">
+                                <input class="coupon-input-modern" id="premium-coupon-ultra" type="text"
+                                    autocapitalize="characters" placeholder="Enter coupon code"
+                                    data-i18n-placeholder="pricing.couponPlaceholder" />
+                                <button class="coupon-btn-modern" id="premium-activate-ultra" type="button"
+                                    data-i18n="settings.redeemCoupon">Redeem</button>
+                            </div>
+                            <div class="premium-coupon-feedback" id="premium-feedback-ultra" aria-live="polite"></div>
+                        </article>
+
+                        <article class="pricing-pill-card bright" data-billing="all" data-plan-card="agentic_ultra"
+                            data-price-monthly="699" data-price-annual="4299">
+                            <header class="pill-card-header">
+                                <div>
+                                    <p class="pill-plan-label">Agentic Ultra</p>
+                                    <p class="pill-plan-note">Monthly or Annual • Agent Boost</p>
+                                </div>
+                                <span class="pill-status popular">New</span>
+                            </header>
+                            <div class="pill-price-line">
+                                <span class="pill-price" data-agentic-ultra-price>৳699</span>
+                                <span class="pill-period" data-agentic-ultra-period>/month</span>
+                            </div>
+                            <p class="pill-slashed" data-agentic-ultra-alt>৳4299/year</p>
+                            <ul class="pill-features">
+                                <li class="included">AI agent: 200 / month (monthly)</li>
+                                <li class="included">AI agent: 1000 / year (annual)</li>
+                                <li class="included">All pro controls unlocked</li>
+                                <li class="included">Priority support & early access</li>
+                            </ul>
+                            <div class="pricing-coupon-modern">
+                                <input class="coupon-input-modern" id="premium-coupon-agentic_ultra" type="text"
+                                    autocapitalize="characters" placeholder="Enter coupon code"
+                                    data-i18n-placeholder="pricing.couponPlaceholder" />
+                                <button class="coupon-btn-modern" id="premium-activate-agentic_ultra" type="button"
+                                    data-i18n="settings.redeemCoupon">Redeem</button>
+                            </div>
+                            <div class="premium-coupon-feedback" id="premium-feedback-agentic_ultra" aria-live="polite">
+                            </div>
+                        </article>
+
+                        <article class="pricing-pill-card" data-billing="monthly" data-plan-card="nano" hidden>
+                            <header class="pill-card-header">
+                                <div>
+                                    <p class="pill-plan-label">Nano</p>
+                                    <p class="pill-plan-note">Monthly starter</p>
+                                </div>
+                                <span class="pill-status">Light</span>
+                            </header>
+                            <div class="pill-price-line">
+                                <span class="pill-price">৳60</span>
+                                <span class="pill-period">/month</span>
+                            </div>
+                            <ul class="pill-features">
+                                <li class="included">AI agent: 5 / day</li>
+                                <li class="included">Manage up to 20 customers</li>
+                                <li class="included">Smart reminders</li>
+                                <li class="excluded">Priority support</li>
+                            </ul>
+                            <div class="pricing-coupon-modern">
+                                <input class="coupon-input-modern" id="premium-coupon-nano" type="text"
+                                    autocapitalize="characters" placeholder="Enter coupon code"
+                                    data-i18n-placeholder="pricing.couponPlaceholder" />
+                                <button class="coupon-btn-modern" id="premium-activate-nano" type="button"
+                                    data-i18n="settings.redeemCoupon">Redeem</button>
+                            </div>
+                            <div class="premium-coupon-feedback" id="premium-feedback-nano" aria-live="polite"></div>
+                        </article>
+
+                        <article class="pricing-pill-card bright" data-billing="monthly" data-plan-card="pro" hidden>
+                            <header class="pill-card-header">
+                                <div>
+                                    <p class="pill-plan-label">Pro</p>
+                                    <p class="pill-plan-note">Monthly growth</p>
+                                </div>
+                                <span class="pill-status popular">Popular</span>
+                            </header>
+                            <div class="pill-price-line">
+                                <span class="pill-price">৳120</span>
+                                <span class="pill-period">/month</span>
+                            </div>
+                            <ul class="pill-features">
+                                <li class="included">AI agent: 100 / month</li>
+                                <li class="included">Export + share-ready bills</li>
+                                <li class="included">Voice everywhere</li>
+                                <li class="included">Team-ready dashboards</li>
+                            </ul>
+                            <div class="pricing-coupon-modern">
+                                <input class="coupon-input-modern" id="premium-coupon-pro" type="text"
+                                    autocapitalize="characters" placeholder="Enter coupon code"
+                                    data-i18n-placeholder="pricing.couponPlaceholder" />
+                                <button class="coupon-btn-modern" id="premium-activate-pro" type="button"
+                                    data-i18n="settings.redeemCoupon">Redeem</button>
+                            </div>
+                            <div class="premium-coupon-feedback" id="premium-feedback-pro" aria-live="polite"></div>
+                        </article>
+                    </div>
+
+                    <p class="pricing-footnote" data-i18n="pricing.footnote">No paid APIs. Works offline and keeps your
+                        data close.</p>
                 </div>
-                <div class="pricing-status-card" id="premium-current-status">
-                    <div class="status-row">
-                        <span data-i18n="pricing.currentLabel">Current plan</span>
-                        <strong id="premium-current-plan">Free</strong>
-                    </div>
-                <div class="status-row">
-                    <span data-i18n="pricing.aiUsageLabel">AI usage</span>
-                    <strong id="premium-current-usage">0/30 today</strong>
-                </div>
-                <div class="status-row">
-                    <span>Days left</span>
-                    <strong id="premium-days-left">—</strong>
-                </div>
-                <p class="status-hint" id="premium-current-hint"></p>
-            </div>
-        </div>
+            </section>
 
-            <div class="pricing-toggle-row">
-                <div class="pricing-billing-toggle" role="group" aria-label="Billing frequency">
-                    <button class="billing-toggle-btn active" data-billing-toggle="annual">Annual</button>
-                    <button class="billing-toggle-btn" data-billing-toggle="monthly">Monthly</button>
-                </div>
-                <div class="pricing-save-pill">Save 25% on annual</div>
-            </div>
-
-            <div class="pricing-support-promo">
-                <span>To buy a subscription coupon, message us on Facebook:</span>
-                <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank"
-                    rel="noopener noreferrer">facebook.com/profile.php?id=61560074175677</a>
-            </div>
-
-            <div class="pricing-card-stack" id="pricing-card-stack">
-                <article class="pricing-pill-card" data-billing="all" data-plan-card="free">
-                    <header class="pill-card-header">
-                        <div>
-                            <p class="pill-plan-label">Free</p>
-                            <p class="pill-plan-note">Kick off with basics</p>
-                        </div>
-                        <span class="pill-status active" data-i18n="pricing.currentLabel">Active</span>
-                    </header>
-                    <div class="pill-price-line">
-                        <span class="pill-price">৳0</span>
-                        <span class="pill-period">forever</span>
+            <section class="panel" id="panel-settings" aria-label="Settings">
+                <!-- New Modern Settings UI -->
+                <div class="settings-new">
+                    <!-- Header -->
+                    <div class="settings-header-new">
+                        <h1>
+                            <span class="title-en">Settings</span>
+                            <span class="title-bn">সেটিংস</span>
+                        </h1>
+                        <p class="settings-subtitle">
+                            <span class="title-en">Customize your experience</span>
+                            <span class="title-bn">আপনার অভিজ্ঞতা কাস্টমাইজ করুন</span>
+                        </p>
                     </div>
-                    <ul class="pill-features">
-                        <li class="included">Core baki, bills & tasks</li>
-                        <li class="included">AI agent: 30/day</li>
-                        <li class="included">Offline-first data</li>
-                        <li class="excluded">Advanced exports</li>
-                    </ul>
-                    <button class="pill-cta ghost" data-plan-select="free" data-billing-mode="annual">Stay on
-                        Free</button>
-                </article>
 
-                <article class="pricing-pill-card bright" data-billing="annual" data-plan-card="max">
-                    <header class="pill-card-header">
-                        <div>
-                            <p class="pill-plan-label">Max</p>
-                            <p class="pill-plan-note">Annual • Most Flexible</p>
-                        </div>
-                        <span class="pill-status">Save 27%</span>
-                    </header>
-                    <div class="pill-price-line">
-                        <span class="pill-price">৳400</span>
-                        <span class="pill-period">/year</span>
-                    </div>
-                    <p class="pill-slashed">৳550</p>
-                    <ul class="pill-features">
-                        <li class="included">AI agent: 100 / month</li>
-                        <li class="included">Full agent button across app</li>
-                        <li class="included">Themes + automation</li>
-                        <li class="included">Priority reminders</li>
-                    </ul>
-                    <div class="pricing-coupon-modern">
-                        <input class="coupon-input-modern" id="premium-coupon-max" type="text" autocapitalize="characters"
-                            placeholder="Enter coupon code" data-i18n-placeholder="pricing.couponPlaceholder" />
-                        <button class="coupon-btn-modern" id="premium-activate-max" type="button"
-                            data-i18n="settings.redeemCoupon">Redeem</button>
-                    </div>
-                    <div class="premium-coupon-feedback" id="premium-feedback-max" aria-live="polite"></div>
-                </article>
-
-                <article class="pricing-pill-card dark" data-billing="annual" data-plan-card="ultra">
-                    <header class="pill-card-header">
-                        <div>
-                            <p class="pill-plan-label">Ultra</p>
-                            <p class="pill-plan-note">Annual • Unlimited</p>
-                        </div>
-                        <span class="pill-status popular">Popular</span>
-                    </header>
-                    <div class="pill-price-line">
-                        <span class="pill-price">৳800</span>
-                        <span class="pill-period">/year</span>
-                    </div>
-                    <ul class="pill-features">
-                        <li class="included">Unlimited AI usage</li>
-                        <li class="included">All pro controls unlocked</li>
-                        <li class="included">Concierge support</li>
-                        <li class="included">Early features access</li>
-                    </ul>
-                    <div class="pricing-coupon-modern">
-                        <input class="coupon-input-modern" id="premium-coupon-ultra" type="text" autocapitalize="characters"
-                            placeholder="Enter coupon code" data-i18n-placeholder="pricing.couponPlaceholder" />
-                        <button class="coupon-btn-modern" id="premium-activate-ultra" type="button"
-                            data-i18n="settings.redeemCoupon">Redeem</button>
-                    </div>
-                    <div class="premium-coupon-feedback" id="premium-feedback-ultra" aria-live="polite"></div>
-                </article>
-
-                <article class="pricing-pill-card" data-billing="monthly" data-plan-card="nano" hidden>
-                    <header class="pill-card-header">
-                        <div>
-                            <p class="pill-plan-label">Nano</p>
-                            <p class="pill-plan-note">Monthly starter</p>
-                        </div>
-                        <span class="pill-status">Light</span>
-                    </header>
-                    <div class="pill-price-line">
-                        <span class="pill-price">৳60</span>
-                        <span class="pill-period">/month</span>
-                    </div>
-                    <ul class="pill-features">
-                        <li class="included">AI agent: 20 / month</li>
-                        <li class="included">Manage up to 20 customers</li>
-                        <li class="included">Smart reminders</li>
-                        <li class="excluded">Priority support</li>
-                    </ul>
-                    <div class="pricing-coupon-modern">
-                        <input class="coupon-input-modern" id="premium-coupon-nano" type="text" autocapitalize="characters"
-                            placeholder="Enter coupon code" data-i18n-placeholder="pricing.couponPlaceholder" />
-                        <button class="coupon-btn-modern" id="premium-activate-nano" type="button"
-                            data-i18n="settings.redeemCoupon">Redeem</button>
-                    </div>
-                    <div class="premium-coupon-feedback" id="premium-feedback-nano" aria-live="polite"></div>
-                </article>
-
-                <article class="pricing-pill-card bright" data-billing="monthly" data-plan-card="pro" hidden>
-                    <header class="pill-card-header">
-                        <div>
-                            <p class="pill-plan-label">Pro</p>
-                            <p class="pill-plan-note">Monthly growth</p>
-                        </div>
-                        <span class="pill-status popular">Popular</span>
-                    </header>
-                    <div class="pill-price-line">
-                        <span class="pill-price">৳120</span>
-                        <span class="pill-period">/month</span>
-                    </div>
-                    <ul class="pill-features">
-                        <li class="included">AI agent: 60 / month</li>
-                        <li class="included">Export + share-ready bills</li>
-                        <li class="included">Voice everywhere</li>
-                        <li class="included">Team-ready dashboards</li>
-                    </ul>
-                    <div class="pricing-coupon-modern">
-                        <input class="coupon-input-modern" id="premium-coupon-pro" type="text" autocapitalize="characters"
-                            placeholder="Enter coupon code" data-i18n-placeholder="pricing.couponPlaceholder" />
-                        <button class="coupon-btn-modern" id="premium-activate-pro" type="button"
-                            data-i18n="settings.redeemCoupon">Redeem</button>
-                    </div>
-                    <div class="premium-coupon-feedback" id="premium-feedback-pro" aria-live="polite"></div>
-                </article>
-            </div>
-
-            <p class="pricing-footnote" data-i18n="pricing.footnote">No paid APIs. Works offline and keeps your
-                data close.</p>
-        </div>
-    </section>
-
-    <section class="panel" id="panel-settings" aria-label="Settings">
-        <!-- New Modern Settings UI -->
-        <div class="settings-new">
-            <!-- Header -->
-            <div class="settings-header-new">
-                <h1>
-                    <span class="title-en">Settings</span>
-                    <span class="title-bn">সেটিংস</span>
-                </h1>
-                <p class="settings-subtitle">
-                    <span class="title-en">Customize your experience</span>
-                    <span class="title-bn">আপনার অভিজ্ঞতা কাস্টমাইজ করুন</span>
-                </p>
-            </div>
-
-            <div class="settings-section-new" id="settings-subscription-overview">
-                <div class="section-header-new">
-                    <div class="section-icon-new" style="background: linear-gradient(135deg, #f59e0b, #ec4899);">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M12 1v22"></path>
-                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H7"></path>
-                        </svg>
-                    </div>
-                    <div class="section-title-new">
-                        <h3>Subscription</h3>
-                        <p>Current plan and days remaining</p>
-                    </div>
-                </div>
-                <div class="section-content-new">
-                    <div class="setting-item-new">
-                        <span class="setting-label-new">Current plan</span>
-                        <strong class="setting-value-new" id="settings-current-plan">Free</strong>
-                    </div>
-                    <div class="setting-item-new">
-                        <span class="setting-label-new">Days left</span>
-                        <strong class="setting-value-new" id="settings-days-left">—</strong>
-                    </div>
-                    <p class="support-note-new" id="settings-expiry-note"></p>
-                    <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank"
-                        rel="noopener noreferrer" class="support-btn-new chat">
-                        Buy / Renew coupon on Facebook
-                    </a>
-                </div>
-            </div>
-
-            <!-- Settings Grid -->
-            <div class="settings-grid-new">
-                <!-- Profile Section -->
-
-                <div class="settings-section-new">
-                    <div class="section-header-new">
-                        <div class="section-icon-new" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="section-title-new">
-                            <h3>
-                                <span class="title-en">Shop Profile</span>
-                                <span class="title-bn">দোকানের প্রোফাইল</span>
-                            </h3>
-                            <p>
-                                <span class="title-en">Your business information</span>
-                                <span class="title-bn">আপনার ব্যবসার তথ্য</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="section-content-new">
-                        <div class="profile-upload-new">
-                            <div class="avatar-upload-new" id="settings-shop-logo-preview">
-                                <span id="settings-shop-logo-placeholder">🏪</span>
-                                <input type="file" id="settings-shop-logo-input" accept="image/*" hidden>
-                            </div>
-                            <label for="settings-shop-logo-input" class="upload-btn-new">
-                                <span class="title-en">Change Logo</span>
-                                <span class="title-bn">লোগো পরিবর্তন</span>
-                            </label>
-                        </div>
-                        <div class="input-group-new">
-                            <label>
-                                <span class="title-en">Shop Name</span>
-                                <span class="title-bn">দোকানের নাম</span>
-                            </label>
-                            <input type="text" id="settings-shop-name-input" maxlength="80"
-                                placeholder="Your shop name">
-                        </div>
-                        <div class="input-group-new">
-                            <label>
-                                <span class="title-en">Owner Name</span>
-                                <span class="title-bn">মালিকের নাম</span>
-                            </label>
-                            <input type="text" id="settings-owner-name-input" maxlength="60" placeholder="Your name">
-                        </div>
-                        <div class="input-row-new">
-                            <div class="input-group-new">
-                                <label>
-                                    <span class="title-en">Phone</span>
-                                    <span class="title-bn">ফোন</span>
-                                </label>
-                                <input type="tel" id="settings-phone-number" maxlength="15" placeholder="01XXXXXXXXX">
-                            </div>
-                            <div class="input-group-new">
-                                <label>
-                                    <span class="title-en">Payment Number</span>
-                                    <span class="title-bn">পেমেন্ট নম্বর</span>
-                                </label>
-                                <input type="tel" id="settings-payment-number" maxlength="15" placeholder="01XXXXXXXXX">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Appearance Section -->
-                <div class="settings-section-new">
-                    <div class="section-header-new">
-                        <div class="section-icon-new" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                <circle cx="12" cy="12" r="5"></circle>
-                                <line x1="12" y1="1" x2="12" y2="3"></line>
-                                <line x1="12" y1="21" x2="12" y2="23"></line>
-                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                            </svg>
-                        </div>
-                        <div class="section-title-new">
-                            <h3>
-                                <span class="title-en">Appearance</span>
-                                <span class="title-bn">চেহারা</span>
-                            </h3>
-                            <p>
-                                <span class="title-en">Theme, text size & dock</span>
-                                <span class="title-bn">থিম, টেক্সট সাইজ ও ডক</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="section-content-new">
-                        <!-- Language -->
-                        <div class="setting-item-new">
-                            <span class="setting-label-new">
-                                <span class="title-en">Language</span>
-                                <span class="title-bn">ভাষা</span>
-                            </span>
-                            <div class="language-toggle-new">
-                                <button type="button" class="lang-btn-new" data-lang="en">EN</button>
-                                <button type="button" class="lang-btn-new active" data-lang="bn">বাং</button>
-                            </div>
-                        </div>
-
-                        <!-- Text Size -->
-                        <div class="setting-item-new">
-                            <span class="setting-label-new">
-                                <span class="title-en">Text Size</span>
-                                <span class="title-bn">টেক্সট সাইজ</span>
-                            </span>
-                            <div class="text-size-new">
-                                <button type="button" class="size-btn-new" data-size="1">A</button>
-                                <button type="button" class="size-btn-new" data-size="2">A</button>
-                                <button type="button" class="size-btn-new active" data-size="3">A</button>
-                                <button type="button" class="size-btn-new" data-size="4">A</button>
-                                <button type="button" class="size-btn-new" data-size="5">A</button>
-                            </div>
-                        </div>
-
-                        <!-- Dock Size -->
-                        <div class="setting-item-new">
-                            <span class="setting-label-new">
-                                <span class="title-en">Dock Size</span>
-                                <span class="title-bn">ডক সাইজ</span>
-                            </span>
-                            <div class="dock-slider-new">
-                                <input type="range" id="dock-size-range" min="0.6" max="1.15" step="0.01" value="1" />
-                                <span class="dock-value-new" id="dock-size-value">100%</span>
-                            </div>
-                        </div>
-
-                        <!-- UI Size -->
-                        <div class="setting-item-new">
-                            <span class="setting-label-new">
-                                <span class="title-en">UI Size</span>
-                                <span class="title-bn">ইউআই সাইজ</span>
-                            </span>
-                            <div class="dock-slider-new">
-                                <input type="range" id="ui-scale-range" min="0.8" max="1.0" step="0.01" value="1" />
-                                <span class="dock-value-new" id="ui-scale-value">100%</span>
-                            </div>
-                        </div>
-
-                        <!-- Simple To-Do Mode -->
-                        <div class="setting-item-new">
-                            <span class="setting-label-new">
-                                <span class="title-en">Simple To-Do</span>
-                                <span class="title-bn">সহজ টু-ডু</span>
-                            </span>
-                            <label class="switch-new">
-                                <input type="checkbox" id="simple-todo-toggle">
-                                <span class="slider-new"></span>
-                            </label>
-                        </div>
-
-                        <!-- Themes -->
-                        <div class="themes-grid-new" id="theme-grid">
-                            <div class="theme-tile-new" data-theme="studio-pro" aria-checked="true">
-                                <div class="theme-preview-new pro"></div>
-                                <span class="theme-label">Pro</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="cozy-ledger" aria-checked="false">
-                                <div class="theme-preview-new cozy"></div>
-                                <span class="theme-label">Cozy</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="clean-business" aria-checked="false">
-                                <div class="theme-preview-new clean"></div>
-                                <span class="theme-label">Clean</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="night-shop" aria-checked="false">
-                                <div class="theme-preview-new night"></div>
-                                <span class="theme-label">Night</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="zen-finance" aria-checked="false">
-                                <div class="theme-preview-new zen"></div>
-                                <span class="theme-label">Zen</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="street-ledger" aria-checked="false">
-                                <div class="theme-preview-new street"></div>
-                                <span class="theme-label">Street</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="classic-paper" aria-checked="false">
-                                <div class="theme-preview-new classic"></div>
-                                <span class="theme-label">Classic</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="midnight-purple" aria-checked="false">
-                                <div class="theme-preview-new midnight-purple"></div>
-                                <span class="theme-label">Midnight</span>
-                            </div>
-                            <div class="theme-tile-new" data-theme="sunset-orange" aria-checked="false">
-                                <div class="theme-preview-new sunset-orange"></div>
-                                <span class="theme-label">Sunset</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Payment Methods Section -->
-                <div class="settings-section-new">
-                    <div class="section-header-new">
-                        <div class="section-icon-new"
-                            style="background: linear-gradient(135deg, #10b981, #059669);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
-                                stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                        </div>
-                        <div class="section-title-new">
-                            <h3>
-                                <span class="title-en">Payment Methods</span>
-                                <span class="title-bn">পেমেন্ট পদ্ধতি</span>
-                            </h3>
-                            <p>
-                                <span class="title-en">Enable payment options</span>
-                                <span class="title-bn">পেমেন্ট অপশন সক্রিয় করুন</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="section-content-new">
-                        <div class="payment-item-new">
-                            <div class="payment-info-new">
-                                <span class="payment-name-new">bKash</span>
-                                <span class="payment-desc-new">Mobile Banking</span>
-                            </div>
-                            <label class="switch-new">
-                                <input type="checkbox" id="payment-toggle-bkash">
-                                <span class="slider-new"></span>
-                            </label>
-                        </div>
-                        <div class="payment-item-new">
-                            <div class="payment-info-new">
-                                <span class="payment-name-new">Nagad</span>
-                                <span class="payment-desc-new">Mobile Banking</span>
-                            </div>
-                            <label class="switch-new">
-                                <input type="checkbox" id="payment-toggle-nagad">
-                                <span class="slider-new"></span>
-                            </label>
-                        </div>
-                        <div class="payment-item-new">
-                            <div class="payment-info-new">
-                                <span class="payment-name-new">Rocket</span>
-                                <span class="payment-desc-new">Mobile Banking</span>
-                            </div>
-                            <label class="switch-new">
-                                <input type="checkbox" id="payment-toggle-rocket">
-                                <span class="slider-new"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                    <!-- Data Backup & Transfer -->
-                    <div class="settings-section-new">
+                    <div class="settings-section-new" id="settings-subscription-overview">
                         <div class="section-header-new">
                             <div class="section-icon-new"
-                                style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                                style="background: linear-gradient(135deg, #f59e0b, #ec4899);">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
                                     stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    <path d="M12 1v22"></path>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H7"></path>
                                 </svg>
                             </div>
                             <div class="section-title-new">
-                                <h3 data-i18n="settings.dataTitle">Data Backup & Transfer</h3>
-                                <p data-i18n="settings.dataHint">Export your data as JSON to backup or transfer
-                                    to
-                                    another device. Import to restore your data.</p>
+                                <h3>Subscription</h3>
+                                <p>Current plan and days remaining</p>
                             </div>
                         </div>
                         <div class="section-content-new">
-                            <div class="support-buttons-new">
-                                <button type="button" class="support-btn-new export" id="export-data-btn">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            <div class="subscription-box-new">
+                                <div class="subscription-metrics-new">
+                                    <div class="setting-item-new">
+                                        <span class="setting-label-new">Current plan</span>
+                                        <strong class="setting-value-new" id="settings-current-plan">Free</strong>
+                                    </div>
+                                    <div class="setting-item-new">
+                                        <span class="setting-label-new">Days left</span>
+                                        <strong class="setting-value-new" id="settings-days-left">—</strong>
+                                    </div>
+                                </div>
+                                <div class="renew-box-new" id="settings-renew-box" hidden>
+                                    <div class="renew-box-icon" aria-hidden="true">⏳</div>
+                                    <div class="renew-box-body">
+                                        <div class="renew-box-title" id="settings-renew-title">Renews in</div>
+                                        <div class="renew-box-value" id="settings-renew-value">—</div>
+                                        <div class="renew-box-sub" id="settings-renew-sub">—</div>
+                                    </div>
+                                </div>
+                                <p class="support-note-new" id="settings-expiry-note"></p>
+                                <div class="subscription-actions-new">
+                                    <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank"
+                                        rel="noopener noreferrer" class="support-btn-new chat">
+                                        Buy / Renew coupon on Facebook
+                                    </a>
+                                    <button type="button" class="support-btn-new upgrade upgrade-plan-btn">
+                                        <span class="title-en">Upgrade Plan</span>
+                                        <span class="title-bn">আপগ্রেড প্ল্যান</span>
+                                    </button>
+                                    <button type="button" class="support-btn-new cancel" id="settings-cancel-sub-btn"
+                                        hidden>
+                                        Cancel subscription
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Grid -->
+                    <div class="settings-grid-new">
+                        <!-- Profile Section -->
+
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new"
+                                    style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                        stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Shop Profile</span>
+                                        <span class="title-bn">দোকানের প্রোফাইল</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Your business information</span>
+                                        <span class="title-bn">আপনার ব্যবসার তথ্য</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <div class="profile-upload-new">
+                                    <div class="avatar-upload-new" id="settings-shop-logo-preview">
+                                        <span id="settings-shop-logo-placeholder">🏪</span>
+                                        <input type="file" id="settings-shop-logo-input" accept="image/*" hidden>
+                                    </div>
+                                    <label for="settings-shop-logo-input" class="upload-btn-new">
+                                        <span class="title-en">Change Logo</span>
+                                        <span class="title-bn">লোগো পরিবর্তন</span>
+                                    </label>
+                                </div>
+                                <div class="input-group-new">
+                                    <label>
+                                        <span class="title-en">Shop Name</span>
+                                        <span class="title-bn">দোকানের নাম</span>
+                                    </label>
+                                    <input type="text" id="settings-shop-name-input" maxlength="80"
+                                        placeholder="Your shop name">
+                                </div>
+                                <div class="input-group-new">
+                                    <label>
+                                        <span class="title-en">Owner Name</span>
+                                        <span class="title-bn">মালিকের নাম</span>
+                                    </label>
+                                    <input type="text" id="settings-owner-name-input" maxlength="60"
+                                        placeholder="Your name">
+                                </div>
+                                <div class="input-row-new">
+                                    <div class="input-group-new">
+                                        <label>
+                                            <span class="title-en">Phone</span>
+                                            <span class="title-bn">ফোন</span>
+                                        </label>
+                                        <input type="tel" id="settings-phone-number" maxlength="15"
+                                            placeholder="01XXXXXXXXX">
+                                    </div>
+                                    <div class="input-group-new">
+                                        <label>
+                                            <span class="title-en">Payment Number</span>
+                                            <span class="title-bn">পেমেন্ট নম্বর</span>
+                                        </label>
+                                        <input type="tel" id="settings-payment-number" maxlength="15"
+                                            placeholder="01XXXXXXXXX">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Appearance Section -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new"
+                                    style="background: linear-gradient(135deg, #f59e0b, #ef4444);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="5"></circle>
+                                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Appearance</span>
+                                        <span class="title-bn">চেহারা</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Theme, text size & dock</span>
+                                        <span class="title-bn">থিম, টেক্সট সাইজ ও ডক</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <!-- Language -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Language</span>
+                                        <span class="title-bn">ভাষা</span>
+                                    </span>
+                                    <div class="language-toggle-new">
+                                        <button type="button" class="lang-btn-new" data-lang="en">EN</button>
+                                        <button type="button" class="lang-btn-new active" data-lang="bn">বাং</button>
+                                    </div>
+                                </div>
+
+                                <!-- Text Size -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Text Size</span>
+                                        <span class="title-bn">টেক্সট সাইজ</span>
+                                    </span>
+                                    <div class="text-size-new">
+                                        <button type="button" class="size-btn-new" data-size="1">A</button>
+                                        <button type="button" class="size-btn-new" data-size="2">A</button>
+                                        <button type="button" class="size-btn-new active" data-size="3">A</button>
+                                        <button type="button" class="size-btn-new" data-size="4">A</button>
+                                        <button type="button" class="size-btn-new" data-size="5">A</button>
+                                    </div>
+                                </div>
+
+                                <!-- Dock Size -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Dock Size</span>
+                                        <span class="title-bn">ডক সাইজ</span>
+                                    </span>
+                                    <div class="dock-slider-new">
+                                        <input type="range" id="dock-size-range" min="0.6" max="1.15" step="0.01"
+                                            value="1" />
+                                        <span class="dock-value-new" id="dock-size-value">100%</span>
+                                    </div>
+                                </div>
+
+                                <!-- UI Size -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">UI Size</span>
+                                        <span class="title-bn">ইউআই সাইজ</span>
+                                    </span>
+                                    <div class="dock-slider-new">
+                                        <input type="range" id="ui-scale-range" min="0.8" max="1.0" step="0.01"
+                                            value="1" />
+                                        <span class="dock-value-new" id="ui-scale-value">100%</span>
+                                    </div>
+                                </div>
+
+                                <!-- App View -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">App View</span>
+                                        <span class="title-bn">অ্যাপ ভিউ</span>
+                                    </span>
+                                    <div class="view-toggle-new">
+                                        <button type="button" class="view-btn-new active" data-view="phone">
+                                            <span class="title-en">Phone</span>
+                                            <span class="title-bn">ফোন</span>
+                                        </button>
+                                        <button type="button" class="view-btn-new" data-view="desktop">
+                                            <span class="title-en">Desktop</span>
+                                            <span class="title-bn">ডেস্কটপ</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Simple To-Do Mode -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Simple To-Do</span>
+                                        <span class="title-bn">সহজ টু-ডু</span>
+                                    </span>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="simple-todo-toggle">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Themes -->
+                                <div class="themes-grid-new" id="theme-grid">
+                                    <div class="theme-tile-new" data-theme="studio-pro" aria-checked="true">
+                                        <div class="theme-preview-new pro"></div>
+                                        <span class="theme-label">Pro</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="cozy-ledger" aria-checked="false">
+                                        <div class="theme-preview-new cozy"></div>
+                                        <span class="theme-label">Cozy</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="clean-business" aria-checked="false">
+                                        <div class="theme-preview-new clean"></div>
+                                        <span class="theme-label">Clean</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="night-shop" aria-checked="false">
+                                        <div class="theme-preview-new night"></div>
+                                        <span class="theme-label">Night</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="zen-finance" aria-checked="false">
+                                        <div class="theme-preview-new zen"></div>
+                                        <span class="theme-label">Zen</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="street-ledger" aria-checked="false">
+                                        <div class="theme-preview-new street"></div>
+                                        <span class="theme-label">Street</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="classic-paper" aria-checked="false">
+                                        <div class="theme-preview-new classic"></div>
+                                        <span class="theme-label">Classic</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="midnight-purple" aria-checked="false">
+                                        <div class="theme-preview-new midnight-purple"></div>
+                                        <span class="theme-label">Midnight</span>
+                                    </div>
+                                    <div class="theme-tile-new" data-theme="sunset-orange" aria-checked="false">
+                                        <div class="theme-preview-new sunset-orange"></div>
+                                        <span class="theme-label">Sunset</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Methods Section -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new"
+                                    style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                        stroke-width="2">
+                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Payment Methods</span>
+                                        <span class="title-bn">পেমেন্ট পদ্ধতি</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Enable payment options</span>
+                                        <span class="title-bn">পেমেন্ট অপশন সক্রিয় করুন</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <div class="payment-item-new">
+                                    <div class="payment-info-new">
+                                        <span class="payment-name-new">bKash</span>
+                                        <span class="payment-desc-new">Mobile Banking</span>
+                                    </div>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="payment-toggle-bkash">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
+                                <div class="payment-item-new">
+                                    <div class="payment-info-new">
+                                        <span class="payment-name-new">Nagad</span>
+                                        <span class="payment-desc-new">Mobile Banking</span>
+                                    </div>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="payment-toggle-nagad">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
+                                <div class="payment-item-new">
+                                    <div class="payment-info-new">
+                                        <span class="payment-name-new">Rocket</span>
+                                        <span class="payment-desc-new">Mobile Banking</span>
+                                    </div>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="payment-toggle-rocket">
+                                        <span class="slider-new"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Backup & Transfer -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new"
+                                    style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
                                         stroke-width="2">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                         <polyline points="7 10 12 15 17 10"></polyline>
                                         <line x1="12" y1="15" x2="12" y2="3"></line>
                                     </svg>
-                                    <span data-i18n="settings.exportData">Export JSON</span>
-                                </button>
-                                <label class="support-btn-new import" for="import-data-input">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="17 8 12 3 7 8"></polyline>
-                                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                                    </svg>
-                                    <span data-i18n="settings.importData">Import JSON</span>
-                                </label>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3 data-i18n="settings.dataTitle">Data Backup & Transfer</h3>
+                                    <p data-i18n="settings.dataHint">Export your data as JSON to backup or transfer
+                                        to
+                                        another device. Import to restore your data.</p>
+                                </div>
                             </div>
-                            <input type="file" id="import-data-input" accept=".json,application/json" hidden>
-                            <p id="data-status" class="data-status" role="status"></p>
+                            <div class="section-content-new">
+                                <div class="support-buttons-new">
+                                    <button type="button" class="support-btn-new export" id="export-data-btn">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="7 10 12 15 17 10"></polyline>
+                                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                                        </svg>
+                                        <span data-i18n="settings.exportData">Export JSON</span>
+                                    </button>
+                                    <label class="support-btn-new import" for="import-data-input">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
+                                        <span data-i18n="settings.importData">Import JSON</span>
+                                    </label>
+                                </div>
+                                <input type="file" id="import-data-input" accept=".json,application/json" hidden>
+                                <p id="data-status" class="data-status" role="status"></p>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Stats Section -->
+                        <div class="settings-section-new">
+                            <div class="section-header-new">
+                                <div class="section-icon-new"
+                                    style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                        stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <div class="section-title-new">
+                                    <h3>
+                                        <span class="title-en">Monthly Stats</span>
+                                        <span class="title-bn">মাসিক পরিসংখ্যান</span>
+                                    </h3>
+                                    <p>
+                                        <span class="title-en">Your business overview</span>
+                                        <span class="title-bn">আপনার ব্যবসার সারাংশ</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="section-content-new">
+                                <div class="stats-grid-new">
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">💰</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-total-revenue">৳0</span>
+                                            <span class="stat-label-new">Revenue</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">✅</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-payments-received">৳0</span>
+                                            <span class="stat-label-new">Received</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">📄</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-bills-generated">0</span>
+                                            <span class="stat-label-new">Bills</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-card-new">
+                                        <span class="stat-icon-new">⏳</span>
+                                        <div class="stat-info-new">
+                                            <span class="stat-value-new" id="monthly-pending-amount">৳0</span>
+                                            <span class="stat-label-new">Pending</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="view-wrap-btn-new" id="view-monthly-wrap-btn">
+                                    <span class="title-en">View Full Report</span>
+                                    <span class="title-bn">সম্পূর্ণ রিপোর্ট দেখুন</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Monthly Stats Section -->
+                    <!-- Support & Subscription Section -->
                     <div class="settings-section-new">
                         <div class="section-header-new">
                             <div class="section-icon-new"
-                                style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                                style="background: linear-gradient(135deg, #ec4899, #be185d);">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
-                                    stroke-width="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                </svg>
-                            </div>
-                            <div class="section-title-new">
-                                <h3>
-                                    <span class="title-en">Monthly Stats</span>
-                                    <span class="title-bn">মাসিক পরিসংখ্যান</span>
-                                </h3>
-                                <p>
-                                    <span class="title-en">Your business overview</span>
-                                    <span class="title-bn">আপনার ব্যবসার সারাংশ</span>
-                                </p>
-                            </div>
-                        </div>
-                        <div class="section-content-new">
-                            <div class="stats-grid-new">
-                                <div class="stat-card-new">
-                                    <span class="stat-icon-new">💰</span>
-                                    <div class="stat-info-new">
-                                        <span class="stat-value-new" id="monthly-total-revenue">৳0</span>
-                                        <span class="stat-label-new">Revenue</span>
-                                    </div>
-                                </div>
-                                <div class="stat-card-new">
-                                    <span class="stat-icon-new">✅</span>
-                                    <div class="stat-info-new">
-                                        <span class="stat-value-new" id="monthly-payments-received">৳0</span>
-                                        <span class="stat-label-new">Received</span>
-                                    </div>
-                                </div>
-                                <div class="stat-card-new">
-                                    <span class="stat-icon-new">📄</span>
-                                    <div class="stat-info-new">
-                                        <span class="stat-value-new" id="monthly-bills-generated">0</span>
-                                        <span class="stat-label-new">Bills</span>
-                                    </div>
-                                </div>
-                                <div class="stat-card-new">
-                                    <span class="stat-icon-new">⏳</span>
-                                    <div class="stat-info-new">
-                                        <span class="stat-value-new" id="monthly-pending-amount">৳0</span>
-                                        <span class="stat-label-new">Pending</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <button class="view-wrap-btn-new" id="view-monthly-wrap-btn">
-                                <span class="title-en">View Full Report</span>
-                                <span class="title-bn">সম্পূর্ণ রিপোর্ট দেখুন</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Support & Subscription Section -->
-                <div class="settings-section-new">
-                    <div class="section-header-new">
-                        <div class="section-icon-new" style="background: linear-gradient(135deg, #ec4899, #be185d);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                <path
-                                    d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
-                                </path>
-                            </svg>
-                        </div>
-                        <div class="section-title-new">
-                            <h3>
-                                <span class="title-en">Help & Support</span>
-                                <span class="title-bn">সাহায্য ও সাপোর্ট</span>
-                            </h3>
-                            <p>
-                                <span class="title-en">Get help or manage subscription</span>
-                                <span class="title-bn">সাহায্য নিন বা সাবস্ক্রিপশন পরিচালনা করুন</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="section-content-new">
-                        <div class="support-buttons-new">
-                            <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank"
-                                rel="noopener noreferrer" class="support-btn-new chat">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
                                     <path
                                         d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
                                     </path>
                                 </svg>
-                                <span>
-                                    <span class="title-en">Support Chat</span>
-                                    <span class="title-bn">সাপোর্ট চ্যাট</span>
-                                </span>
-                            </a>
-                            <button type="button" class="support-btn-new cancel" id="cancel-subscription-btn">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                                </svg>
-                                <span>
-                                    <span class="title-en">Cancel Subscription</span>
-                                    <span class="title-bn">সাবস্ক্রিপশন বাতিল</span>
-                                </span>
-                            </button>
+                            </div>
+                            <div class="section-title-new">
+                                <h3>
+                                    <span class="title-en">Help & Support</span>
+                                    <span class="title-bn">সাহায্য ও সাপোর্ট</span>
+                                </h3>
+                                <p>
+                                    <span class="title-en">Get help or manage subscription</span>
+                                    <span class="title-bn">সাহায্য নিন বা সাবস্ক্রিপশন পরিচালনা করুন</span>
+                                </p>
+                            </div>
                         </div>
-                        <p class="support-note-new">
-                            <span class="title-en">Need help? Chat with us on Facebook for quick support!</span>
-                            <span class="title-bn">সাহায্য দরকার? দ্রুত সাপোর্টের জন্য ফেসবুকে আমাদের সাথে চ্যাট
-                                করুন!</span>
-                        </p>
+                        <div class="section-content-new">
+                            <div class="support-buttons-new">
+                                <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank"
+                                    rel="noopener noreferrer" class="support-btn-new chat">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path
+                                            d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+                                        </path>
+                                    </svg>
+                                    <span>
+                                        <span class="title-en">Support Chat</span>
+                                        <span class="title-bn">সাপোর্ট চ্যাট</span>
+                                    </span>
+                                </a>
+                            </div>
+                            <p class="support-note-new">
+                                <span class="title-en">Need help? Chat with us on Facebook for quick support!</span>
+                                <span class="title-bn">সাহায্য দরকার? দ্রুত সাপোর্টের জন্য ফেসবুকে আমাদের সাথে চ্যাট
+                                    করুন!</span>
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Credits Footer -->
-                <div class="settings-credits-new">
-                    <div class="credits-logo">
-                        <span class="credits-icon">✨</span>
-                        <span class="credits-brand">DebtX</span>
+                    <!-- Subscription Management (Moved to Bottom) -->
+                    <div class="settings-section-new" id="settings-subscription-management">
+                        <div class="section-header-new">
+                            <div class="section-icon-new"
+                                style="background: linear-gradient(135deg, #f59e0b, #ec4899);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                    stroke-width="2">
+                                    <path d="M12 1v22"></path>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H7"></path>
+                                </svg>
+                            </div>
+                            <div class="section-title-new">
+                                <h3>Subscription Status</h3>
+                                <p>Plan details & renewal</p>
+                            </div>
+                        </div>
+                        <div class="section-content-new">
+                            <div class="subscription-box-new">
+                                <div class="subscription-metrics-new">
+                                    <div class="setting-item-new">
+                                        <span class="setting-label-new">Current plan</span>
+                                        <strong class="setting-value-new" id="settings-current-plan">Free</strong>
+                                    </div>
+                                    <div class="setting-item-new">
+                                        <span class="setting-label-new">Days left</span>
+                                        <strong class="setting-value-new" id="settings-days-left">—</strong>
+                                    </div>
+                                </div>
+                                <div class="renew-box-new" id="settings-renew-box" hidden>
+                                    <div class="renew-box-icon" aria-hidden="true">⏳</div>
+                                    <div class="renew-box-body">
+                                        <div class="renew-box-title" id="settings-renew-title">Renews in</div>
+                                        <div class="renew-box-value" id="settings-renew-value">—</div>
+                                        <div class="renew-box-sub" id="settings-renew-sub">—</div>
+                                    </div>
+                                </div>
+                                <p class="support-note-new" id="settings-expiry-note"></p>
+                                <div class="subscription-actions-new">
+                                    <button type="button" class="support-btn-new upgrade upgrade-plan-btn">
+                                        <span class="title-en">Upgrade Plan</span>
+                                        <span class="title-bn">আপগ্রেড প্ল্যান</span>
+                                    </button>
+                                    <button type="button" class="support-btn-new cancel" id="settings-cancel-sub-btn"
+                                        hidden>
+                                        Cancel subscription
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="credits-info">
-                        <p class="credits-made">Made by <strong>Cozytustudios</strong></p>
-                        <p class="credits-founder">Founder: <strong>Sajid Hossain</strong></p>
-                    </div>
-                <div class="credits-version">
-                        <span>Version 6</span>
+
+                    <!-- Credits Footer -->
+                    <div class="settings-credits-new">
+                        <div class="credits-logo">
+                            <span class="credits-icon">✨</span>
+                            <span class="credits-brand">DebtX</span>
+                        </div>
+                        <div class="credits-info">
+                            <p class="credits-made">Made in Bangladesh , Tested in Canada</p>
+                            <p class="credits-founder">Founder: <strong>Sajid Hossain</strong></p>
+                        </div>
+                        <div class="credits-version">
+                            <span>Version 6</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+    </div>
     </section>
     </main>
 
@@ -2607,6 +2771,7 @@
     </dialog>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="env.js"></script>
     <script src="app.js" defer></script>
 </body>
 
