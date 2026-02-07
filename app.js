@@ -15,10 +15,11 @@
     const DEEPSEEK_TOOL_INSTRUCTIONS = [
         'When the user asks to do something inside the app, respond with JSON only.',
         'Use this schema:',
-        '{ "action": "add_task|add_debt|add_note|delete_task|delete_note|delete_customer|change_theme|create_bill|mark_bill_paid|record_payment|complete_task|open_panel|cancel_subscription", "data": { ... }, "reply": "optional user message" }',
+        '{ "action": "add_task|add_customer|add_debt|add_note|delete_task|delete_note|delete_customer|change_theme|create_bill|mark_bill_paid|record_payment|complete_task|open_panel|cancel_subscription", "data": { ... }, "reply": "optional user message" }',
         'For multiple actions use: { "actions": [ { ... }, { ... } ], "reply": "optional user message" }.',
         'Action data examples:',
         '- add_task: { "title": "task name", "date": "YYYY-MM-DD", "time": "HH:MM" }',
+        '- add_customer: { "customerName": "name", "phone": "01XXXXXXXXX", "note": "optional", "repaymentDays": 7 }',
         '- add_debt: { "customerName": "name", "amount": 500, "note": "reason" }',
         '- delete_task: { "title": "task to delete" }',
         '- delete_note: { "title": "note to delete" }',
@@ -75,37 +76,6 @@
 
     function hasDeepSeekKey() {
         return Boolean(getDeepSeekConfig().apiKey);
-    }
-
-    function updateNoApiBadge() {
-        const badge = document.querySelector('.ai-noapi-badge');
-        if (!badge) return;
-        badge.style.display = hasDeepSeekKey() ? 'none' : 'inline-flex';
-    }
-
-    function appendChatHistory(role, content) {
-        if (!content) return;
-        if (!state.ai.chatHistory || !Array.isArray(state.ai.chatHistory)) {
-            state.ai.chatHistory = [];
-        }
-        state.ai.chatHistory.push({ role, content: String(content) });
-        if (state.ai.chatHistory.length > MAX_DEEPSEEK_HISTORY * 2) {
-            state.ai.chatHistory = state.ai.chatHistory.slice(-MAX_DEEPSEEK_HISTORY * 2);
-        }
-    }
-
-    function buildDeepSeekMessages(userMessage, systemPrompt) {
-        const messages = [];
-        if (systemPrompt) {
-            messages.push({ role: 'system', content: systemPrompt });
-        }
-        const history = Array.isArray(state.ai.chatHistory) ? state.ai.chatHistory : [];
-        history.slice(-MAX_DEEPSEEK_HISTORY * 2).forEach(msg => {
-            if (!msg || !msg.role || !msg.content) return;
-            messages.push({ role: msg.role, content: String(msg.content) });
-        });
-        messages.push({ role: 'user', content: String(userMessage) });
-        return messages;
     }
 
     function buildDeepSeekMessagesWithHistory(userMessage, systemPrompt, history) {
@@ -191,10 +161,13 @@
             uiScale: 1,
             viewMode: 'phone',
             theme: 'studio-pro', // Default theme - premium and crisp
+            darkMode: false,
+            lastThemeBeforeDark: 'studio-pro',
             haptics: true,
             sounds: true,
             textSize: 3,
             simpleTodo: false,
+            hideProChatCredit: false,
             pricingBilling: 'annual',
             hasSeenOnboarding: false
         },
@@ -211,7 +184,10 @@
             proChatUsageCount: 0,
             proChatUsageKey: null,
             proChatUsagePlan: null,
-            proChatUsageDate: null
+            proChatUsageDate: null,
+            proChatCreditBalance: 0,
+            predictionNotifyKey: null,
+            lastInsightsAt: null
         },
         calculator: {
             expression: '',
@@ -230,21 +206,21 @@
             'nav.customers': 'Customers',
             'nav.debts': 'Baki',
             'nav.bills': 'Bills',
-            'nav.ai': 'AI Agent',
+            'nav.ai': 'Pro Chat',
             'nav.notesTasks': 'Notes & Tasks',
             'nav.notes': 'Notes',
             'nav.tasks': 'Tasks',
             'nav.settings': 'Settings',
             'nav.premium': 'Home',
-            'ai.title': 'AI Agent',
-            'ai.subtitle': 'Calm Bangla assistant for debt, tasks, and notes',
+            'ai.title': 'Optichain Pro Chat',
+            'ai.subtitle': 'Optichain Pro Chat + card generator',
             'ai.greetingQuestion': 'How can I help you today?',
             'ai.usagePlanLabel': 'Plan',
             'ai.usageLabel': 'AI usage',
             'ai.noApiBadge': 'No API',
             'ai.cardGenerator': 'Card Generator',
             'ai.calculator': 'Calculator',
-            'ai.chat': 'AI Agent',
+            'ai.chat': 'Optichain Pro Chat',
             'ai.cardBadge': 'Studio',
             'ai.debtCardTitle': 'Debt Card Generator',
             'ai.debtCardHint': 'Build polished reminder cards with live preview and pro templates.',
@@ -616,48 +592,48 @@
             'actions.close': 'Close',
             'actions.apply': 'Apply',
             'footer.text': 'Debtx keeps your khata simple, clear, and close to you.',
-            'ai.title': 'AI Agent',
-            'ai.subtitle': 'Calm Bangla assistant for debt, tasks, and notes',
+            'ai.title': 'Optichain Pro Chat',
+            'ai.subtitle': 'Optichain Pro Chat + card generator',
             'ai.welcome': 'Hi! I can help with debts, tasks, notes, and calm summaries. Speak in Bangla or English, and I will confirm before saving.',
             'ai.placeholder': 'Type or speak in Bangla or English...',
-            'ai.agentBadge': 'AI Agent',
-            'ai.agentTitle': 'Calm, Bangla-first assistant',
-            'ai.agentHint': 'Speak in Bangla to add debt, tasks, or notes. Everything stays local.',
+            'ai.agentBadge': 'Pro Chat',
+            'ai.agentTitle': 'Optichain Pro Chat',
+            'ai.agentHint': 'DeepSeek-first chat for quick answers and actions.',
             'ai.shortcut.summary': 'Summarize tasks',
             'ai.shortcut.addTask': 'Add task',
             'ai.shortcut.addNote': 'Add note',
             'ai.shortcut.addDebt': 'Add debt',
             'ai.shortcut.theme': 'Change theme',
-            'ai.limitTitleFree': 'Your free AI limit is finished for today',
-            'ai.limitBodyFree': 'Upgrade to Max to use the Agent more.',
-            'ai.limitTitleMax': 'Your Max cycle limit is finished',
-            'ai.limitBodyMax': 'Upgrade to Ultra for unlimited AI support anytime.',
+            'ai.limitTitleFree': 'Optichain Pro Chat is locked on Free',
+            'ai.limitBodyFree': 'Upgrade to Pro, Max, or Ultra to use Pro Chat.',
+            'ai.limitTitleMax': 'Your Pro Chat limit is finished for this month',
+            'ai.limitBodyMax': 'Upgrade your plan for more monthly Pro Chat messages.',
             'ai.limitCta': 'See plans',
             'ai.paywallLater': 'Not now',
             'ai.paywallCta': 'See Max plan',
             'pricing.kicker': 'Simple, calm pricing',
-            'pricing.title': 'Clear AI access from day one',
-            'pricing.subtitle': 'See how much AI you can use, where voice lives, and what the Agent can do.',
+            'pricing.title': 'Clear Pro Chat access from day one',
+            'pricing.subtitle': 'See Pro Chat limits and what each plan unlocks.',
             'pricing.currentLabel': 'Current plan',
-            'pricing.aiUsageLabel': 'AI usage',
+            'pricing.aiUsageLabel': 'Pro Chat usage',
             'pricing.perMonth': '/month',
             'pricing.perYear': '/year',
             'pricing.freePeriod': 'Forever',
             'pricing.maxTagline': 'For growing shops that want more AI help.',
-            'pricing.ultraTagline': 'Unlimited AI for busy, calm days.',
+            'pricing.ultraTagline': 'Balanced AI access for busy, calm days.',
             'pricing.freeTagline': 'Start with core debts, tasks, and basic voice.',
-            'pricing.usagePreviewLabel': 'AI usage preview',
-            'pricing.usagePreviewFree': '0/30 today',
-            'pricing.usagePreviewMax': '12/100 this month',
-            'pricing.usagePreviewUltra': 'Unlimited',
+            'pricing.usagePreviewLabel': 'Pro Chat usage preview',
+            'pricing.usagePreviewFree': '0/0 this month',
+            'pricing.usagePreviewMax': '12/50 this month',
+            'pricing.usagePreviewUltra': '12/50 this month',
             'pricing.couponPlaceholder': 'Enter coupon code',
             'pricing.free.feature1': 'Basic Baki + Tasks',
-            'pricing.free.feature2': 'AI Agent: 30/day',
+            'pricing.free.feature2': 'Optichain Pro Chat: locked',
             'pricing.free.feature3': 'Basic voice input (limited commands)',
-            'pricing.max.feature1': 'AI Agent: 100 / billing cycle',
-            'pricing.max.feature2': 'Agent button fully enabled in Docs',
+            'pricing.max.feature1': 'Optichain Pro Chat: 50/month',
+            'pricing.max.feature2': 'Pro Chat button across app',
             'pricing.max.feature3': 'Theme change, automation & controls',
-            'pricing.ultra.feature1': 'Unlimited AI Agent',
+            'pricing.ultra.feature1': 'Optichain Pro Chat: 50/month',
             'pricing.ultra.feature2': 'All features unlocked',
             'pricing.ultra.feature3': 'Priority automation & controls',
             'pricing.footnote': 'No paid APIs. Works offline and keeps your data close.',
@@ -665,14 +641,14 @@
             'home.quick.bills': 'Bills & invoices',
             'home.quick.settings': 'Settings',
             'docs.title': 'Voice + No API Guide',
-            'docs.subtitle': 'See exactly how Bangla-first voice and the agent work.',
+            'docs.subtitle': 'See exactly how Bangla-first voice and Pro Chat work.',
             'docs.voice.title': 'Voice flow',
             'docs.voice.step1': 'Transcribe Bangla + English speech',
             'docs.voice.step2': 'Extract fields: name, amount, type, date, note, time',
             'docs.voice.step3': 'Auto-fill the form fields',
             'docs.voice.step4': 'Preview and confirm save',
-            'docs.voice.where': 'Mic is always in Add Baki, Add Task, Quick Add, and the Agent.',
-            'docs.noapi.title': 'No API Agent',
+            'docs.voice.where': 'Mic is always in Add Baki, Add Task, Quick Add, and Pro Chat.',
+            'docs.noapi.title': 'No API Mode',
             'docs.noapi.body': 'Rule-based intent parser (keywords + regex + entity extraction). Optional on-device model can be added later.',
             'docs.examples.title': 'Natural Bangla examples',
             'voice.listening': 'Listening...',
@@ -724,21 +700,21 @@
             'nav.customers': 'ক্রেতা',
             'nav.debts': 'বাকি',
             'nav.bills': 'বিল',
-            'nav.ai': 'এআই এজেন্ট',
+            'nav.ai': 'প্রো চ্যাট',
             'nav.notesTasks': 'নোট ও কাজ',
             'nav.notes': 'নোট',
             'nav.tasks': 'কাজ',
             'nav.settings': 'সেটিংস',
             'nav.premium': 'হোম',
-            'ai.title': 'এআই এজেন্ট',
-            'ai.subtitle': 'দেনা, কাজ ও নোটের জন্য শান্ত বাংলা সহায়ক',
+            'ai.title': 'অপ্টিচেইন প্রো চ্যাট',
+            'ai.subtitle': 'অপ্টিচেইন প্রো চ্যাট + কার্ড জেনারেটর',
             'ai.greetingQuestion': 'আজ আপনাকে কীভাবে সাহায্য করতে পারি?',
             'ai.usagePlanLabel': 'প্ল্যান',
             'ai.usageLabel': 'এআই ব্যবহার',
             'ai.noApiBadge': 'No API',
             'ai.cardGenerator': 'কার্ড জেনারেটর',
             'ai.calculator': 'ক্যালকুলেটর',
-            'ai.chat': 'এআই এজেন্ট',
+            'ai.chat': 'প্রো চ্যাট',
             'ai.cardBadge': 'স্টুডিও',
             'ai.debtCardTitle': 'ঋণ কার্ড জেনারেটর',
             'ai.debtCardHint': 'লাইভ প্রিভিউ ও প্রো টেমপ্লেট দিয়ে সুন্দর কার্ড তৈরি করুন।',
@@ -1117,48 +1093,48 @@
             'actions.close': 'বন্ধ',
             'actions.apply': 'প্রয়োগ',
             'footer.text': 'ডেবটএক্স আপনার খাতা রাখে সহজ ও নির্ভরযোগ্য',
-            'ai.title': 'এআই এজেন্ট',
-            'ai.subtitle': 'দেনা, কাজ ও নোটের জন্য শান্ত বাংলা সহায়ক',
+            'ai.title': 'অপ্টিচেইন প্রো চ্যাট',
+            'ai.subtitle': 'অপ্টিচেইন প্রো চ্যাট + কার্ড জেনারেটর',
             'ai.welcome': 'হ্যালো! আমি দেনা, কাজ, নোট এবং শান্ত সারাংশে সাহায্য করতে পারি। বাংলায় বলুন বা লিখুন—সেভ করার আগে আমি নিশ্চিত করব।',
             'ai.placeholder': 'বাংলা বা ইংরেজিতে লিখুন বা বলুন...',
-            'ai.agentBadge': 'এআই এজেন্ট',
-            'ai.agentTitle': 'শান্ত, বাংলা-প্রথম সহায়ক',
-            'ai.agentHint': 'বাংলায় বললেই দেনা, কাজ বা নোট যোগ হবে—সবকিছু লোকালেই থাকে।',
+            'ai.agentBadge': 'প্রো চ্যাট',
+            'ai.agentTitle': 'অপ্টিচেইন প্রো চ্যাট',
+            'ai.agentHint': 'দ্রুত উত্তর ও কাজের জন্য DeepSeek-first চ্যাট।',
             'ai.shortcut.summary': 'কাজের সারাংশ',
             'ai.shortcut.addTask': 'কাজ যোগ করুন',
             'ai.shortcut.addNote': 'নোট যোগ করুন',
             'ai.shortcut.addDebt': 'দেনা যোগ করুন',
             'ai.shortcut.theme': 'থিম বদলান',
-            'ai.limitTitleFree': 'আজকের ফ্রি এআই লিমিট শেষ হয়েছে',
-            'ai.limitBodyFree': 'আরও ব্যবহার করতে Max নিন।',
-            'ai.limitTitleMax': 'আপনার Max সাইকেলের লিমিট শেষ হয়েছে',
-            'ai.limitBodyMax': 'সবসময় আনলিমিটেড এআই পেতে Ultra নিন।',
+            'ai.limitTitleFree': 'ফ্রি প্ল্যানে প্রো চ্যাট লকড',
+            'ai.limitBodyFree': 'Pro Chat ব্যবহার করতে Pro, Max বা Ultra নিন।',
+            'ai.limitTitleMax': 'এই মাসের প্রো চ্যাট লিমিট শেষ হয়েছে',
+            'ai.limitBodyMax': 'মাসিক আরও প্রো চ্যাটের জন্য প্ল্যান আপগ্রেড করুন।',
             'ai.limitCta': 'প্ল্যান দেখুন',
             'ai.paywallLater': 'এখন নয়',
             'ai.paywallCta': 'Max প্ল্যান দেখুন',
             'pricing.kicker': 'সহজ ও পরিষ্কার প্ল্যান',
-            'pricing.title': 'প্রথম দিন থেকেই এআই এক্সেস পরিষ্কার',
-            'pricing.subtitle': 'এআই কতবার ব্যবহার হবে, ভয়েস কোথায় আছে—সব আগে থেকেই স্পষ্ট।',
+            'pricing.title': 'প্রথম দিন থেকেই প্রো চ্যাট এক্সেস পরিষ্কার',
+            'pricing.subtitle': 'প্রো চ্যাট লিমিট ও প্ল্যান ফিচার দেখুন।',
             'pricing.currentLabel': 'বর্তমান প্ল্যান',
-            'pricing.aiUsageLabel': 'এআই ব্যবহার',
+            'pricing.aiUsageLabel': 'প্রো চ্যাট ব্যবহার',
             'pricing.perMonth': '/মাস',
             'pricing.perYear': '/বছর',
             'pricing.freePeriod': 'সবসময় ফ্রি',
             'pricing.freeTagline': 'বেসিক বাকি ও কাজের জন্য শুরু করুন।',
             'pricing.maxTagline': 'বড় হতে থাকা দোকানের জন্য বেশি এআই সহায়তা।',
-            'pricing.ultraTagline': 'ব্যস্ত দিনের জন্য আনলিমিটেড এআই।',
-            'pricing.usagePreviewLabel': 'AI ব্যবহার প্রিভিউ',
-            'pricing.usagePreviewFree': '০/৩০ আজ',
-            'pricing.usagePreviewMax': '১২/১০০ এই মাসে',
-            'pricing.usagePreviewUltra': 'আনলিমিটেড',
+            'pricing.ultraTagline': 'ব্যস্ত দিনের জন্য ব্যালেন্সড এআই এক্সেস।',
+            'pricing.usagePreviewLabel': 'প্রো চ্যাট ব্যবহার প্রিভিউ',
+            'pricing.usagePreviewFree': '০/০ এই মাসে',
+            'pricing.usagePreviewMax': '১২/৫০ এই মাসে',
+            'pricing.usagePreviewUltra': '১২/৫০ এই মাসে',
             'pricing.couponPlaceholder': 'কুপন কোড লিখুন',
             'pricing.free.feature1': 'বেসিক বাকি + কাজ',
-            'pricing.free.feature2': 'এআই এজেন্ট: দিনে ৩০ বার',
+            'pricing.free.feature2': 'অপ্টিচেইন প্রো চ্যাট: লকড',
             'pricing.free.feature3': 'বেসিক ভয়েস ইনপুট (সীমিত কমান্ড)',
-            'pricing.max.feature1': 'এআই এজেন্ট: প্রতি সাইকেলে ১০০ বার',
-            'pricing.max.feature2': 'ডকের AI বাটন সম্পূর্ণ এনাবল',
+            'pricing.max.feature1': 'অপ্টিচেইন প্রো চ্যাট: মাসে ৫০ বার',
+            'pricing.max.feature2': 'অ্যাপজুড়ে প্রো চ্যাট বাটন',
             'pricing.max.feature3': 'থিম বদল, অটোমেশন ও কন্ট্রোল',
-            'pricing.ultra.feature1': 'আনলিমিটেড এআই এজেন্ট',
+            'pricing.ultra.feature1': 'অপ্টিচেইন প্রো চ্যাট: মাসে ৫০ বার',
             'pricing.ultra.feature2': 'সব ফিচার আনলক',
             'pricing.ultra.feature3': 'প্রায়োরিটি অটোমেশন ও কন্ট্রোল',
             'pricing.footnote': 'কোন পেইড API নেই। অফলাইনে কাজ করে এবং ডেটা আপনার কাছেই থাকে।',
@@ -1166,14 +1142,14 @@
             'home.quick.bills': 'বিল ও ইনভয়েস',
             'home.quick.settings': 'সেটিংস',
             'docs.title': 'ভয়েস + No API গাইড',
-            'docs.subtitle': 'বাংলা-প্রথম ভয়েস ও এজেন্ট কীভাবে কাজ করে দেখুন।',
+            'docs.subtitle': 'বাংলা-প্রথম ভয়েস ও প্রো চ্যাট কীভাবে কাজ করে দেখুন।',
             'docs.voice.title': 'ভয়েস ফ্লো',
             'docs.voice.step1': 'বাংলা + ইংরেজি স্পিচ ট্রান্সক্রাইব',
             'docs.voice.step2': 'ফিল্ড বের করা: নাম, টাকা, টাইপ, তারিখ, নোট, সময়',
             'docs.voice.step3': 'ফর্ম অটো-ফিল',
             'docs.voice.step4': 'প্রিভিউ দেখিয়ে কনফার্ম',
-            'docs.voice.where': 'Add Baki, Add Task, Quick Add, এবং Agent-এ মাইক সবসময় থাকবে।',
-            'docs.noapi.title': 'No API এজেন্ট',
+            'docs.voice.where': 'Add Baki, Add Task, Quick Add, এবং প্রো চ্যাটে মাইক সবসময় থাকবে।',
+            'docs.noapi.title': 'No API মোড',
             'docs.noapi.body': 'রুল-বেসড intent parser (keywords + regex + entity extraction)। পরে চাইলে লোকাল মডেল যোগ করা যাবে।',
             'docs.examples.title': 'ন্যাচারাল বাংলা উদাহরণ',
             'voice.listening': 'শোনা হচ্ছে...',
@@ -1330,7 +1306,8 @@
         shopProfile: document.getElementById('shop-profile-modal'),
         monthlyWrap: document.getElementById('monthly-wrap-modal'),
         cardCustomize: document.getElementById('card-customize-modal'),
-        logo: document.getElementById('logo-modal')
+        logo: document.getElementById('logo-modal'),
+        policy: document.getElementById('policy-modal')
     };
 
     const forms = {
@@ -1371,6 +1348,7 @@
         applyDockScale(state.ui.dockScale || 1);
         applyUiScale(state.ui.uiScale || 1);
         applyViewMode(state.ui.viewMode || 'phone');
+        initDockAutoHide();
         applyTodoMode(state.ui.simpleTodo);
         applyPlanBranding();
         highlightPlanCards();
@@ -1390,8 +1368,7 @@
 
         startReminderLoop();
         refreshAISummary();
-        updateAIUsageUI();
-        updateAIBuddyName();
+        updateProChatUsageUI();
 
         // Initialize notes/tasks tab on load
         if (state.ui.activeNotesTab) {
@@ -1400,9 +1377,53 @@
 
         // Show welcome toast once per session
         if (!sessionStorage.getItem('debtx-welcome-shown')) {
-            showToast("World's First AI Agent Digital Khata App");
+            showToast("Digital Khata App (Beta 3)");
             sessionStorage.setItem('debtx-welcome-shown', 'true');
         }
+    }
+
+    function initDockAutoHide() {
+        const dock = document.getElementById('dock');
+        if (!dock || dock.hasAttribute('data-autohide')) return;
+        dock.setAttribute('data-autohide', 'true');
+
+        let lastY = window.scrollY || 0;
+        let hidden = false;
+        let ticking = false;
+        const threshold = 8;
+
+        const update = () => {
+            const currentY = window.scrollY || 0;
+            const delta = currentY - lastY;
+
+            if (currentY <= 8) {
+                hidden = false;
+                dock.classList.remove('is-hidden');
+                lastY = currentY;
+                ticking = false;
+                return;
+            }
+
+            if (Math.abs(delta) >= threshold) {
+                if (delta > 0 && !hidden) {
+                    hidden = true;
+                    dock.classList.add('is-hidden');
+                } else if (delta < 0 && hidden) {
+                    hidden = false;
+                    dock.classList.remove('is-hidden');
+                }
+                lastY = currentY;
+            }
+
+            ticking = false;
+        };
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                window.requestAnimationFrame(update);
+                ticking = true;
+            }
+        }, { passive: true });
     }
 
     function loadState() {
@@ -1475,6 +1496,8 @@
                 ai: state.ai || defaultState().ai,
                 ui: {
                     theme: state.ui.theme,
+                    darkMode: !!state.ui.darkMode,
+                    lastThemeBeforeDark: state.ui.lastThemeBeforeDark || 'studio-pro',
                     haptics: state.ui.haptics,
                     sounds: state.ui.sounds,
                     textSize: state.ui.textSize,
@@ -1596,6 +1619,17 @@
                     state.ui.theme = imported.ui.theme;
                     applyTheme(imported.ui.theme);
                 }
+                if (typeof imported.ui.lastThemeBeforeDark === 'string' && imported.ui.lastThemeBeforeDark.trim()) {
+                    state.ui.lastThemeBeforeDark = imported.ui.lastThemeBeforeDark.trim();
+                }
+                if (typeof imported.ui.darkMode === 'boolean') {
+                    state.ui.darkMode = imported.ui.darkMode;
+                    if (state.ui.darkMode) {
+                        // Keep behavior consistent with the Dark Mode toggle: force Night theme.
+                        state.ui.theme = 'night-shop';
+                        applyTheme('night-shop');
+                    }
+                }
                 if (typeof imported.ui.haptics === 'boolean') state.ui.haptics = imported.ui.haptics;
                 if (typeof imported.ui.sounds === 'boolean') state.ui.sounds = imported.ui.sounds;
                 if (typeof imported.ui.textSize === 'number' && imported.ui.textSize >= 1 && imported.ui.textSize <= 5) {
@@ -1608,7 +1642,7 @@
                     if (selectors.dockSizeInput) selectors.dockSizeInput.value = state.ui.dockScale;
                     updateDockScaleDisplay();
                 }
-                if (typeof imported.ui.uiScale === 'number' && imported.ui.uiScale >= 0.8 && imported.ui.uiScale <= 1) {
+                if (typeof imported.ui.uiScale === 'number' && imported.ui.uiScale >= 0.65 && imported.ui.uiScale <= 1.15) {
                     state.ui.uiScale = imported.ui.uiScale;
                     applyUiScale(state.ui.uiScale);
                     if (selectors.uiScaleInput) selectors.uiScaleInput.value = state.ui.uiScale;
@@ -1721,11 +1755,6 @@
             bills: () => setActivePanel('bills'),
             premium: () => setActivePanel('premium'),
             ai: () => {
-                const usage = getAIUsageInfo();
-                if (usage.plan === 'free' && usage.limit !== Infinity && usage.remaining <= 0) {
-                    openAIPaywallModal();
-                    return;
-                }
                 setActivePanel('ai');
             }
         };
@@ -1781,18 +1810,14 @@
             modals.note.showModal();
         });
 
+        document.getElementById('policy-open-btn')?.addEventListener('click', () => {
+            playFeedback();
+            modals.policy?.showModal();
+        });
+
         document.getElementById('add-task-btn')?.addEventListener('click', () => {
             playFeedback();
-            forms.task.reset();
-            setModalMode(forms.task, 'create');
-            if (forms.task.elements.taskId) forms.task.elements.taskId.value = '';
-            if (forms.task.elements.type) forms.task.elements.type.value = 'personal';
-            if (forms.task.elements.priority) forms.task.elements.priority.value = 'medium';
-            if (forms.task.elements.recurring) forms.task.elements.recurring.checked = false;
-            const recurringOptions = document.getElementById('recurring-options');
-            if (recurringOptions) recurringOptions.style.display = 'none';
-            hideTaskVoicePreview();
-            modals.task.showModal();
+            promptQuickTaskName();
         });
 
         // FAB button handler moved to attachNewFeatureHandlers for context-aware behavior
@@ -1854,9 +1879,7 @@
 
         // Add Habit Button
         document.getElementById('add-habit-btn')?.addEventListener('click', () => {
-            forms.task.reset();
-            setModalMode(forms.task, 'add');
-            modals.task.showModal();
+            promptQuickTaskName();
         });
 
         // New Note FAB
@@ -1864,6 +1887,63 @@
             forms.note.reset();
             setModalMode(forms.note, 'add');
             modals.note.showModal();
+        });
+
+        document.getElementById('settings-premium-btn')?.addEventListener('click', () => {
+            playFeedback();
+            setActivePanel('premium');
+        });
+
+        document.getElementById('ai-insights-generate-btn')?.addEventListener('click', () => {
+            playFeedback();
+            renderAIInsights();
+        });
+
+        document.getElementById('ai-prediction-list')?.addEventListener('click', (event) => {
+            const btn = event.target?.closest?.('button[data-ai-action]');
+            if (!btn) return;
+            const action = btn.dataset.aiAction;
+            const customerId = btn.dataset.customerId;
+            if (!action || !customerId) return;
+            const customer = state.customers.find(c => c.id === customerId);
+            if (!customer) return;
+            playFeedback();
+
+            if (action === 'add-followup') {
+                const outstanding = roundMoney((customer.debts || []).reduce((sum, d) => sum + getDebtOutstanding(d), 0));
+                const isBangla = state.language === 'bn';
+                const dueDate = todayString();
+                const task = {
+                    id: generateId('task'),
+                    name: isBangla ? `পেমেন্ট ফলো-আপ: ${customer.name}` : `Payment follow-up: ${customer.name}`,
+                    type: 'work',
+                    priority: 'high',
+                    dueDate,
+                    dueTime: '',
+                    note: isBangla
+                        ? `বাকি: ${formatCurrency(outstanding)} · ${formatDisplayDate(dueDate)}`
+                        : `Outstanding: ${formatCurrency(outstanding)} · ${formatDisplayDate(dueDate)}`,
+                    recurring: false,
+                    recurringType: 'daily',
+                    done: false,
+                    reminderSent: false
+                };
+                state.tasks.unshift(task);
+                saveState();
+                renderTasks();
+                renderAIInsights({ save: false });
+                alert(isBangla ? 'রিমাইন্ডার টাস্ক যোগ হয়েছে' : 'Reminder task added');
+                return;
+            }
+
+            if (action === 'open-customer') {
+                setActivePanel('customers');
+                setCustomersTab('customers');
+                if (selectors.customerSearch) {
+                    selectors.customerSearch.value = customer.name || '';
+                }
+                renderCustomers();
+            }
         });
         selectors.languageToggle?.addEventListener('click', () => {
             const nextLang = state.language === 'en' ? 'bn' : 'en';
@@ -2046,11 +2126,35 @@
         const nextBtn = document.getElementById('onboarding-next');
         const dots = document.querySelectorAll('.onboarding-dots .dot');
         const slides = document.querySelectorAll('.onboarding-slide');
+        const uiSizeButtons = modal?.querySelectorAll?.('.onboarding-ui-btn') || [];
 
         if (!modal) return;
 
         let currentStep = 0;
         const totalSteps = slides.length;
+
+	        function syncOnboardingUiScaleButtons() {
+	            const current = clampNumber(Number(state.ui.uiScale) || 1, 0.65, 1.15);
+	            uiSizeButtons.forEach(btn => {
+	                const target = Number(btn.dataset.uiScale) || 1;
+	                const isActive = Math.abs(current - target) < 0.03;
+	                btn.classList.toggle('active', isActive);
+	            });
+	        }
+
+        uiSizeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = Number(btn.dataset.uiScale);
+                if (!Number.isFinite(target)) return;
+                const value = applyUiScale(target);
+                state.ui.uiScale = value;
+                if (selectors.uiScaleInput) selectors.uiScaleInput.value = value;
+                updateUiScaleDisplay();
+                syncOnboardingUiScaleButtons();
+                saveState();
+                playFeedback();
+            });
+        });
 
         function updateSlide() {
             slides.forEach((slide, i) => {
@@ -2069,6 +2173,10 @@
             const bnText = isLastStep ? 'শুরু করুন' : 'পরবর্তী';
             nextBtn.querySelector('.title-en').textContent = enText;
             nextBtn.querySelector('.title-bn').textContent = bnText;
+
+            if (currentStep === 0) {
+                syncOnboardingUiScaleButtons();
+            }
         }
 
         function closeOnboarding() {
@@ -2413,6 +2521,275 @@
         ].join(' ');
     }
 
+    function addDaysToISODate(dateStr, days) {
+        const d = new Date((dateStr || todayString()) + 'T00:00');
+        if (Number.isNaN(d.getTime())) return todayString();
+        d.setDate(d.getDate() + (Number(days) || 0));
+        return d.toISOString().slice(0, 10);
+    }
+
+    function daysBetweenISO(a, b) {
+        if (!a || !b) return 0;
+        const da = new Date(a + 'T00:00');
+        const db = new Date(b + 'T00:00');
+        if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return 0;
+        const diff = db.setHours(0, 0, 0, 0) - da.setHours(0, 0, 0, 0);
+        return Math.round(diff / (24 * 60 * 60 * 1000));
+    }
+
+    function getStartOfWeekISO(dateStr) {
+        const d = new Date((dateStr || todayString()) + 'T00:00');
+        if (Number.isNaN(d.getTime())) return todayString();
+        const day = d.getDay(); // 0 (Sun) - 6 (Sat)
+        const diffToMonday = (day + 6) % 7;
+        d.setDate(d.getDate() - diffToMonday);
+        return d.toISOString().slice(0, 10);
+    }
+
+    function computeCustomerPaymentStats(customer) {
+        const today = todayString();
+        const outstandingDebts = (customer.debts || []).filter(d => getDebtOutstanding(d) > 0);
+        const outstanding = roundMoney(outstandingDebts.reduce((sum, d) => sum + getDebtOutstanding(d), 0));
+
+        const overdueDays = outstandingDebts
+            .filter(d => d.dueDate)
+            .map(d => Math.max(0, -daysUntil(d.dueDate)))
+            .filter(v => v > 0);
+        const maxOverdueDays = overdueDays.length ? Math.max(...overdueDays) : 0;
+
+        const oldestOutstandingAgeDays = outstandingDebts.length
+            ? Math.max(...outstandingDebts.map(d => Math.max(0, daysBetweenISO(d.date, today))))
+            : 0;
+
+        const lastPaymentAt = customer.lastPaymentAt || (customer.payments || []).slice(-1)[0]?.date || null;
+        const daysSinceLastPayment = lastPaymentAt ? Math.max(0, daysBetweenISO(lastPaymentAt, today)) : Infinity;
+
+        const closedDebts = (customer.debts || []).filter(d => d.closedAt && d.date);
+        const payDays = closedDebts
+            .map(d => Math.max(0, daysBetweenISO(d.date, d.closedAt)))
+            .filter(v => v > 0);
+        const avgPayDays = payDays.length ? (payDays.reduce((a, b) => a + b, 0) / payDays.length) : null;
+
+        const lateDays = closedDebts
+            .filter(d => d.dueDate)
+            .map(d => Math.max(0, daysBetweenISO(d.dueDate, d.closedAt)))
+            .filter(v => v >= 0);
+        const avgLateDays = lateDays.length ? (lateDays.reduce((a, b) => a + b, 0) / lateDays.length) : null;
+
+        return {
+            outstanding,
+            maxOverdueDays,
+            oldestOutstandingAgeDays,
+            daysSinceLastPayment,
+            avgPayDays,
+            avgLateDays
+        };
+    }
+
+    function computePaymentPredictions() {
+        const predictions = [];
+        state.customers.forEach(customer => {
+            const stats = computeCustomerPaymentStats(customer);
+            if (stats.outstanding <= 0) return;
+
+            let score = 0;
+            const reasons = [];
+
+            if (stats.maxOverdueDays >= 30) {
+                score += 4;
+                reasons.push(`Overdue ${stats.maxOverdueDays} days`);
+            } else if (stats.maxOverdueDays >= 14) {
+                score += 3;
+                reasons.push(`Overdue ${stats.maxOverdueDays} days`);
+            } else if (stats.maxOverdueDays >= 7) {
+                score += 2;
+                reasons.push(`Overdue ${stats.maxOverdueDays} days`);
+            }
+
+            if (stats.oldestOutstandingAgeDays >= 45) {
+                score += 2;
+                reasons.push(`Old balance ${stats.oldestOutstandingAgeDays} days`);
+            } else if (stats.oldestOutstandingAgeDays >= 30) {
+                score += 1;
+                reasons.push(`Old balance ${stats.oldestOutstandingAgeDays} days`);
+            }
+
+            if (stats.daysSinceLastPayment >= 30) {
+                score += 2;
+                reasons.push(`No payment for ${stats.daysSinceLastPayment} days`);
+            } else if (stats.daysSinceLastPayment >= 14) {
+                score += 1;
+                reasons.push(`No payment for ${stats.daysSinceLastPayment} days`);
+            }
+
+            if (typeof stats.avgLateDays === 'number' && stats.avgLateDays >= 10) {
+                score += 2;
+                reasons.push(`Usually pays late (avg ${Math.round(stats.avgLateDays)}d)`);
+            } else if (typeof stats.avgLateDays === 'number' && stats.avgLateDays >= 5) {
+                score += 1;
+                reasons.push(`Sometimes late (avg ${Math.round(stats.avgLateDays)}d)`);
+            }
+
+            const risk = score >= 5 ? 'high' : score >= 3 ? 'medium' : 'low';
+            if (risk === 'low') return;
+
+            predictions.push({
+                customerId: customer.id,
+                customerName: customer.name,
+                outstanding: stats.outstanding,
+                maxOverdueDays: stats.maxOverdueDays,
+                daysSinceLastPayment: stats.daysSinceLastPayment,
+                risk,
+                reasons
+            });
+        });
+
+        const riskRank = { high: 3, medium: 2, low: 1 };
+        predictions.sort((a, b) => {
+            const r = (riskRank[b.risk] || 0) - (riskRank[a.risk] || 0);
+            if (r !== 0) return r;
+            return (b.maxOverdueDays || 0) - (a.maxOverdueDays || 0);
+        });
+        return predictions.slice(0, 12);
+    }
+
+    function computeWeeklyBusinessReport() {
+        const today = todayString();
+        const weekStart = getStartOfWeekISO(today);
+
+        let paymentsTotal = 0;
+        const paymentByCustomer = new Map();
+
+        state.customers.forEach(c => {
+            (c.payments || []).forEach(p => {
+                if (!p?.date) return;
+                if (p.date < weekStart || p.date > today) return;
+                const amt = Math.max(0, Number(p.amount) || 0);
+                if (amt <= 0) return;
+                paymentsTotal = roundMoney(paymentsTotal + amt);
+                const prev = paymentByCustomer.get(c.id) || { customerId: c.id, customerName: c.name, amount: 0 };
+                prev.amount = roundMoney(prev.amount + amt);
+                paymentByCustomer.set(c.id, prev);
+            });
+        });
+
+        let newDebtTotal = 0;
+        state.customers.forEach(c => {
+            (c.debts || []).forEach(d => {
+                if (!d?.date) return;
+                if (d.date < weekStart || d.date > today) return;
+                const amt = Math.max(0, Number(d.amount) || 0);
+                if (amt <= 0) return;
+                newDebtTotal = roundMoney(newDebtTotal + amt);
+            });
+        });
+
+        let settledDebtTotal = 0;
+        let settledDebtCount = 0;
+        state.customers.forEach(c => {
+            (c.debts || []).forEach(d => {
+                if (!d?.closedAt) return;
+                if (d.closedAt < weekStart || d.closedAt > today) return;
+                const amt = Math.max(0, Number(d.amount) || 0);
+                settledDebtTotal = roundMoney(settledDebtTotal + amt);
+                settledDebtCount += 1;
+            });
+        });
+
+        const payments = Array.from(paymentByCustomer.values()).sort((a, b) => (b.amount || 0) - (a.amount || 0));
+        return {
+            weekStart,
+            weekEnd: today,
+            paymentsTotal,
+            paymentsCountCustomers: payments.length,
+            payments,
+            newDebtTotal,
+            settledDebtTotal,
+            settledDebtCount
+        };
+    }
+
+    function renderAIInsights(options = {}) {
+        const listEl = document.getElementById('ai-prediction-list');
+        const weeklyListEl = document.getElementById('ai-weekly-list');
+        const weeklySummaryEl = document.getElementById('ai-weekly-summary');
+        const predSubtitleEl = document.getElementById('ai-prediction-subtitle');
+        const weeklySubtitleEl = document.getElementById('ai-weekly-subtitle');
+        if (!listEl || !weeklyListEl || !weeklySummaryEl) return;
+
+        const isBangla = state.language === 'bn';
+        const today = todayString();
+
+        const predictions = computePaymentPredictions();
+        if (predSubtitleEl) {
+            predSubtitleEl.textContent = isBangla
+                ? `তারিখ: ${formatDisplayDate(today)} · ${predictions.length}টি সতর্কতা`
+                : `As of ${formatDisplayDate(today)} · ${predictions.length} alerts`;
+        }
+
+        if (!predictions.length) {
+            listEl.innerHTML = `<div class="ai-prediction-item"><div class="ai-prediction-name">${isBangla ? 'এখন কোনো ঝুঁকি পাওয়া যায়নি' : 'No risks found right now'}</div><div class="ai-prediction-meta">${isBangla ? 'কোনো ক্রেতা দীর্ঘদিন ওভারডিউ/নিষ্ক্রিয় নয়।' : 'No customer looks strongly overdue/inactive.'}</div></div>`;
+        } else {
+            listEl.innerHTML = predictions.map(p => {
+                const badge = p.risk === 'high' ? (isBangla ? 'উচ্চ' : 'High') : (isBangla ? 'মাঝারি' : 'Medium');
+                const badgeClass = p.risk === 'high' ? 'high' : 'medium';
+                const overdueText = p.maxOverdueDays > 0
+                    ? (isBangla ? `ওভারডিউ ${p.maxOverdueDays} দিন` : `Overdue ${p.maxOverdueDays}d`)
+                    : (isBangla ? 'ওভারডিউ নেই' : 'Not overdue');
+                const lastPayText = (p.daysSinceLastPayment !== Infinity)
+                    ? (isBangla ? `শেষ পেমেন্ট ${p.daysSinceLastPayment} দিন আগে` : `Last paid ${p.daysSinceLastPayment}d ago`)
+                    : (isBangla ? 'কখনও পেমেন্ট নেই' : 'No payments yet');
+                const reasons = (p.reasons || []).slice(0, 3).join(' · ');
+                return `
+                    <div class="ai-prediction-item">
+                        <div class="ai-prediction-top">
+                            <div>
+                                <div class="ai-prediction-name">${escapeHtml(p.customerName)}</div>
+                                <div class="ai-prediction-meta">${formatCurrency(p.outstanding)} · ${overdueText} · ${lastPayText}${reasons ? ` · ${escapeHtml(reasons)}` : ''}</div>
+                            </div>
+                            <span class="ai-risk-badge ${badgeClass}">${badge}</span>
+                        </div>
+                        <div class="ai-prediction-actions">
+                            <button type="button" class="ai-mini-btn primary" data-ai-action="add-followup" data-customer-id="${p.customerId}">
+                                ${isBangla ? 'রিমাইন্ডার যোগ' : 'Add reminder'}
+                            </button>
+                            <button type="button" class="ai-mini-btn" data-ai-action="open-customer" data-customer-id="${p.customerId}">
+                                ${isBangla ? 'ক্রেতা খুলুন' : 'Open'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        const weekly = computeWeeklyBusinessReport();
+        if (weeklySubtitleEl) {
+            weeklySubtitleEl.textContent = isBangla
+                ? `${formatDisplayDate(weekly.weekStart)} → ${formatDisplayDate(weekly.weekEnd)}`
+                : `${formatDisplayDate(weekly.weekStart)} → ${formatDisplayDate(weekly.weekEnd)}`;
+        }
+
+        weeklySummaryEl.textContent = isBangla
+            ? `এই সপ্তাহে আদায়: ${formatCurrency(weekly.paymentsTotal)} · পেমেন্ট করেছে: ${weekly.paymentsCountCustomers} জন · নতুন দেনা: ${formatCurrency(weekly.newDebtTotal)} · পরিশোধ হয়েছে: ${weekly.settledDebtCount}টি (${formatCurrency(weekly.settledDebtTotal)})`
+            : `Collected this week: ${formatCurrency(weekly.paymentsTotal)} · Customers paid: ${weekly.paymentsCountCustomers} · New debt: ${formatCurrency(weekly.newDebtTotal)} · Settled: ${weekly.settledDebtCount} (${formatCurrency(weekly.settledDebtTotal)})`;
+
+        if (!weekly.payments.length) {
+            weeklyListEl.innerHTML = `<div class="ai-weekly-item"><div class="ai-prediction-name">${isBangla ? 'এই সপ্তাহে কোনো পেমেন্ট নেই' : 'No payments recorded this week'}</div></div>`;
+        } else {
+            weeklyListEl.innerHTML = weekly.payments.slice(0, 10).map(row => `
+                <div class="ai-weekly-item">
+                    <div class="ai-prediction-name">${escapeHtml(row.customerName)}</div>
+                    <div class="ai-prediction-meta">${formatCurrency(row.amount)}</div>
+                </div>
+            `).join('');
+        }
+
+        if (options.save !== false) {
+            state.ai.lastInsightsAt = Date.now();
+            saveState();
+        }
+    }
+
     function openProfileModal() {
         if (!forms.profile || !modals.profile) return;
         forms.profile.reset();
@@ -2437,20 +2814,23 @@
         modals.profile?.close();
     }
 
-    function applyTheme(theme, options = {}) {
-        // All available themes - 7 new professional themes + legacy themes
-        const allThemes = [
-            // New professional themes
-            'studio-pro',      // Crisp & premium
-            'cozy-ledger',      // Warm & calming
-            'clean-business',   // Minimal high-contrast
-            'night-shop',       // Dark mode optimized
-            'zen-finance',      // Peaceful pastels
-            'street-ledger',    // Bold & modern
-            'classic-paper',    // Traditional ledger
-            // Legacy themes for backward compatibility
-            'light', 'dark', 'ocean', 'rose'
-        ];
+	    function applyTheme(theme, options = {}) {
+	        // All available themes - 7 new professional themes + legacy themes
+	        const allThemes = [
+	            // New professional themes
+	            'studio-pro',      // Crisp & premium
+	            'cozy-ledger',      // Warm & calming
+	            'clean-business',   // Minimal high-contrast
+	            'night-shop',       // Dark mode optimized
+	            'zen-finance',      // Peaceful pastels
+	            'street-ledger',    // Bold & modern
+	            'classic-paper',    // Traditional ledger
+	            // Extra dark themes (Settings tiles)
+	            'midnight-purple',
+	            'sunset-orange',
+	            // Legacy themes for backward compatibility
+	            'light', 'dark', 'ocean', 'rose'
+	        ];
 
         // Map old theme names to new themes
         const themeMap = {
@@ -2475,15 +2855,17 @@
         };
 
         // Theme descriptions for UI
-        const themeDescriptions = {
-            'studio-pro': 'Crisp professional palette — refined neutrals with a premium teal focus.',
-            'cozy-ledger': 'Warm, calming tones with soft shadows — designed to reduce stress during long daily use.',
-            'clean-business': 'Minimal high-contrast layout — prioritizes clarity and speed for professional use.',
-            'night-shop': 'Dark theme with eye-friendly highlights — perfect for night-time use.',
-            'zen-finance': 'Peaceful pastel layout — feels spacious and organized for clear financial overview.',
-            'street-ledger': 'Bold modern theme — highlights important actions with energetic colors.',
-            'classic-paper': 'Paper-inspired design — feels familiar and reliable like a traditional ledger.'
-        };
+	        const themeDescriptions = {
+	            'studio-pro': 'Crisp professional palette — refined neutrals with a premium teal focus.',
+	            'cozy-ledger': 'Warm, calming tones with soft shadows — designed to reduce stress during long daily use.',
+	            'clean-business': 'Minimal high-contrast layout — prioritizes clarity and speed for professional use.',
+	            'night-shop': 'Dark theme with eye-friendly highlights — perfect for night-time use.',
+	            'zen-finance': 'Peaceful pastel layout — feels spacious and organized for clear financial overview.',
+	            'street-ledger': 'Bold modern theme — highlights important actions with energetic colors.',
+	            'classic-paper': 'Paper-inspired design — feels familiar and reliable like a traditional ledger.',
+	            'midnight-purple': 'Deep purple dark mode — high contrast with a premium glow.',
+	            'sunset-orange': 'Warm dark mode — amber highlights for night-time use.'
+	        };
 
         let safe = theme;
         if (themeMap[theme]) {
@@ -2656,7 +3038,7 @@
             highlightPlanCards();
         }
         if (panel === 'ai') {
-            ensureAIChatAccessible();
+            ensureProChatAccessible();
         }
         updateDockActiveState(panel);
 
@@ -2677,16 +3059,6 @@
         if (cornerBtn) {
             cornerBtn.hidden = !isFree;
             cornerBtn.setAttribute('aria-hidden', isFree ? 'false' : 'true');
-        }
-    }
-
-    function openAIPaywallModal() {
-        const modal = document.getElementById('ai-paywall-modal');
-        if (!modal) return;
-        if (typeof modal.showModal === 'function') {
-            modal.showModal();
-        } else {
-            modal.setAttribute('open', 'true');
         }
     }
 
@@ -2727,19 +3099,19 @@
             const usageText = (() => {
                 switch (activePlan) {
                     case 'free':
-                        return isBangla ? 'এআই এজেন্ট: ২০/মাস' : 'AI agent: 20/month';
+                        return isBangla ? 'প্রো চ্যাট: ০/মাস' : 'Pro Chat: 0/month';
                     case 'nano':
-                        return isBangla ? 'এআই এজেন্ট: ৫/দিন' : 'AI agent: 5/day';
+                        return isBangla ? 'প্রো চ্যাট: ০/মাস' : 'Pro Chat: 0/month';
                     case 'pro':
-                        return isBangla ? 'এআই এজেন্ট: ১০০/মাস' : 'AI agent: 100/month';
+                        return isBangla ? 'প্রো চ্যাট: ৫০/মাস' : 'Pro Chat: 50/month';
                     case 'max':
-                        return isBangla ? 'এআই এজেন্ট: ১০০/বছর' : 'AI agent: 100/year';
+                        return isBangla ? 'প্রো চ্যাট: ৫০/মাস' : 'Pro Chat: 50/month';
                     case 'ultra':
-                        return isBangla ? 'এআই এজেন্ট: ২০০/বছর' : 'AI agent: 200/year';
+                        return isBangla ? 'প্রো চ্যাট: ৫০/মাস' : 'Pro Chat: 50/month';
                     case 'agentic_ultra':
-                        return isBangla ? 'এআই এজেন্ট: ১০০০/বছর বা ২০০/মাস' : 'AI agent: 1000/year or 200/month';
+                        return isBangla ? 'প্রো চ্যাট: ৫০০/মাস' : 'Pro Chat: 500/month';
                     default:
-                        return isBangla ? 'এআই এজেন্ট: ২০/মাস' : 'AI agent: 20/month';
+                        return isBangla ? 'প্রো চ্যাট: ০/মাস' : 'Pro Chat: 0/month';
                 }
             })();
             usageEl.textContent = usageText;
@@ -2819,15 +3191,11 @@
 
         planEls.forEach(el => { el.textContent = planNames[activePlan] || planNames.free; });
         daysEls.forEach(el => {
-            el.textContent = !expiresAt || activePlan === 'free' ? (isBangla ? 'আজীবন' : 'Lifetime') : String(daysLeft);
+            el.textContent = !expiresAt || activePlan === 'free' ? '0' : String(daysLeft);
         });
 
         renewBoxEls.forEach(el => {
-            if (!expiresAt || activePlan === 'free') {
-                el.hidden = true;
-            } else {
-                el.hidden = false;
-            }
+            el.hidden = false;
         });
         if (expiresAt && activePlan !== 'free') {
             const expiryDate = new Date(expiresAt);
@@ -2835,6 +3203,22 @@
             renewTitleEls.forEach(el => { el.textContent = isBangla ? 'রিনিউ হতে বাকি' : 'Renews in'; });
             renewValueEls.forEach(el => { el.textContent = isBangla ? `${daysLeft} দিন` : `${daysLeft} days`; });
             renewSubEls.forEach(el => { el.textContent = isBangla ? `রিনিউ তারিখ: ${dateStr}` : `Renew date: ${dateStr}`; });
+        } else if (activePlan === 'free') {
+            renewTitleEls.forEach(el => { el.textContent = isBangla ? 'রিনিউ হতে বাকি' : 'Renews in'; });
+            renewValueEls.forEach(el => { el.textContent = isBangla ? '০ দিন' : '0 days'; });
+            renewSubEls.forEach(el => {
+                el.textContent = isBangla
+                    ? 'সক্রিয় সাবস্ক্রিপশন নেই'
+                    : 'No active subscription';
+            });
+        } else {
+            renewTitleEls.forEach(el => { el.textContent = isBangla ? 'রিনিউ হতে বাকি' : 'Renews in'; });
+            renewValueEls.forEach(el => { el.textContent = isBangla ? '০ দিন' : '0 days'; });
+            renewSubEls.forEach(el => {
+                el.textContent = isBangla
+                    ? 'রিনিউ তারিখ সেট করা নেই'
+                    : 'Renew date is not set';
+            });
         }
 
         noteEls.forEach(el => {
@@ -2882,7 +3266,7 @@
         updatePremiumPanelStatus();
         updateSettingsSubscriptionOverview();
         updateNewSettingsUI();
-        ensureAIChatAccessible();
+        ensureProChatAccessible();
         updateDockPremiumVisibility();
         if (typeof highlightPlanCards === 'function') highlightPlanCards();
 
@@ -2998,6 +3382,7 @@
         applyPlanBranding();
         highlightPlanCards();
         updateSettingsSubscriptionOverview();
+        updateSettingsPremiumQuick();
         updateProChatUsageUI();
         // Update language buttons
         const langBtns = document.querySelectorAll('.lang-btn-new');
@@ -3018,7 +3403,7 @@
         });
 
         if (selectors.uiScaleInput) {
-            selectors.uiScaleInput.value = Math.max(0.8, Math.min(1.0, Number(state.ui.uiScale) || 1));
+            selectors.uiScaleInput.value = clampNumber(Number(state.ui.uiScale) || 1, 0.65, 1.15);
         }
         updateUiScaleDisplay();
 
@@ -3026,11 +3411,58 @@
             selectors.simpleTodoToggle.checked = !!state.ui.simpleTodo;
         }
 
+        const darkToggle = document.getElementById('dark-mode-toggle');
+        if (darkToggle) {
+            darkToggle.checked = !!state.ui.darkMode;
+        }
+
         // Update theme tiles
         const themeTiles = document.querySelectorAll('.theme-tile-new');
         themeTiles.forEach(tile => {
             tile.setAttribute('aria-checked', tile.dataset.theme === state.ui.theme ? 'true' : 'false');
         });
+
+        renderAIInsights({ save: false });
+    }
+
+    function updateSettingsPremiumQuick() {
+        const isBangla = state.language === 'bn';
+        const plan = getActivePlan();
+        const planLabels = {
+            free: isBangla ? 'ফ্রি' : 'Free',
+            nano: isBangla ? 'ন্যানো' : 'Nano',
+            pro: isBangla ? 'প্রো' : 'Pro',
+            max: isBangla ? 'ম্যাক্স' : 'Max',
+            ultra: isBangla ? 'আল্ট্রা' : 'Ultra',
+            agentic_ultra: isBangla ? 'এজেন্টিক আল্ট্রা' : 'Agentic Ultra'
+        };
+
+        const planEl = document.getElementById('settings-premium-plan');
+        if (planEl) {
+            planEl.textContent = planLabels[plan] || (plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : planLabels.free);
+        }
+
+        const proInfo = getProChatUsageInfo();
+        const proUsageEl = document.getElementById('settings-premium-prochat-usage');
+        const proLimitEl = document.getElementById('settings-premium-prochat-limit');
+        const proPeriod = proInfo.cycle === 'day'
+            ? (isBangla ? 'প্রতি দিন' : 'per day')
+            : (isBangla ? 'প্রতি মাস' : 'per month');
+
+        if (proUsageEl) {
+            if (proInfo.limit <= 0) {
+                proUsageEl.textContent = isBangla ? 'লকড' : 'Locked';
+            } else if (proInfo.limit === Infinity) {
+                proUsageEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
+            } else {
+                proUsageEl.textContent = `${proInfo.used}/${proInfo.limit}`;
+            }
+        }
+        if (proLimitEl) {
+            proLimitEl.textContent = isBangla
+                ? `Pro Chat লিমিট (${proInfo.limit <= 0 ? 'প্ল্যান দরকার' : proInfo.limit} ${proPeriod})`
+                : `Pro Chat limit (${proInfo.limit <= 0 ? 'Needs plan' : proInfo.limit} ${proPeriod})`;
+        }
     }
 
     // Get customer limit based on subscription
@@ -3176,7 +3608,7 @@
             note
         };
 
-        applyPaymentToDebts(customer, amount);
+        applyPaymentToDebts(customer, amount, date);
         customer.payments.push(paymentRecord);
         customer.lastPaymentAt = date;
         customer.history.push({
@@ -3322,7 +3754,7 @@
         renderCustomers();
     }
 
-    function applyPaymentToDebts(customer, paymentAmount) {
+    function applyPaymentToDebts(customer, paymentAmount, paymentDate) {
         let remaining = paymentAmount;
         const outstandingDebts = (customer.debts || [])
             .map(debt => normalizeDebtRecord(debt, customer))
@@ -3341,9 +3773,13 @@
         if (remaining > 0) {
             // Optional: keep record of extra payment
         }
+        const closedAt = paymentDate || todayString();
         customer.debts.forEach(debt => {
             if (getDebtOutstanding(debt) <= 0) {
                 debt.reminders = { dueToday: false, overdue: false };
+                if (!debt.closedAt) {
+                    debt.closedAt = closedAt;
+                }
             }
         });
     }
@@ -4009,6 +4445,15 @@
         calendarStrip.innerHTML = '';
         const today = new Date();
         const selectedDate = state.ui.selectedDate || todayString();
+        const locale = state.language === 'bn' ? 'bn-BD' : 'en-US';
+
+        const tasksByDate = new Map();
+        state.tasks.forEach(t => {
+            const dateKey = t.dueDate || (t.date && /^\d{4}-\d{2}-\d{2}$/.test(t.date) ? t.date : '');
+            const effectiveDate = dateKey || todayString();
+            if (!tasksByDate.has(effectiveDate)) tasksByDate.set(effectiveDate, []);
+            tasksByDate.get(effectiveDate).push(t);
+        });
 
         for (let i = -3; i <= 3; i++) {
             const date = new Date(today);
@@ -4016,8 +4461,15 @@
             const dateISO = date.toISOString().split('T')[0];
             const isActive = dateISO === selectedDate;
 
-            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+            const dayName = date.toLocaleDateString(locale, { weekday: 'short' });
             const dayNum = date.getDate();
+
+            const tasksForDay = tasksByDate.get(dateISO) || [];
+            const totalTasks = tasksForDay.length;
+            const doneTasks = tasksForDay.filter(t => t.done).length;
+            const dotClass = totalTasks === 0
+                ? ''
+                : (doneTasks >= totalTasks ? 'complete' : 'incomplete');
 
             const dayCard = document.createElement('div');
             dayCard.className = `calendar-day-card ${isActive ? 'active' : ''}`;
@@ -4025,7 +4477,7 @@
                 <span class="calendar-day-name">${dayName}</span>
                 <span class="calendar-day-number">${dayNum}</span>
                 <div class="calendar-day-status">
-                    <span class="status-dot"></span>
+                    <span class="status-dot ${dotClass}"></span>
                 </div>
             `;
             dayCard.addEventListener('click', () => {
@@ -4038,10 +4490,22 @@
 
         // Render Habits
         habitsList.innerHTML = '';
-        const tasksForDate = state.tasks.filter(t => t.dueDate === selectedDate || (!t.dueDate && selectedDate === todayString()));
+        const tasksForDate = state.tasks
+            .filter(t => t.dueDate === selectedDate || (!t.dueDate && selectedDate === todayString()))
+            .sort((a, b) => {
+                const doneSort = Number(!!a.done) - Number(!!b.done);
+                if (doneSort !== 0) return doneSort;
+                const timeA = (a.dueTime || '').toString();
+                const timeB = (b.dueTime || '').toString();
+                if (timeA && timeB && timeA !== timeB) return timeA.localeCompare(timeB);
+                return (a.name || '').localeCompare(b.name || '');
+            });
 
         if (tasksForDate.length === 0) {
-            habitsList.innerHTML = '<p class="empty-state">No tasks for this day.</p>';
+            const emptyText = state.language === 'bn'
+                ? 'এই দিনে কোনো কাজ নেই।'
+                : 'No tasks for this day.';
+            habitsList.innerHTML = `<p class="empty-state">${emptyText}</p>`;
             return;
         }
 
@@ -4049,17 +4513,33 @@
             const habitCard = document.createElement('div');
             habitCard.className = `habit-card ${task.done ? 'checked' : ''}`;
 
+            const metaParts = [];
+            if (task.dueTime) metaParts.push(state.language === 'bn' ? `সময় ${task.dueTime}` : `Time ${task.dueTime}`);
+            if (task.priority && task.priority !== 'medium') {
+                const p = task.priority === 'urgent'
+                    ? (state.language === 'bn' ? 'জরুরি' : 'Urgent')
+                    : task.priority === 'high'
+                        ? (state.language === 'bn' ? 'উচ্চ' : 'High')
+                        : task.priority === 'low'
+                            ? (state.language === 'bn' ? 'কম' : 'Low')
+                            : (state.language === 'bn' ? 'মাঝারি' : 'Medium');
+                metaParts.push((state.language === 'bn' ? 'প্রায়োরিটি ' : 'Priority ') + p);
+            }
+            if (task.note) metaParts.push(task.note);
+            const metaText = metaParts.filter(Boolean).join(' · ');
+
             habitCard.innerHTML = `
                 <div class="habit-checkbox ${task.done ? 'checked' : ''}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </div>
                 <div class="habit-content">
                     <h3 class="habit-title">${escapeHtml(task.name)}</h3>
-                    <div class="habit-streak">🔥 <span>7 in a row. Good job!</span></div>
+                    ${metaText ? `<div class="habit-meta">${escapeHtml(metaText)}</div>` : ''}
                 </div>
             `;
 
-            habitCard.querySelector('.habit-checkbox').addEventListener('click', (e) => {
+            const checkbox = habitCard.querySelector('.habit-checkbox');
+            checkbox?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 task.done = !task.done;
                 saveState();
@@ -4070,8 +4550,17 @@
             habitCard.addEventListener('click', () => {
                 forms.task.reset();
                 setModalMode(forms.task, 'edit');
-                forms.task.elements.name.value = task.name;
-                forms.task.elements.taskId.value = task.id;
+                if (forms.task.elements.name) forms.task.elements.name.value = task.name || '';
+                if (forms.task.elements.taskId) forms.task.elements.taskId.value = task.id || '';
+                if (forms.task.elements.type) forms.task.elements.type.value = task.type || 'personal';
+                if (forms.task.elements.priority) forms.task.elements.priority.value = task.priority || 'medium';
+                if (forms.task.elements.dueDate) forms.task.elements.dueDate.value = task.dueDate || selectedDate || todayString();
+                if (forms.task.elements.dueTime) forms.task.elements.dueTime.value = task.dueTime || '';
+                if (forms.task.elements.note) forms.task.elements.note.value = task.note || '';
+                if (forms.task.elements.recurring) forms.task.elements.recurring.checked = !!task.recurring;
+                if (forms.task.elements.recurringType) forms.task.elements.recurringType.value = task.recurringType || 'daily';
+                const recurringOptions = document.getElementById('recurring-options');
+                if (recurringOptions) recurringOptions.style.display = task.recurring ? 'block' : 'none';
                 modals.task.showModal();
             });
 
@@ -4754,7 +5243,7 @@
         }
         updateLanguageButtons();
         updatePremiumPanelStatus();
-        updateAIUsageUI();
+        updateProChatUsageUI();
     }
 
     function translate(key) {
@@ -4872,6 +5361,26 @@
                 task.reminderSent = true;
             }
         });
+
+        // AI Payment Prediction Engine reminder (once per day)
+        try {
+            const notifyKey = state.ai.predictionNotifyKey;
+            if (notifyKey !== now) {
+                const highRisk = computePaymentPredictions().filter(p => p.risk === 'high');
+                if (highRisk.length) {
+                    const isBangla = state.language === 'bn';
+                    const top = highRisk[0];
+                    const title = isBangla ? '🔮 এআই সতর্কতা' : '🔮 AI alert';
+                    const body = isBangla
+                        ? `${top.customerName}: ${formatCurrency(top.outstanding)} বাকি · ${top.maxOverdueDays} দিন ওভারডিউ`
+                        : `${top.customerName}: ${formatCurrency(top.outstanding)} outstanding · overdue ${top.maxOverdueDays}d`;
+                    showNotification(title, body);
+                    state.ai.predictionNotifyKey = now;
+                }
+            }
+        } catch (error) {
+            // Ignore prediction failures in reminder loop
+        }
         saveState();
     }
 
@@ -5561,75 +6070,6 @@
         });
 
 
-        // AI Chat - Modern UI
-        const aiInput = document.getElementById('ai-input');
-        const aiSendBtn = document.getElementById('ai-send-btn');
-        const aiVoiceBtn = document.getElementById('ai-voice-btn');
-        const aiBuddyOrb = document.getElementById('ai-buddy-orb');
-        const aiMessagesContainer = document.getElementById('ai-messages');
-        const aiSuggestionsContainer = document.getElementById('ai-shortcuts');
-        const aiLimitMessage = document.getElementById('ai-limit-message-modern');
-
-        // Update AI buddy name display
-        updateAIBuddyName();
-
-        // Handle input (both old and new UI)
-        if (aiSendBtn) {
-            aiSendBtn.addEventListener('click', handleAIMessage);
-        }
-        if (aiInput) {
-            let lastReactAt = 0;
-            const syncSendDisabled = () => {
-                if (!aiSendBtn) return;
-                const hasText = !!aiInput.value.trim();
-                aiSendBtn.disabled = aiInput.disabled || !hasText;
-            };
-            aiInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') handleAIMessage();
-            });
-            aiInput.addEventListener('input', () => {
-                const now = Date.now();
-                if (now - lastReactAt > 180) {
-                    animateAIBuddy('react');
-                    lastReactAt = now;
-                }
-                syncSendDisabled();
-            });
-            aiInput.addEventListener('focus', () => {
-                animateAIBuddy('react');
-            });
-            syncSendDisabled();
-        }
-        if (aiVoiceBtn) {
-            aiVoiceBtn.addEventListener('click', () => startVoiceInput('ai'));
-        }
-
-        // AI Settings button (for buddy name customization)
-        document.getElementById('ai-nav-settings')?.addEventListener('click', () => {
-            const newName = prompt(
-                state.language === 'bn'
-                    ? 'আপনার AI সহায়কের নাম কী হবে?'
-                    : 'What should your AI assistant be called?',
-                state.ai.buddyName || 'Assistant'
-            );
-            if (newName && newName.trim()) {
-                state.ai.buddyName = newName.trim();
-                saveState();
-                updateAIBuddyName();
-                playFeedback();
-            }
-        });
-
-        document.getElementById('ai-upgrade-btn')?.addEventListener('click', () => {
-            setActivePanel('premium');
-        });
-
-        document.getElementById('ai-paywall-upgrade-btn')?.addEventListener('click', () => {
-            const modal = document.getElementById('ai-paywall-modal');
-            if (modal) modal.close();
-            setActivePanel('premium');
-        });
-
         // Voice input for debt amount
         document.getElementById('debt-voice-btn')?.addEventListener('click', () => {
             startVoiceInput('debt');
@@ -5641,38 +6081,7 @@
             startVoiceInput('task');
         });
 
-        // AI Suggestions (new UI)
-        document.querySelectorAll('.ai-suggestion-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const suggestion = state.language === 'bn' ? btn.dataset.suggestionBn : btn.dataset.suggestionEn;
-                if (suggestion && aiInput) {
-                    aiInput.value = suggestion;
-                    aiInput.focus();
-                    setTimeout(() => {
-                        handleAIMessage();
-                    }, 100);
-                }
-            });
-        });
-
-        // AI Shortcuts (old UI - for backward compatibility)
-        document.querySelectorAll('.ai-shortcut-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const suggestion = state.language === 'bn' ? btn.dataset.suggestionBn : btn.dataset.suggestionEn;
-                const fallback = btn.dataset.suggestion;
-                const finalSuggestion = suggestion || fallback;
-                if (finalSuggestion) {
-                    const aiInput = document.getElementById('ai-input');
-                    if (aiInput) {
-                        aiInput.value = finalSuggestion;
-                        aiInput.focus();
-                        setTimeout(() => {
-                            handleAIMessage();
-                        }, 100);
-                    }
-                }
-            });
-        });
+        // Legacy AI Agent shortcuts removed
 
         // Monthly Wrap
         // Bills page customization
@@ -5904,7 +6313,7 @@
             // Keep Settings "days left" section in sync immediately after activation.
             updateSettingsSubscriptionOverview();
             updateNewSettingsUI();
-            ensureAIChatAccessible();
+            ensureProChatAccessible();
 
             playFeedbackStrong();
             return true;
@@ -5938,8 +6347,8 @@
         // Haptic on Buy link
         document.querySelector('.premium-buy-button')?.addEventListener('click', () => playFeedback());
 
-        // Ensure AI chat is always accessible (no restrictions for free version)
-        ensureAIChatAccessible();
+        // Keep Optichain Pro Chat up-to-date
+        ensureProChatAccessible();
     }
 
     function initPremiumCarousel() {
@@ -5964,72 +6373,9 @@
         dots.forEach(d => d.addEventListener('click', () => { go(parseInt(d.dataset.index, 10)); }));
     }
 
-    function ensureAIChatAccessible() {
-        const aiChatContainer = document.getElementById('ai-chat-container');
-        if (aiChatContainer) aiChatContainer.style.display = 'flex';
-        updateAIUsageUI();
-        renderAIChatHistory();
-    }
-
     function ensureProChatAccessible() {
         updateProChatUsageUI();
         renderProChatHistory();
-    }
-
-    function renderAIChatHistory() {
-        const messagesContainer = document.getElementById('ai-messages');
-        if (!messagesContainer) return;
-        const history = Array.isArray(state.ai.chatHistory) ? state.ai.chatHistory : [];
-        if (history.length === 0) return;
-
-        messagesContainer.innerHTML = '';
-        messagesContainer.hidden = false;
-        history.forEach(msg => {
-            if (!msg || !msg.role || !msg.content) return;
-            const isUser = msg.role === 'user';
-            const msgEl = document.createElement('div');
-            if (messagesContainer.classList.contains('ai-chat-messages-modern')) {
-                msgEl.className = isUser ? 'ai-message-modern user' : 'ai-message-modern assistant';
-                msgEl.innerHTML = isUser
-                    ? `
-                        <div class="ai-message-avatar-modern">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="ai-message-content-modern"><p>${escapeHtml(String(msg.content))}</p></div>
-                    `
-                    : `
-                        <div class="ai-message-avatar-modern">🤖</div>
-                        <div class="ai-message-content-modern"><p style="white-space: pre-line;">${escapeHtml(String(msg.content))}</p></div>
-                    `;
-            } else {
-                msgEl.className = isUser ? 'ai-message ai-message-user' : 'ai-message ai-message-assistant';
-                msgEl.innerHTML = isUser
-                    ? `
-                        <div class="ai-avatar">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                        </div>
-                        <div class="ai-content"><p>${escapeHtml(String(msg.content))}</p></div>
-                    `
-                    : `
-                        <div class="ai-avatar">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                <polyline points="21 15 16 10 5 21"></polyline>
-                            </svg>
-                        </div>
-                        <div class="ai-content"><p style="white-space: pre-line;">${escapeHtml(String(msg.content))}</p></div>
-                    `;
-            }
-            messagesContainer.appendChild(msgEl);
-        });
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
     function renderProChatHistory() {
@@ -6093,8 +6439,8 @@
             expiryEl.style.display = 'none';
         }
 
-        // Ensure AI chat is always accessible regardless of subscription
-        ensureAIChatAccessible();
+        // Keep Optichain Pro Chat up-to-date regardless of subscription
+        ensureProChatAccessible();
 
         // Update dock premium button visibility
         updateDockPremiumVisibility();
@@ -6635,12 +6981,7 @@
 
         // Dock size custom slider (no presets, just custom slider)
 
-        // Dock size custom slider (range: 0.6 to 1.15 - compact to large)
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4732', message: 'Dock slider initialization check', data: { dockSizeInputFound: !!selectors.dockSizeInput, currentScale: state.ui.dockScale }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
-        // #endregion
         if (selectors.dockSizeInput) {
-            console.log('Dock custom slider found, initializing...');
             const currentScale = clampNumber(state.ui.dockScale || 1, 0.6, 1.15);
             selectors.dockSizeInput.value = currentScale;
             applyDockScale(currentScale);
@@ -6650,29 +6991,17 @@
             if (!selectors.dockSizeInput.hasAttribute('data-listener-attached')) {
                 selectors.dockSizeInput.setAttribute('data-listener-attached', 'true');
                 selectors.dockSizeInput.addEventListener('input', (event) => {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4742', message: 'Dock slider value changed', data: { newValue: event.target.value }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
-                    // #endregion
-                    console.log('Dock size changed:', event.target.value);
                     const value = applyDockScale(event.target.value);
-                    // #region agent log
-                    fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4745', message: 'Dock scale applied', data: { appliedValue: value, cssVar: getComputedStyle(document.documentElement).getPropertyValue('--dock-scale') }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
-                    // #endregion
-                    console.log('Applied dock scale:', value);
                     state.ui.dockScale = value;
                     updateDockScaleDisplay();
                     saveState();
                 });
             }
         } else {
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:4752', message: 'Dock slider NOT FOUND', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
-            // #endregion
-            console.log('Dock custom slider NOT found');
         }
 
         if (selectors.uiScaleInput) {
-            const currentScale = Math.max(0.8, Math.min(1.0, state.ui.uiScale || 1));
+            const currentScale = clampNumber(Number(state.ui.uiScale) || 1, 0.65, 1.15);
             selectors.uiScaleInput.value = currentScale;
             applyUiScale(currentScale);
             updateUiScaleDisplay();
@@ -6870,12 +7199,36 @@
             });
         });
 
+        // Dark mode toggle (quick switch to Night theme)
+        document.getElementById('dark-mode-toggle')?.addEventListener('change', (e) => {
+            const enabled = !!e.target?.checked;
+            state.ui.darkMode = enabled;
+            if (enabled) {
+                if (state.ui.theme && state.ui.theme !== 'night-shop') {
+                    state.ui.lastThemeBeforeDark = state.ui.theme;
+                }
+                state.ui.theme = 'night-shop';
+                applyTheme('night-shop');
+            } else {
+                const next = state.ui.lastThemeBeforeDark || 'studio-pro';
+                state.ui.theme = next;
+                applyTheme(next);
+            }
+            updateNewSettingsUI();
+            saveState();
+            playFeedback();
+        });
+
         // Theme tiles (new UI)
         document.querySelectorAll('.theme-tile-new').forEach(tile => {
             tile.addEventListener('click', () => {
                 const theme = tile.dataset.theme;
                 if (theme) {
+                    if (theme !== 'night-shop') {
+                        state.ui.lastThemeBeforeDark = theme;
+                    }
                     state.ui.theme = theme;
+                    state.ui.darkMode = theme === 'night-shop' || theme === 'dark';
                     applyTheme(theme);
                     document.querySelectorAll('.theme-tile-new').forEach(t => t.setAttribute('aria-checked', 'false'));
                     tile.setAttribute('aria-checked', 'true');
@@ -6883,6 +7236,7 @@
                     document.querySelectorAll('.theme-appearance-tile').forEach(t => {
                         t.setAttribute('aria-checked', t.dataset.theme === theme ? 'true' : 'false');
                     });
+                    updateNewSettingsUI();
                     saveState();
                     playFeedback();
                 }
@@ -6978,7 +7332,7 @@
 
         const todoFab = document.getElementById('todo-add-btn');
         if (todoFab) {
-            todoFab.addEventListener('click', () => openTaskModalPrefill('', todayString(), '', ''));
+            todoFab.addEventListener('click', () => promptQuickTaskName());
         }
 
         // Initial render
@@ -8428,32 +8782,22 @@
 
     function getAIUsageInfo() {
         const plan = getActivePlan();
-        // Limits: 
+        // Limits:
         // Free = 20/month
         // Nano = 5/day
-        // Pro = 100/month
-        // Max = 100/year (effectively per cycle if cycle is year, but let's assume year)
-        // Ultra = 200/year
-        // Agentic Ultra = 200/month or 1000/year depending on cycle
+        // Pro = 50/month
+        // Max = 50/month
+        // Ultra = 50/month
+        // Agentic Ultra = 500/month (hidden from usage meter UI)
 
         let limit = 20; // Default (Free)
         let cycle = 'month';
 
         if (plan === 'nano') { limit = 5; cycle = 'day'; }
-        else if (plan === 'pro') { limit = 100; cycle = 'month'; }
-        else if (plan === 'max') { limit = 100; cycle = 'year'; }
-        else if (plan === 'ultra') { limit = 200; cycle = 'year'; }
-        else if (plan === 'agentic_ultra') {
-            // Check if monthly or yearly based on expiry duration
-            const sub = state.subscription;
-            // If expiry is > 40 days away from activation, it's roughly a year. 
-            // Or simpler: check coupon used.
-            if (sub && sub.couponUsed === 'HELLOPIE90') {
-                limit = 1000; cycle = 'year';
-            } else {
-                limit = 200; cycle = 'month';
-            }
-        }
+        else if (plan === 'pro') { limit = 50; cycle = 'month'; }
+        else if (plan === 'max') { limit = 50; cycle = 'month'; }
+        else if (plan === 'ultra') { limit = 50; cycle = 'month'; }
+        else if (plan === 'agentic_ultra') { limit = 500; cycle = 'month'; }
 
         const now = new Date();
         let windowKey = '';
@@ -8485,11 +8829,11 @@
         let limit = 0;
         let cycle = 'month';
 
-        if (plan === 'nano' || plan === 'pro') {
-            limit = 2;
-            cycle = 'day';
-        } else if (plan === 'max' || plan === 'ultra' || plan === 'agentic_ultra') {
-            limit = 100;
+        if (plan === 'pro' || plan === 'max' || plan === 'ultra') {
+            limit = 50;
+            cycle = 'month';
+        } else if (plan === 'agentic_ultra') {
+            limit = 500;
             cycle = 'month';
         } else {
             limit = 0;
@@ -8515,24 +8859,30 @@
             saveState();
         }
 
+        const creditBalance = Math.max(0, Number(state.ai.proChatCreditBalance) || 0);
         const used = Number(state.ai.proChatUsageCount) || 0;
-        const remaining = limit === Infinity ? Infinity : Math.max(0, limit - used);
-        return { plan, limit, used, remaining, windowKey, cycle };
+        const totalLimit = limit === Infinity ? Infinity : limit + creditBalance;
+        const remaining = totalLimit === Infinity ? Infinity : Math.max(0, totalLimit - used);
+        return { plan, limit, totalLimit, creditBalance, used, remaining, windowKey, cycle };
     }
 
     function consumeProChatUsage() {
         const info = getProChatUsageInfo();
-        if (info.limit <= 0) {
+        if (info.totalLimit <= 0) {
             return { allowed: false, info, message: buildLimitMessage(info, 'Pro Chat') };
         }
-        if (info.limit !== Infinity && info.remaining <= 0) {
+        if (info.totalLimit !== Infinity && info.remaining <= 0) {
             return { allowed: false, info, message: buildLimitMessage(info, 'Pro Chat') };
         }
-        if (info.limit !== Infinity) {
+        if (info.totalLimit !== Infinity) {
             state.ai.proChatUsageCount += 1;
+            if (state.ai.proChatUsageCount > info.limit) {
+                const newBalance = Math.max(0, (info.limit + info.creditBalance) - state.ai.proChatUsageCount);
+                state.ai.proChatCreditBalance = newBalance;
+            }
             saveState();
             info.used = state.ai.proChatUsageCount;
-            info.remaining = Math.max(0, info.limit - info.used);
+            info.remaining = Math.max(0, (info.limit + info.creditBalance) - info.used);
         }
         return { allowed: true, info };
     }
@@ -8553,10 +8903,13 @@
         const countEl = document.getElementById('prochat-usage-count');
         const hintEl = document.getElementById('prochat-usage-hint');
         const barEl = document.getElementById('prochat-usage-bar');
+        const creditEl = document.getElementById('prochat-credit-balance');
         const lockEl = document.getElementById('prochat-lock');
         const inputEl = document.getElementById('prochat-input');
         const sendBtn = document.getElementById('prochat-send-btn');
         const noApiBadge = document.getElementById('prochat-noapi-badge');
+        const usageMeterEl = countEl?.closest('.prochat-usage-meter');
+        const hideUsageMeter = info.plan === 'agentic_ultra';
 
         const cycle = info?.cycle === 'day' || info?.cycle === 'month' || info?.cycle === 'year'
             ? info.cycle
@@ -8565,29 +8918,33 @@
         const resetBn = cycle === 'day' ? 'প্রতিদিন রিসেট' : (cycle === 'year' ? 'প্রতি বছরে রিসেট' : 'প্রতি মাসে রিসেট');
 
         if (planEl) planEl.textContent = planLabels[info.plan] || planLabels.free;
-        if (countEl) {
-            if (info.limit === Infinity) {
-                countEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
-            } else {
-                countEl.textContent = `${info.used}/${info.limit}`;
+        if (creditEl) creditEl.textContent = `${info.creditBalance || 0}`;
+        if (usageMeterEl) usageMeterEl.hidden = hideUsageMeter;
+        if (!hideUsageMeter) {
+            if (countEl) {
+                if (info.totalLimit === Infinity) {
+                    countEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
+                } else {
+                    countEl.textContent = `${info.used}/${info.totalLimit}`;
+                }
             }
-        }
-        if (hintEl) hintEl.textContent = isBangla ? resetBn : resetEn;
-        if (barEl) {
-            if (info.limit === Infinity || info.limit === 0) {
-                barEl.style.width = '0%';
-            } else {
-                const percent = Math.min(100, (info.used / info.limit) * 100);
-                barEl.style.width = `${percent}%`;
+            if (hintEl) hintEl.textContent = isBangla ? resetBn : resetEn;
+            if (barEl) {
+                if (info.totalLimit === Infinity || info.totalLimit === 0) {
+                    barEl.style.width = '0%';
+                } else {
+                    const percent = Math.min(100, (info.used / info.totalLimit) * 100);
+                    barEl.style.width = `${percent}%`;
+                }
             }
         }
 
         if (noApiBadge) noApiBadge.style.display = hasDeepSeekKey() ? 'none' : 'inline-flex';
 
-        const locked = info.limit <= 0 || !hasDeepSeekKey();
+        const locked = info.totalLimit <= 0 || !hasDeepSeekKey();
         if (lockEl) lockEl.hidden = !locked;
-        if (inputEl) inputEl.disabled = locked || (info.limit !== Infinity && info.remaining <= 0);
-        if (sendBtn) sendBtn.disabled = locked || (info.limit !== Infinity && info.remaining <= 0);
+        if (inputEl) inputEl.disabled = locked || (info.totalLimit !== Infinity && info.remaining <= 0);
+        if (sendBtn) sendBtn.disabled = locked || (info.totalLimit !== Infinity && info.remaining <= 0);
     }
 
     function buildLimitMessage(info, label = 'AI') {
@@ -8700,6 +9057,8 @@
         const inputEl = document.getElementById('ai-input');
         const sendBtn = document.getElementById('ai-send-btn');
         const voiceBtn = document.getElementById('ai-voice-btn');
+        const usageMeterEl = countEl?.closest('.ai-usage-meter');
+        const hideUsageMeter = info.plan === 'agentic_ultra';
 
         const cycle = info?.cycle === 'day' || info?.cycle === 'month' || info?.cycle === 'year'
             ? info.cycle
@@ -8710,26 +9069,29 @@
         const resetBn = cycle === 'day' ? 'প্রতিদিন রিসেট' : (cycle === 'year' ? 'প্রতি বছরে রিসেট' : 'প্রতি মাসে রিসেট');
 
         if (planEl) planEl.textContent = planLabel;
-        if (countEl) {
-            if (info.limit === Infinity) {
-                countEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
-            } else {
-                countEl.textContent = isBangla
-                    ? `${info.remaining}/${info.limit} ${periodBn} বাকি`
-                    : `${info.remaining}/${info.limit} left ${periodEn}`;
+        if (usageMeterEl) usageMeterEl.hidden = hideUsageMeter;
+        if (!hideUsageMeter) {
+            if (countEl) {
+                if (info.limit === Infinity) {
+                    countEl.textContent = isBangla ? 'আনলিমিটেড' : 'Unlimited';
+                } else {
+                    countEl.textContent = isBangla
+                        ? `${info.remaining}/${info.limit} ${periodBn} বাকি`
+                        : `${info.remaining}/${info.limit} left ${periodEn}`;
+                }
             }
-        }
-        if (hintEl) {
-            hintEl.textContent = isBangla ? resetBn : resetEn;
-        }
-        if (barEl) {
-            if (info.limit === Infinity) {
-                barEl.style.width = '100%';
-                barEl.dataset.state = 'unlimited';
-            } else {
-                const percent = info.limit ? Math.min(100, (info.used / info.limit) * 100) : 0;
-                barEl.style.width = `${percent}%`;
-                barEl.dataset.state = 'meter';
+            if (hintEl) {
+                hintEl.textContent = isBangla ? resetBn : resetEn;
+            }
+            if (barEl) {
+                if (info.limit === Infinity) {
+                    barEl.style.width = '100%';
+                    barEl.dataset.state = 'unlimited';
+                } else {
+                    const percent = info.limit ? Math.min(100, (info.used / info.limit) * 100) : 0;
+                    barEl.style.width = `${percent}%`;
+                    barEl.dataset.state = 'meter';
+                }
             }
         }
 
@@ -8737,7 +9099,7 @@
 
         // Update old UI limit message
         if (limitMessage) {
-            if (limitReached) {
+            if (limitReached && !hideUsageMeter) {
                 const titleText = isBangla
                     ? (cycle === 'day' ? 'আজকের এআই লিমিট শেষ হয়েছে' : (cycle === 'year' ? 'এই বছরের এআই লিমিট শেষ হয়েছে' : 'এই মাসের এআই লিমিট শেষ হয়েছে'))
                     : `Your AI limit is finished for ${periodEn}`;
@@ -8754,7 +9116,7 @@
 
         // Update new UI limit message
         if (limitMessageModern) {
-            if (limitReached) {
+            if (limitReached && !hideUsageMeter) {
                 const modernTitle = limitMessageModern.querySelector('h3');
                 const modernBody = limitMessageModern.querySelector('p');
                 const titleText = isBangla
@@ -8770,8 +9132,6 @@
                 limitMessageModern.setAttribute('hidden', 'hidden');
             }
         }
-
-        updateNoApiBadge();
 
         if (inputEl) inputEl.disabled = limitReached;
         if (sendBtn) sendBtn.disabled = limitReached;
@@ -8989,6 +9349,36 @@
         renderDebtLedger();
         renderAIDebtCalendar();
         return customer;
+    }
+
+    function applyCustomerDetailsFromAI(customer, data = {}) {
+        if (!customer || !data || typeof data !== 'object') return false;
+        let changed = false;
+        const phone = (data.phone || data.phoneNumber || '').toString().trim();
+        if (phone && phone !== (customer.phone || '')) {
+            customer.phone = phone;
+            changed = true;
+        }
+        const note = (data.note || '').toString().trim();
+        if (note && note !== (customer.note || '')) {
+            customer.note = note;
+            changed = true;
+        }
+        const repaymentDaysRaw = Number(data.repaymentDays || data.repayDays || 0);
+        if (Number.isFinite(repaymentDaysRaw) && repaymentDaysRaw > 0) {
+            const normalizedDays = Math.max(1, Math.round(repaymentDaysRaw));
+            if (normalizedDays !== Number(customer.repaymentDays || 7)) {
+                customer.repaymentDays = normalizedDays;
+                changed = true;
+            }
+        }
+        if (!changed) return false;
+        customer.updatedAt = Date.now();
+        saveState();
+        renderCustomers();
+        renderDebtLedger();
+        renderAIDebtCalendar();
+        return true;
     }
 
     function autoRecordDebtEntry(customer, amount, note, date) {
@@ -9258,24 +9648,36 @@
         return null;
     }
 
-    function getNextThemeInCycle(currentTheme) {
-        const cycle = ['studio-pro', 'cozy-ledger', 'clean-business', 'night-shop', 'zen-finance', 'street-ledger', 'classic-paper'];
-        const idx = cycle.indexOf(currentTheme);
-        if (idx === -1) return cycle[0];
-        return cycle[(idx + 1) % cycle.length];
-    }
+	    function getNextThemeInCycle(currentTheme) {
+	        const cycle = [
+	            'studio-pro',
+	            'cozy-ledger',
+	            'clean-business',
+	            'night-shop',
+	            'midnight-purple',
+	            'sunset-orange',
+	            'zen-finance',
+	            'street-ledger',
+	            'classic-paper'
+	        ];
+	        const idx = cycle.indexOf(currentTheme);
+	        if (idx === -1) return cycle[0];
+	        return cycle[(idx + 1) % cycle.length];
+	    }
 
-    function getThemeFriendlyName(theme, isBangla) {
-        const names = {
-            'studio-pro': { en: 'Studio', bn: 'স্টুডিও' },
-            'cozy-ledger': { en: 'Cozy', bn: 'কোজি' },
-            'clean-business': { en: 'Clean', bn: 'ক্লিন' },
-            'night-shop': { en: 'Night', bn: 'ডার্ক' },
-            'zen-finance': { en: 'Zen', bn: 'জেন' },
-            'street-ledger': { en: 'Street', bn: 'স্ট্রিট' },
-            'classic-paper': { en: 'Classic', bn: 'ক্লাসিক' },
-            'light': { en: 'Light', bn: 'লাইট' },
-            'dark': { en: 'Dark', bn: 'ডার্ক' },
+	    function getThemeFriendlyName(theme, isBangla) {
+	        const names = {
+	            'studio-pro': { en: 'Studio', bn: 'স্টুডিও' },
+	            'cozy-ledger': { en: 'Cozy', bn: 'কোজি' },
+	            'clean-business': { en: 'Clean', bn: 'ক্লিন' },
+	            'night-shop': { en: 'Night', bn: 'ডার্ক' },
+	            'midnight-purple': { en: 'Midnight', bn: 'মিডনাইট' },
+	            'sunset-orange': { en: 'Sunset', bn: 'সানসেট' },
+	            'zen-finance': { en: 'Zen', bn: 'জেন' },
+	            'street-ledger': { en: 'Street', bn: 'স্ট্রিট' },
+	            'classic-paper': { en: 'Classic', bn: 'ক্লাসিক' },
+	            'light': { en: 'Light', bn: 'লাইট' },
+	            'dark': { en: 'Dark', bn: 'ডার্ক' },
             'ocean': { en: 'Ocean', bn: 'ওশান' },
             'rose': { en: 'Rose', bn: 'রোজ' }
         };
@@ -9407,6 +9809,24 @@
             return isBangla
                 ? `${customer.name} এর জন্য ${formatCurrency(amount)} বাকি নিলাম${dateLabel ? ` — ${dateLabel}` : ''}${noteLabel}।`
                 : `Recorded ${formatCurrency(amount)} debt for ${customer.name}${dateLabel ? ` — ${dateLabel}` : ''}${noteLabel}.`;
+        }
+
+        if (actionName === 'add_customer') {
+            const customerName = (data.customerName || data.customer || data.name || '').toString().trim();
+            if (!customerName) {
+                state.ai.pendingIntent = { type: 'add_customer', data };
+                return isBangla ? 'কাস্টমারের নামটা বলুন।' : 'Please tell me the customer name.';
+            }
+            const customer = ensureCustomerByName(customerName);
+            const detailsUpdated = applyCustomerDetailsFromAI(customer, data);
+            if (detailsUpdated) {
+                return isBangla
+                    ? `${customer.name} কে কাস্টমার তালিকায় যোগ/আপডেট করেছি।`
+                    : `Added or updated ${customer.name} in your customer list.`;
+            }
+            return isBangla
+                ? `${customer.name} কে কাস্টমার তালিকায় যোগ করেছি।`
+                : `Added ${customer.name} to your customer list.`;
         }
 
         if (actionName === 'add_note') {
@@ -9834,6 +10254,18 @@
         playFeedback();
     }
 
+    function promptQuickTaskName(defaultValue = '') {
+        const isBangla = state.language === 'bn';
+        const title = prompt(
+            isBangla ? 'কাজের নাম লিখুন' : 'Enter task name',
+            defaultValue || ''
+        );
+        const clean = (title || '').trim();
+        if (!clean) return;
+        autoCreateTaskEntry({ title: clean });
+        playFeedback();
+    }
+
     function openNoteModalPrefill(noteTitle, noteBody) {
         if (!forms.note || !modals.note) return;
         forms.note.reset();
@@ -9849,6 +10281,21 @@
         if (!pending) return null;
 
         const isBangla = state.language === 'bn';
+        if (pending.type === 'add_customer') {
+            const guessedName = extractQuotedText(userMessage) || extractCustomerName(userMessage) || extractNameFromText(userMessage) || userMessage.trim();
+            const customerName = (guessedName || '').trim();
+            if (!customerName) {
+                state.ai.pendingIntent = pending;
+                return isBangla ? 'কাস্টমারের নামটা আবার বলুন।' : 'Please share the customer name again.';
+            }
+            const customer = ensureCustomerByName(customerName);
+            applyCustomerDetailsFromAI(customer, pending.data || {});
+            state.ai.pendingIntent = null;
+            return isBangla
+                ? `${customer.name} কে কাস্টমার তালিকায় যোগ করেছি।`
+                : `Added ${customer.name} to your customer list.`;
+        }
+
         if (pending.type === 'add_debt') {
             const parsed = parseDebtFromText(userMessage, { customerId: pending.data.customerId });
             const merged = {
@@ -9975,107 +10422,6 @@
         return null;
     }
 
-    async function handleAIMessage() {
-        const input = document.getElementById('ai-input');
-        const messagesContainer = document.getElementById('ai-messages');
-        const suggestionsContainer = document.getElementById('ai-shortcuts');
-        if (!input) return;
-
-        const userMessage = input.value.trim();
-        if (!userMessage) return;
-        if (input.disabled) {
-            updateAIUsageUI();
-            return;
-        }
-
-        // Hide suggestions and show messages when conversation starts
-        if (suggestionsContainer && suggestionsContainer.hidden === false) {
-            suggestionsContainer.hidden = true;
-        }
-        if (messagesContainer) {
-            messagesContainer.hidden = false;
-        }
-
-        // Add user message (support both old and new UI)
-        const userMsgEl = document.createElement('div');
-        if (messagesContainer.classList.contains('ai-chat-messages-modern')) {
-            // New UI
-            userMsgEl.className = 'ai-message-modern user';
-            userMsgEl.innerHTML = `
-                <div class="ai-message-avatar-modern">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                </div>
-                <div class="ai-message-content-modern"><p>${escapeHtml(userMessage)}</p></div>
-            `;
-        } else {
-            // Old UI
-            userMsgEl.className = 'ai-message ai-message-user';
-            userMsgEl.innerHTML = `
-                <div class="ai-avatar">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                </div>
-                <div class="ai-content"><p>${escapeHtml(userMessage)}</p></div>
-            `;
-        }
-        if (messagesContainer) {
-            messagesContainer.appendChild(userMsgEl);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-        input.value = '';
-        playFeedback();
-        animateAIBuddy('thinking');
-        const sendBtn = document.getElementById('ai-send-btn');
-        if (sendBtn) sendBtn.disabled = true;
-
-        // Generate AI response
-        const aiResponse = await generateAIResponse(userMessage);
-
-        // Add AI response (support both old and new UI)
-        const aiMsgEl = document.createElement('div');
-        if (messagesContainer && messagesContainer.classList.contains('ai-chat-messages-modern')) {
-            // New UI
-            aiMsgEl.className = 'ai-message-modern assistant';
-            aiMsgEl.innerHTML = `
-                <div class="ai-message-avatar-modern">🤖</div>
-                <div class="ai-message-content-modern"><p style="white-space: pre-line;">${escapeHtml(aiResponse)}</p></div>
-            `;
-        } else {
-            // Old UI
-            aiMsgEl.className = 'ai-message ai-message-assistant';
-            aiMsgEl.innerHTML = `
-                <div class="ai-avatar">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
-                </div>
-                <div class="ai-content"><p style="white-space: pre-line;">${escapeHtml(aiResponse)}</p></div>
-            `;
-        }
-        if (messagesContainer) {
-            messagesContainer.appendChild(aiMsgEl);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-        playFeedback();
-        animateAIBuddy('happy');
-        updateAIUsageUI();
-        if (sendBtn) {
-            // After sending, keep disabled until user types again.
-            sendBtn.disabled = true;
-        }
-
-        // Speak the response if voice output is enabled (optional feature)
-        // Uncomment to enable voice output:
-        // speakText(aiResponse, state.language);
-    }
-
     async function handleProChatMessage() {
         const input = document.getElementById('prochat-input');
         const messagesContainer = document.getElementById('prochat-messages');
@@ -10088,6 +10434,15 @@
 
         const userMessage = input.value.trim();
         if (!userMessage) return;
+
+        const pendingReply = resolvePendingIntent(userMessage);
+        if (pendingReply) {
+            appendProChatMessage('user', userMessage);
+            input.value = '';
+            appendProChatMessage('assistant', pendingReply);
+            updateProChatUsageUI();
+            return;
+        }
 
         const usage = consumeProChatUsage();
         if (!usage.allowed) {
@@ -10103,7 +10458,8 @@
         try {
             const reply = await requestDeepSeekProChatResponse(userMessage);
             const responseText = reply || 'No response received.';
-            appendProChatMessage('assistant', responseText);
+            const actionReply = tryHandleDeepSeekActions(responseText, state.language === 'bn');
+            appendProChatMessage('assistant', actionReply || responseText);
         } catch (error) {
             console.error('DeepSeek Pro Chat failed:', error);
             appendProChatMessage('assistant', error?.message || 'DeepSeek Pro Chat failed.');
@@ -10129,67 +10485,10 @@
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
+    // Legacy helper (AI Agent removed). Keep as a thin wrapper so older code paths
+    // don’t crash if they still call it.
     async function requestDeepSeekResponse(userMessage) {
-        const config = getDeepSeekConfig();
-        if (!config.apiKey) return null;
-
-        const messages = buildDeepSeekMessages(userMessage, config.systemPrompt);
-        const url = buildDeepSeekChatUrl(config.baseUrl);
-        const payload = {
-            model: config.model,
-            messages,
-            stream: false
-        };
-
-        const attemptRequest = async () => {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs);
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${config.apiKey}`
-                    },
-                    body: JSON.stringify(payload),
-                    signal: controller.signal
-                });
-
-                const text = await response.text();
-                let data = null;
-                if (text) {
-                    try {
-                        data = JSON.parse(text);
-                    } catch (err) {
-                        data = null;
-                    }
-                }
-                return { response, data, text };
-            } finally {
-                clearTimeout(timeoutId);
-            }
-        };
-
-        let attempt = await attemptRequest();
-        if (!attempt.response.ok && (attempt.response.status >= 500 || attempt.response.status === 429)) {
-            await sleep(400);
-            attempt = await attemptRequest();
-        }
-
-        if (!attempt.response.ok) {
-            const errorMessage = attempt.data?.error?.message || attempt.text || `DeepSeek API error (${attempt.response.status})`;
-            throw new Error(errorMessage);
-        }
-
-        const content = attempt.data?.choices?.[0]?.message?.content;
-        if (!content) {
-            throw new Error('DeepSeek API returned an empty response.');
-        }
-
-        appendChatHistory('user', userMessage);
-        appendChatHistory('assistant', content);
-        saveState();
-        return String(content).trim();
+        return requestDeepSeekProChatResponse(userMessage);
     }
 
     async function requestDeepSeekProChatResponse(userMessage) {
@@ -10197,7 +10496,7 @@
         if (!config.apiKey) return null;
 
         const env = getEnvConfig();
-        const basePrompt = (env.DEEPSEEK_SYSTEM_PROMPT || ENV_DEFAULTS.DEEPSEEK_SYSTEM_PROMPT).toString().trim();
+        const basePrompt = buildDeepSeekSystemPrompt(env.DEEPSEEK_SYSTEM_PROMPT || ENV_DEFAULTS.DEEPSEEK_SYSTEM_PROMPT);
         const history = Array.isArray(state.ai.proChatHistory) ? state.ai.proChatHistory : [];
         const messages = buildDeepSeekMessagesWithHistory(userMessage, basePrompt, history);
         const url = buildDeepSeekChatUrl(config.baseUrl);
@@ -10265,6 +10564,11 @@
     }
 
     async function generateAIResponse(userMessage) {
+        // AI Agent has been removed. Keep this function as a safe fallback for older saved states.
+        return state.language === 'bn'
+            ? 'AI Agent সরিয়ে দেওয়া হয়েছে। Optichain Pro Chat এবং Card Generator ব্যবহার করুন।'
+            : 'AI Agent has been removed. Use Optichain Pro Chat and the Card Generator.';
+
         const usage = consumeAIUsage();
         if (!usage.allowed) {
             return usage.message;
@@ -10577,11 +10881,19 @@
         }
 
         const remainingInfo = usage.info;
-        const remainingText = remainingInfo.limit === Infinity
-            ? (isBangla ? 'এআই ব্যবহার: আনলিমিটেড' : 'AI usage: Unlimited')
-            : remainingInfo.plan === 'max'
-                ? (isBangla ? `এই সাইকেলে বাকি: ${remainingInfo.remaining} বার` : `Remaining this cycle: ${remainingInfo.remaining} uses`)
-                : (isBangla ? `আজ বাকি: ${remainingInfo.remaining} বার` : `Remaining today: ${remainingInfo.remaining} uses`);
+        const remainingCycleEn = remainingInfo.cycle === 'day'
+            ? 'today'
+            : (remainingInfo.cycle === 'year' ? 'this year' : 'this month');
+        const remainingCycleBn = remainingInfo.cycle === 'day'
+            ? 'আজ'
+            : (remainingInfo.cycle === 'year' ? 'এই বছরে' : 'এই মাসে');
+        const remainingText = remainingInfo.plan === 'agentic_ultra'
+            ? (isBangla ? 'এআই ব্যবহার: প্ল্যান অনুযায়ী (লিমিট লুকানো)' : 'AI usage: plan-based (usage hidden)')
+            : remainingInfo.limit === Infinity
+                ? (isBangla ? 'এআই ব্যবহার: আনলিমিটেড' : 'AI usage: Unlimited')
+                : (isBangla
+                    ? `${remainingCycleBn} বাকি: ${remainingInfo.remaining} বার`
+                    : `Remaining ${remainingCycleEn}: ${remainingInfo.remaining} uses`);
 
         if (!deepSeekAttempted && hasDeepSeekKey()) {
             try {
@@ -10685,14 +10997,6 @@
             return;
         }
 
-        if (type === 'ai') {
-            const usage = getAIUsageInfo();
-            if (usage.limit !== Infinity && usage.remaining <= 0) {
-                updateAIUsageUI(usage);
-                return;
-            }
-        }
-
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!recognition) {
             recognition = new SpeechRecognition();
@@ -10744,11 +11048,6 @@
             btn.classList.toggle('listening', recording);
         });
 
-        // Animate AI buddy when listening
-        if (type === 'ai') {
-            animateAIBuddy(recording ? 'listening' : 'idle');
-        }
-
         // Toggle overlay for all voice input types
         if (overlay) {
             if (recording) overlay.classList.add('active');
@@ -10757,13 +11056,7 @@
     }
 
     function processVoiceInput(transcript, type) {
-        if (type === 'ai') {
-            const aiInput = document.getElementById('ai-input');
-            if (aiInput) {
-                aiInput.value = transcript;
-                setTimeout(() => handleAIMessage(), 200);
-            }
-        } else if (type === 'debt') {
+        if (type === 'debt') {
             const fallbackCustomerId = forms.debt?.elements?.customerId?.value || '';
             const payload = parseDebtFromText(transcript, { customerId: fallbackCustomerId });
             if (forms.debt) {
@@ -10893,19 +11186,12 @@
 
     function applyDockScale(scale) {
         const normalized = clampNumber(Number(scale) || 1, 0.6, 1.15); // Range: 0.6 (compact) to 1.15 (large)
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:6423', message: 'applyDockScale called', data: { input: scale, normalized }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
-        // #endregion
-        console.log('applyDockScale:', { input: scale, normalized });
         document.documentElement.style.setProperty('--dock-scale', normalized);
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/7591a081-794e-4c95-addc-58f3e67a995c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'app.js:6427', message: 'CSS variable set', data: { cssVarValue: getComputedStyle(document.documentElement).getPropertyValue('--dock-scale') }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'H3' }) }).catch(() => { });
-        // #endregion
         return normalized;
     }
 
     function applyUiScale(scale) {
-        const normalized = clampNumber(Number(scale) || 1, 0.8, 1.0);
+        const normalized = clampNumber(Number(scale) || 1, 0.65, 1.15);
         document.documentElement.style.setProperty('--ui-scale', normalized);
         return normalized;
     }
@@ -10924,11 +11210,14 @@
         if (simplePanel) simplePanel.hidden = !isSimple;
         if (advancedPanel) advancedPanel.hidden = !!isSimple;
 
+        document.body.dataset.todoMode = isSimple ? 'simple' : 'advanced';
+
         if (isSimple) {
             renderSimpleTodoList();
         } else {
             renderNewTodoList(getCurrentTodoCategory());
         }
+        renderTasks();
         updateTodoStats();
     }
 
@@ -11007,8 +11296,7 @@
 
     // AI Tools Functions
     function initAITools() {
-        // AI Chat: Ultra only; ensureAIChatAccessible() shows chat for Ultra, subscription message for others
-        ensureAIChatAccessible();
+        // Optichain Pro Chat + Card Generator
         ensureProChatAccessible();
 
         // AI tools tab switching
@@ -11031,8 +11319,6 @@
                     }
                 });
 
-                // AI Chat tab: Ultra sees chat; non-Ultra sees subscription upsell (trust ratio available when user asks, in Ultra)
-                if (targetTab === 'chat') ensureAIChatAccessible();
                 if (targetTab === 'prochat') ensureProChatAccessible();
             });
         });
@@ -11044,6 +11330,65 @@
             proChatInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     handleProChatMessage();
+                }
+            });
+        }
+
+        const creditBtn = document.getElementById('prochat-credit-buy-btn');
+        const creditInput = document.getElementById('prochat-credit-coupon');
+        const creditNote = document.getElementById('prochat-credit-note');
+        const creditCard = document.querySelector('.prochat-credit-card');
+        const creditHideBtn = document.getElementById('prochat-credit-hide-btn');
+        const creditShowBtn = document.getElementById('prochat-credit-show-btn');
+
+        const applyProChatCreditVisibility = () => {
+            const isHidden = !!state.ui.hideProChatCredit;
+            if (creditCard) creditCard.style.display = isHidden ? 'none' : 'grid';
+            if (creditShowBtn) creditShowBtn.hidden = !isHidden;
+        };
+
+        applyProChatCreditVisibility();
+
+        if (creditHideBtn) {
+            creditHideBtn.addEventListener('click', () => {
+                state.ui.hideProChatCredit = true;
+                saveState();
+                applyProChatCreditVisibility();
+            });
+        }
+
+        if (creditShowBtn) {
+            creditShowBtn.addEventListener('click', () => {
+                state.ui.hideProChatCredit = false;
+                saveState();
+                applyProChatCreditVisibility();
+            });
+        }
+
+        if (creditBtn && creditInput) {
+            creditBtn.addEventListener('click', () => {
+                const code = (creditInput.value || '').trim();
+                const isBangla = state.language === 'bn';
+                if (!code) {
+                    if (creditNote) {
+                        creditNote.textContent = isBangla ? 'কুপন কোড দিন।' : 'Please enter a coupon code.';
+                    }
+                    return;
+                }
+                if (code === 'Gelipotiliesy789') {
+                    state.ai.proChatCreditBalance = Math.max(0, Number(state.ai.proChatCreditBalance) || 0) + 500;
+                    saveState();
+                    updateProChatUsageUI();
+                    creditInput.value = '';
+                    if (creditNote) {
+                        creditNote.textContent = isBangla
+                            ? 'সফল! ৫০০ ক্রেডিট যোগ হয়েছে।'
+                            : 'Success! 500 credits added.';
+                    }
+                } else {
+                    if (creditNote) {
+                        creditNote.textContent = isBangla ? 'ভুল কুপন কোড।' : 'Invalid coupon code.';
+                    }
                 }
             });
         }
@@ -11304,13 +11649,7 @@
         }
 
         const logoHTML = resolveCardLogo(payload.selectedLogoId);
-        const dueDateFormatted = payload.dueDate
-            ? new Date(payload.dueDate).toLocaleDateString(state.language === 'bn' ? 'bn-BD' : 'en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            })
-            : '';
+        const dueDateFormatted = payload.dueDate ? formatDisplayDate(payload.dueDate) : '';
         const daysLeft = payload.dueDate ? daysUntil(payload.dueDate) : null;
         const dueBadge = Number.isFinite(daysLeft) ? formatDaysLeftText(daysLeft) : '';
         let dueStatus = '';
@@ -11321,6 +11660,8 @@
         }
 
         const amountText = payload.debtAmount > 0 ? formatCurrency(payload.debtAmount) : '৳0';
+        const shopPhone = (state.shop?.phoneNumber || '').toString().trim();
+        const generatedDate = formatDisplayDate(todayString());
 
         const cardHTML = `
             <div class="card-top-row">
@@ -11356,8 +11697,15 @@
                         <strong>${dueDateFormatted}</strong>
                     </div>
                     ` : ''}
+                    ${shopPhone ? `
+                    <div class="card-detail-row">
+                        <span>${state.language === 'bn' ? 'ফোন' : 'Phone'}:</span>
+                        <strong>${escapeHtml(shopPhone)}</strong>
+                    </div>
+                    ` : ''}
                 </div>
                 ${payload.customMessage ? `<p class="card-message">"${escapeHtml(payload.customMessage)}"</p>` : ''}
+                <p class="card-footer">${state.language === 'bn' ? `তৈরি: ${generatedDate}` : `Generated: ${generatedDate}`}</p>
             </div>
         `;
 
@@ -11564,8 +11912,15 @@
         }
 
         const shopName = payload.shopName || state.shop?.shopName || 'Your Shop';
-        drawText(shopName, logoX + logoBox + 18, logoY + 28, { size: 22, weight: 800, color: textColor, baseline: 'alphabetic' });
-        drawText(translate('ai.reminderTagline') || 'Please settle the balance by the due date.', logoX + logoBox + 18, logoY + 54, { size: 13, weight: 600, color: textSoft });
+        const headerX = logoX + logoBox + 18;
+        const headerMaxW = width - margin - headerX - 220;
+        const nameEndY = wrapText(shopName, headerX, logoY + 28, Math.max(220, headerMaxW), 26, { size: 22, weight: 900, color: textColor, baseline: 'alphabetic' });
+        const taglineY = nameEndY + 22;
+        drawText(translate('ai.reminderTagline') || 'Please settle the balance by the due date.', headerX, taglineY, { size: 13, weight: 600, color: textSoft });
+        const shopPhone = (state.shop?.phoneNumber || '').toString().trim();
+        if (shopPhone) {
+            drawText(`${state.language === 'bn' ? 'ফোন' : 'Phone'}: ${shopPhone}`, headerX, taglineY + 20, { size: 12, weight: 700, color: textSoft });
+        }
 
         // Badge (top-right)
         const badgeText = (translate('ai.reminderBadge') || 'Payment Reminder').toUpperCase();
@@ -11648,6 +12003,12 @@
             drawText((translate('ai.customMessage') || 'Message').toUpperCase(), margin + 18, msgTop + 30, { size: 11, weight: 900, color: labelColor });
             wrapText(`"${payload.customMessage}"`, margin + 18, msgTop + 68, width - margin * 2 - 36, 24, { size: 16, weight: 700, color: textSoft });
         }
+
+        // Footer
+        const footerY = height - 36;
+        drawText('DebtX Beta 3', margin, footerY, { size: 12, weight: 900, color: textSoft, baseline: 'alphabetic' });
+        const genLabel = state.language === 'bn' ? `তৈরি: ${formatDisplayDate(todayString())}` : `Generated: ${formatDisplayDate(todayString())}`;
+        drawText(genLabel, width - margin, footerY, { size: 12, weight: 700, color: textSoft, align: 'right', baseline: 'alphabetic' });
 
         try {
             return canvas.toDataURL('image/png', 1.0);
