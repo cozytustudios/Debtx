@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Debtx | Digital Khata for Bangladeshi Shopkeepers</title>
+    <title>Debtx (Beta 3) | Digital Khata for Bangladeshi Shopkeepers</title>
     <link rel="icon" href="/iconx.png" type="iconx.png">
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="themes.css" />
@@ -18,18 +18,19 @@
         // Apply theme early to prevent flash of unstyled content
         (function () {
             try {
-                const stored = localStorage.getItem('debtx-data-v1');
-                if (stored) {
-                    const data = JSON.parse(stored);
-                    const theme = data?.ui?.theme || 'studio-pro';
-                    const validThemes = [
-                        'light', 'dark', 'ocean', 'rose',
-                        'studio-pro', 'cozy-ledger', 'clean-business', 'night-shop',
-                        'zen-finance', 'street-ledger', 'classic-paper'
-                    ];
-                    if (validThemes.includes(theme)) {
-                        document.documentElement.setAttribute('data-theme', theme);
-                    } else {
+	                const stored = localStorage.getItem('debtx-data-v1');
+	                if (stored) {
+	                    const data = JSON.parse(stored);
+	                    const theme = data?.ui?.theme || 'studio-pro';
+	                    const validThemes = [
+	                        'light', 'dark', 'ocean', 'rose',
+	                        'studio-pro', 'cozy-ledger', 'clean-business', 'night-shop',
+	                        'zen-finance', 'street-ledger', 'classic-paper',
+	                        'midnight-purple', 'sunset-orange'
+	                    ];
+	                    if (validThemes.includes(theme)) {
+	                        document.documentElement.setAttribute('data-theme', theme);
+	                    } else {
                         document.documentElement.setAttribute('data-theme', 'studio-pro');
                     }
                 }
@@ -194,8 +195,8 @@
                     </span>
                 </button>
 
-                <!-- 3. AI Agent (Central Featured) -->
-                <button class="dock-item dock-item-agent" data-target="ai" id="nav-ai" aria-label="AI Agent / এজেন্ট">
+                <!-- 3. Pro Chat (Central Featured) -->
+                <button class="dock-item dock-item-agent" data-target="ai" id="nav-ai" aria-label="Pro Chat / প্রো চ্যাট">
                     <div class="dock-agent-bubble">
                         <svg class="dock-icon-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -205,8 +206,8 @@
                         </svg>
                     </div>
                     <span class="dock-label-agent dock-label-bilingual" data-i18n-skip="true">
-                        <span class="label-en">Agent</span>
-                        <span class="label-bn">এজেন্ট</span>
+                        <span class="label-en">Pro Chat</span>
+                        <span class="label-bn">প্রো চ্যাট</span>
                     </span>
                 </button>
 
@@ -448,19 +449,17 @@
                 <div class="cards" id="bills-list" aria-live="polite"></div>
             </section>
 
-            <section class="panel" id="panel-ai" aria-label="AI Agent">
+            <section class="panel" id="panel-ai" aria-label="Pro Chat">
                 <div class="panel-header">
                     <div>
-                        <h1 data-i18n="ai.title">AI Agent</h1>
-                        <p class="panel-subtitle" data-i18n="ai.subtitle">Calm Bangla assistant for debt, tasks, and
-                            notes</p>
+                        <h1>Optichain Pro Chat</h1>
+                        <p class="panel-subtitle">Fast chat + Card Generator</p>
                     </div>
                 </div>
 
                 <!-- AI Tools Tabs -->
                 <div class="ai-tools-tabs">
                     <button class="ai-tab-btn active" data-ai-tab="prochat">Optichain Pro Chat</button>
-                    <button class="ai-tab-btn" data-ai-tab="chat" data-i18n="ai.chat">AI Agent</button>
                     <button class="ai-tab-btn" data-ai-tab="cardgen" data-i18n="ai.cardGenerator">Card
                         Generator</button>
                 </div>
@@ -481,23 +480,53 @@
                                 <span class="prochat-usage-label">Plan</span>
                                 <strong id="prochat-usage-plan">Free</strong>
                             </div>
-                            <div class="prochat-usage-meter">
-                                <div class="prochat-usage-row">
-                                    <span>Usage</span>
-                                    <span id="prochat-usage-count">0/0</span>
-                                </div>
-                                <div class="prochat-usage-bar">
-                                    <span id="prochat-usage-bar"></span>
-                                </div>
-                                <span class="prochat-usage-hint" id="prochat-usage-hint">Resets monthly</span>
+	                            <div class="prochat-usage-meter">
+	                                <div class="prochat-usage-row">
+	                                    <span>Usage</span>
+	                                    <span id="prochat-usage-count">0/0</span>
+	                                </div>
+	                                <div class="prochat-usage-bar">
+	                                    <span id="prochat-usage-bar"></span>
+	                                </div>
+	                                <span class="prochat-usage-hint" id="prochat-usage-hint">Resets monthly</span>
+	                            </div>
+                            <div class="prochat-usage-credit">
+                                <span class="prochat-usage-label">Credit balance</span>
+                                <strong id="prochat-credit-balance">0</strong>
                             </div>
+                            <button type="button" class="prochat-credit-toggle" id="prochat-credit-show-btn" hidden>
+                                <span class="title-en">Show Buy AI credit</span>
+                                <span class="title-bn">ক্রেডিট কেনা দেখান</span>
+                            </button>
                             <span class="prochat-noapi-badge" id="prochat-noapi-badge">No API</span>
+                        </div>
+
+                        <div class="prochat-credit-card">
+                            <div class="prochat-credit-title">
+                                <span>Buy AI credit</span>
+                                <span class="prochat-credit-price">500 credit · ৳275</span>
+                                <button type="button" class="prochat-credit-toggle" id="prochat-credit-hide-btn">
+                                    <span class="title-en">Hide</span>
+                                    <span class="title-bn">লুকান</span>
+                                </button>
+                            </div>
+	                            <div class="prochat-credit-form">
+	                                <input type="text" id="prochat-credit-coupon" placeholder="Enter coupon code" />
+	                                <button type="button" class="support-btn-new upgrade" id="prochat-credit-buy-btn">
+	                                    <span class="title-en">Apply Coupon</span>
+	                                    <span class="title-bn">কুপন দিন</span>
+	                                </button>
+	                            </div>
+                            <p class="prochat-credit-note" id="prochat-credit-note">
+                                <span class="title-en">Coupon required to unlock credits.</span>
+                                <span class="title-bn">ক্রেডিট নিতে কুপন লাগবে।</span>
+                            </p>
                         </div>
 
                         <div class="prochat-lock" id="prochat-lock" hidden>
                             <div class="prochat-lock-card">
                                 <h3>Optichain Pro Chat is locked</h3>
-                                <p>Upgrade to Max or Ultra to unlock 100 chats per month.</p>
+                                <p>Upgrade to Pro, Max, or Ultra for 50 chats/month. Agentic Ultra gets 500/month.</p>
                                 <button type="button" class="support-btn-new upgrade upgrade-plan-btn">
                                     <span class="title-en">Upgrade Plan</span>
                                     <span class="title-bn">আপগ্রেড প্ল্যান</span>
@@ -729,126 +758,6 @@
                     </div>
                 </div>
 
-                <!-- AI Chat -->
-                <div class="ai-tool-panel" id="ai-chat-panel">
-                    <div class="ai-agent-ui-modern">
-                        <!-- Top Navigation -->
-                        <div class="ai-nav-modern">
-                            <button class="ai-nav-menu" id="ai-nav-menu" aria-label="Menu">☰</button>
-                            <button class="ai-nav-settings" id="ai-nav-settings" aria-label="Settings">⚙</button>
-                        </div>
-
-                        <!-- Greeting Section -->
-                        <div class="ai-greeting-modern">
-                            <h2 class="ai-greeting-name" id="ai-greeting-name">
-                                <span class="title-en">Hello, <span id="ai-buddy-name-display">Assistant</span>!</span>
-                                <span class="title-bn">হ্যালো, <span id="ai-buddy-name-display-bn">সহায়ক</span>!</span>
-                            </h2>
-                            <p class="ai-greeting-question" data-i18n="ai.greetingQuestion">How can I help you today?
-                            </p>
-                        </div>
-
-                        <div class="ai-usage-strip" aria-live="polite">
-                            <div class="ai-usage-plan">
-                                <span class="ai-usage-label" data-i18n="ai.usagePlanLabel">Plan</span>
-                                <strong id="ai-usage-plan">Free</strong>
-                            </div>
-                            <div class="ai-usage-meter">
-                                <div class="ai-usage-meter-row">
-                                    <span data-i18n="ai.usageLabel">AI usage</span>
-                                    <span id="ai-usage-count">0/30 today</span>
-                                </div>
-                                <div class="ai-usage-bar">
-                                    <span id="ai-usage-bar"></span>
-                                </div>
-                                <span class="ai-usage-hint" id="ai-usage-hint">Resets daily</span>
-                            </div>
-                            <span class="ai-noapi-badge" data-i18n="ai.noApiBadge">No API</span>
-                        </div>
-
-                        <!-- AI Buddy (Reactive Orb) -->
-                        <div class="ai-buddy-container">
-                            <div class="ai-buddy-orb" id="ai-buddy-orb">
-                                <div class="ai-buddy-eyes">
-                                    <div class="ai-buddy-eye left"></div>
-                                    <div class="ai-buddy-eye right"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Suggested Actions -->
-                        <div class="ai-suggestions-modern" id="ai-shortcuts">
-                            <button class="ai-suggestion-btn" data-suggestion-en="Add debt for Rahim 500 taka"
-                                data-suggestion-bn="রাহিম ৫০০ টাকা বাকি যোগ করো">
-                                <span class="suggestion-icon">🧾</span>
-                                <span class="title-en">Add a debt</span>
-                                <span class="title-bn">বাকি যোগ করো</span>
-                            </button>
-                            <button class="ai-suggestion-btn"
-                                data-suggestion-en="Add task tomorrow 9am: payment reminder"
-                                data-suggestion-bn="আগামীকাল সকাল ৯টায় পেমেন্ট রিমাইন্ডার টাস্ক যোগ করো">
-                                <span class="suggestion-icon">✅</span>
-                                <span class="title-en">Add a task</span>
-                                <span class="title-bn">টাস্ক যোগ করো</span>
-                            </button>
-                            <button class="ai-suggestion-btn" data-suggestion-en="Summarize today's tasks"
-                                data-suggestion-bn="আজকের টাস্কগুলো সংক্ষেপে বলো">
-                                <span class="suggestion-icon">🗂</span>
-                                <span class="title-en">Summarize tasks</span>
-                                <span class="title-bn">টাস্ক সারাংশ</span>
-                            </button>
-                            <button class="ai-suggestion-btn" data-suggestion-en="Change theme to cozy dark"
-                                data-suggestion-bn="থিম কজি ডার্ক করে দাও">
-                                <span class="suggestion-icon">🎨</span>
-                                <span class="title-en">Change theme</span>
-                                <span class="title-bn">থিম বদলাও</span>
-                            </button>
-                        </div>
-
-                        <!-- Input Bar -->
-                        <div class="ai-input-bar-modern">
-                            <button class="ai-input-add-btn" id="ai-input-add-btn" aria-label="Add">+</button>
-                            <input type="text" id="ai-input" class="ai-input-modern" placeholder="Ask me anything..."
-                                data-i18n-placeholder="ai.placeholder" />
-                            <button class="ai-send-btn-modern" id="ai-send-btn" aria-label="Send">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                                </svg>
-                            </button>
-                            <button class="ai-voice-btn-modern" id="ai-voice-btn" data-voice-target="ai"
-                                aria-label="Voice Input">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                                    <line x1="12" y1="19" x2="12" y2="23"></line>
-                                    <line x1="8" y1="23" x2="16" y2="23"></line>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <!-- Usage Limit Message (shown when limit reached) -->
-                        <div id="ai-limit-message-modern" class="ai-limit-message-modern" hidden>
-                            <div class="ai-limit-content">
-                                <div class="ai-limit-icon-modern">🌿</div>
-                                <div>
-                                    <h3 data-i18n="ai.limitTitleFree">Your free AI limit is finished for today</h3>
-                                    <p data-i18n="ai.limitBodyFree">Upgrade to Max or Ultra for more calm, Bangla-first
-                                        AI support.</p>
-                                </div>
-                                <button class="ai-limit-cta-modern" id="ai-upgrade-btn" data-i18n="ai.limitCta">See
-                                    Plans</button>
-                            </div>
-                        </div>
-
-                        <!-- Chat Messages (hidden by default, shown when conversation starts) -->
-                        <div class="ai-chat-messages-modern" id="ai-messages" hidden>
-                            <!-- Messages will be dynamically added here -->
-                        </div>
-                    </div>
-                </div>
             </section>
 
             <section class="panel" id="panel-notes" aria-label="Notes and Tasks">
@@ -862,34 +771,63 @@
                         <span class="title-en">Notes</span>
                         <span class="title-bn">নোট</span>
                     </button>
-                </div>
-                <div id="tasks-section" hidden>
-                    <div class="habit-tracker-v2">
-                        <!-- Horizontal Calendar Strip -->
-                        <div class="calendar-strip" id="task-calendar-strip">
-                            <!-- JS will render days here -->
-                        </div>
+	                </div>
+	                <div id="tasks-section" hidden>
+	                    <!-- Simple To-Do (toggled from Settings) -->
+	                    <div class="todo-simple" id="todo-simple" hidden>
+	                        <div class="todo-simple-header">
+	                            <h2>
+	                                <span class="title-en">Simple To-Do</span>
+	                                <span class="title-bn">সহজ টু-ডু</span>
+	                            </h2>
+	                            <p>
+	                                <span class="title-en">A clean checklist for quick daily tasks.</span>
+	                                <span class="title-bn">দৈনন্দিন কাজের জন্য সহজ চেকলিস্ট।</span>
+	                            </p>
+	                        </div>
 
-                        <div class="todo-header-clean">
-                            <div class="todo-header-left">
-                                <h1 class="todo-title-bold">To-Do Today</h1>
-                                <button class="habit-add-pill" id="add-habit-btn">
-                                    <span class="pill-icon">📅</span>
-                                    <span>New habit</span>
-                                </button>
-                            </div>
-                        </div>
+	                        <div class="todo-simple-input">
+	                            <input type="text" id="simple-task-input" maxlength="80"
+	                                placeholder="Add a task…" />
+	                            <button type="button" id="simple-add-task-btn" aria-label="Add task">+</button>
+	                        </div>
 
-                        <!-- Habit-style List -->
-                        <div class="habit-list-container" id="habit-tasks-list">
-                            <!-- Habits will be rendered here -->
-                        </div>
-                        <button class="todo-add-fab" id="todo-add-btn" aria-label="Add task">
-                            <span class="todo-add-icon">+</span>
-                            <span class="todo-add-label">Add task</span>
-                        </button>
-                    </div>
-                </div>
+	                        <div class="todo-simple-empty" id="todo-simple-empty" hidden>
+	                            <span class="title-en">No tasks yet.</span>
+	                            <span class="title-bn">এখনো কোনো কাজ নেই।</span>
+	                        </div>
+	                        <div class="todo-simple-list" id="todo-simple-list"></div>
+	                    </div>
+
+	                    <!-- Advanced To-Do / Habits -->
+	                    <div id="todo-app-advanced">
+	                        <div class="habit-tracker-v2">
+	                            <!-- Horizontal Calendar Strip -->
+	                            <div class="calendar-strip" id="task-calendar-strip">
+	                                <!-- JS will render days here -->
+	                            </div>
+
+	                            <div class="todo-header-clean">
+	                                <div class="todo-header-left">
+	                                    <h1 class="todo-title-bold">To-Do Today</h1>
+	                                    <button class="habit-add-pill" id="add-habit-btn">
+	                                        <span class="pill-icon">📅</span>
+	                                        <span>New habit</span>
+	                                    </button>
+	                                </div>
+	                            </div>
+
+	                            <!-- Habit-style List -->
+	                            <div class="habit-list-container" id="habit-tasks-list">
+	                                <!-- Habits will be rendered here -->
+	                            </div>
+	                            <button class="todo-add-fab" id="todo-add-btn" aria-label="Add task">
+	                                <span class="todo-add-icon">+</span>
+	                                <span class="todo-add-label">Add task</span>
+	                            </button>
+	                        </div>
+	                    </div>
+	                </div>
 
                 <div id="notes-section" hidden>
                     <div class="notes-app-v3">
@@ -1001,7 +939,7 @@
                             </div>
                             <ul class="pill-features">
                                 <li class="included">Core baki, bills & tasks</li>
-                                <li class="included">AI agent: 20 / month</li>
+                                <li class="included">Optichain Pro Chat: locked</li>
                                 <li class="included">Offline-first data</li>
                                 <li class="excluded">Advanced exports</li>
                             </ul>
@@ -1023,8 +961,8 @@
                             </div>
                             <p class="pill-slashed">৳550</p>
                             <ul class="pill-features">
-                                <li class="included">AI agent: 100 / year</li>
-                                <li class="included">Full agent button across app</li>
+                                <li class="included">Optichain Pro Chat: 50 / month</li>
+                                <li class="included">Full Pro Chat button across app</li>
                                 <li class="included">Themes + automation</li>
                                 <li class="included">Priority reminders</li>
                             </ul>
@@ -1042,7 +980,7 @@
                             <header class="pill-card-header">
                                 <div>
                                     <p class="pill-plan-label">Ultra</p>
-                                    <p class="pill-plan-note">Annual • Unlimited</p>
+                                    <p class="pill-plan-note">Annual • Pro Power</p>
                                 </div>
                                 <span class="pill-status popular">Popular</span>
                             </header>
@@ -1051,7 +989,7 @@
                                 <span class="pill-period">/year</span>
                             </div>
                             <ul class="pill-features">
-                                <li class="included">AI agent: 200 / year</li>
+                                <li class="included">Optichain Pro Chat: 50 / month</li>
                                 <li class="included">All pro controls unlocked</li>
                                 <li class="included">Concierge support</li>
                                 <li class="included">Early features access</li>
@@ -1081,8 +1019,8 @@
                             </div>
                             <p class="pill-slashed" data-agentic-ultra-alt>৳4299/year</p>
                             <ul class="pill-features">
-                                <li class="included">AI agent: 200 / month (monthly)</li>
-                                <li class="included">AI agent: 1000 / year (annual)</li>
+                                <li class="included">Optichain Pro Chat: 500 / month</li>
+                                <li class="included">Usage meter hidden on this plan</li>
                                 <li class="included">All pro controls unlocked</li>
                                 <li class="included">Priority support & early access</li>
                             </ul>
@@ -1110,7 +1048,7 @@
                                 <span class="pill-period">/month</span>
                             </div>
                             <ul class="pill-features">
-                                <li class="included">AI agent: 5 / day</li>
+                                <li class="included">Optichain Pro Chat: locked</li>
                                 <li class="included">Manage up to 20 customers</li>
                                 <li class="included">Smart reminders</li>
                                 <li class="excluded">Priority support</li>
@@ -1138,7 +1076,7 @@
                                 <span class="pill-period">/month</span>
                             </div>
                             <ul class="pill-features">
-                                <li class="included">AI agent: 100 / month</li>
+                                <li class="included">Optichain Pro Chat: 50 / month</li>
                                 <li class="included">Export + share-ready bills</li>
                                 <li class="included">Voice everywhere</li>
                                 <li class="included">Team-ready dashboards</li>
@@ -1163,68 +1101,81 @@
                 <!-- New Modern Settings UI -->
                 <div class="settings-new">
                     <!-- Header -->
-                    <div class="settings-header-new">
-                        <h1>
-                            <span class="title-en">Settings</span>
-                            <span class="title-bn">সেটিংস</span>
-                        </h1>
-                        <p class="settings-subtitle">
-                            <span class="title-en">Customize your experience</span>
-                            <span class="title-bn">আপনার অভিজ্ঞতা কাস্টমাইজ করুন</span>
-                        </p>
-                    </div>
+	                    <div class="settings-header-new">
+	                        <h1>
+	                            <span class="title-en">Settings</span>
+	                            <span class="title-bn">সেটিংস</span>
+	                        </h1>
+	                        <div class="settings-beta-badge" aria-label="App version">Beta 3</div>
+	                        <p class="settings-subtitle">
+	                            <span class="title-en">Customize your experience</span>
+	                            <span class="title-bn">আপনার অভিজ্ঞতা কাস্টমাইজ করুন</span>
+	                        </p>
+	                    </div>
 
-                    <div class="settings-section-new" id="settings-subscription-overview">
-                        <div class="section-header-new">
-                            <div class="section-icon-new"
-                                style="background: linear-gradient(135deg, #f59e0b, #ec4899);">
+	                    <!-- Premium Quick Access -->
+	                    <div class="settings-section-new" id="settings-premium-quick">
+	                        <div class="section-header-new">
+	                            <div class="section-icon-new"
+	                                style="background: linear-gradient(135deg, #7c3aed, #ec4899);">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
                                     stroke-width="2">
-                                    <path d="M12 1v22"></path>
-                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H7"></path>
+                                    <path
+                                        d="M12 2l3 7 7 .5-5.3 4.6 1.7 7.2L12 18l-6.4 3.3 1.7-7.2L2 9.5 9 9l3-7z">
+                                    </path>
                                 </svg>
                             </div>
                             <div class="section-title-new">
-                                <h3>Subscription</h3>
-                                <p>Current plan and days remaining</p>
+                                <h3>
+                                    <span class="title-en">Premium</span>
+                                    <span class="title-bn">প্রিমিয়াম</span>
+                                </h3>
+                                <p>
+                                    <span class="title-en">Subscription + Pro Chat limits</span>
+                                    <span class="title-bn">সাবস্ক্রিপশন + প্রো চ্যাট লিমিট</span>
+                                </p>
                             </div>
                         </div>
                         <div class="section-content-new">
-                            <div class="subscription-box-new">
-                                <div class="subscription-metrics-new">
-                                    <div class="setting-item-new">
-                                        <span class="setting-label-new">Current plan</span>
-                                        <strong class="setting-value-new" id="settings-current-plan">Free</strong>
-                                    </div>
-                                    <div class="setting-item-new">
-                                        <span class="setting-label-new">Days left</span>
-                                        <strong class="setting-value-new" id="settings-days-left">—</strong>
-                                    </div>
-                                </div>
-                                <div class="renew-box-new" id="settings-renew-box" hidden>
-                                    <div class="renew-box-icon" aria-hidden="true">⏳</div>
-                                    <div class="renew-box-body">
-                                        <div class="renew-box-title" id="settings-renew-title">Renews in</div>
-                                        <div class="renew-box-value" id="settings-renew-value">—</div>
-                                        <div class="renew-box-sub" id="settings-renew-sub">—</div>
+                            <div class="stats-grid-new premium-metrics-grid">
+                                <div class="stat-card-new">
+                                    <span class="stat-icon-new">🏷️</span>
+                                    <div class="stat-info-new">
+                                        <span class="stat-value-new" id="settings-premium-plan">Free</span>
+                                        <span class="stat-label-new">
+                                            <span class="title-en">Current plan</span>
+                                            <span class="title-bn">বর্তমান প্ল্যান</span>
+                                        </span>
                                     </div>
                                 </div>
-                                <p class="support-note-new" id="settings-expiry-note"></p>
-                                <div class="subscription-actions-new">
-                                    <a href="https://www.facebook.com/profile.php?id=61560074175677" target="_blank"
-                                        rel="noopener noreferrer" class="support-btn-new chat">
-                                        Buy / Renew coupon on Facebook
-                                    </a>
-                                    <button type="button" class="support-btn-new upgrade upgrade-plan-btn">
-                                        <span class="title-en">Upgrade Plan</span>
-                                        <span class="title-bn">আপগ্রেড প্ল্যান</span>
-                                    </button>
-                                    <button type="button" class="support-btn-new cancel" id="settings-cancel-sub-btn"
-                                        hidden>
-                                        Cancel subscription
-                                    </button>
+                                <div class="stat-card-new">
+                                    <span class="stat-icon-new">💬</span>
+                                    <div class="stat-info-new">
+                                        <span class="stat-value-new" id="settings-premium-prochat-usage">—</span>
+                                        <span class="stat-label-new" id="settings-premium-prochat-limit">Pro Chat limit</span>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div class="premium-limits-box">
+                                <div class="premium-limits-title">
+                                    <span class="title-en">Pro Chat limits by plan</span>
+                                    <span class="title-bn">প্ল্যান অনুযায়ী প্রো চ্যাট লিমিট</span>
+                                </div>
+                                <ul class="premium-limits-list" aria-label="Pro Chat limits by plan">
+                                    <li><strong>Free</strong> — 0 / month</li>
+                                    <li><strong>Nano</strong> — 0 / month</li>
+                                    <li><strong>Pro</strong> — 50 / month</li>
+                                    <li><strong>Max</strong> — 50 / month</li>
+                                    <li><strong>Ultra</strong> — 50 / month</li>
+                                    <li><strong>Agentic Ultra</strong> — 500 / month</li>
+                                </ul>
+                            </div>
+
+                            <button type="button" class="support-btn-new upgrade" id="settings-premium-btn">
+                                <span class="title-en">Open Premium</span>
+                                <span class="title-bn">প্রিমিয়াম দেখুন</span>
+                            </button>
                         </div>
                     </div>
 
@@ -1368,17 +1319,17 @@
                                 </div>
 
                                 <!-- UI Size -->
-                                <div class="setting-item-new">
-                                    <span class="setting-label-new">
-                                        <span class="title-en">UI Size</span>
-                                        <span class="title-bn">ইউআই সাইজ</span>
-                                    </span>
-                                    <div class="dock-slider-new">
-                                        <input type="range" id="ui-scale-range" min="0.8" max="1.0" step="0.01"
-                                            value="1" />
-                                        <span class="dock-value-new" id="ui-scale-value">100%</span>
-                                    </div>
-                                </div>
+	                                <div class="setting-item-new">
+	                                    <span class="setting-label-new">
+	                                        <span class="title-en">UI Size</span>
+	                                        <span class="title-bn">ইউআই সাইজ</span>
+	                                    </span>
+	                                    <div class="dock-slider-new">
+	                                        <input type="range" id="ui-scale-range" min="0.65" max="1.15" step="0.01"
+	                                            value="1" />
+	                                        <span class="dock-value-new" id="ui-scale-value">100%</span>
+	                                    </div>
+	                                </div>
 
                                 <!-- App View -->
                                 <div class="setting-item-new">
@@ -1396,6 +1347,18 @@
                                             <span class="title-bn">ডেস্কটপ</span>
                                         </button>
                                     </div>
+                                </div>
+
+                                <!-- Dark Mode -->
+                                <div class="setting-item-new">
+                                    <span class="setting-label-new">
+                                        <span class="title-en">Dark Mode</span>
+                                        <span class="title-bn">ডার্ক মোড</span>
+                                    </span>
+                                    <label class="switch-new">
+                                        <input type="checkbox" id="dark-mode-toggle">
+                                        <span class="slider-new"></span>
+                                    </label>
                                 </div>
 
                                 <!-- Simple To-Do Mode -->
@@ -1663,6 +1626,59 @@
                         </div>
                     </div>
 
+                    <!-- AI Payment Prediction Engine -->
+                    <div class="settings-section-new" id="settings-ai-prediction">
+                        <div class="section-header-new">
+                            <div class="section-icon-new"
+                                style="background: linear-gradient(135deg, #0ea5e9, #22c55e);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                    stroke-width="2">
+                                    <path d="M3 3v18h18"></path>
+                                    <path d="M7 14l4-4 4 4 5-7"></path>
+                                </svg>
+                            </div>
+                            <div class="section-title-new">
+                                <h3>
+                                    <span class="title-en">AI Payment Prediction Engine</span>
+                                    <span class="title-bn">এআই পেমেন্ট প্রেডিকশন ইঞ্জিন</span>
+                                </h3>
+                                <p>
+                                    <span class="title-en">Reminds you when customers may pay late</span>
+                                    <span class="title-bn">ক্রেতা দেরিতে দিতে পারে—এমন হলে রিমাইন্ডার</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="section-content-new">
+                            <div class="ai-insights-toolbar">
+                                <button type="button" class="support-btn-new upgrade" id="ai-insights-generate-btn">
+                                    <span class="title-en">Generate Insights</span>
+                                    <span class="title-bn">ইনসাইট তৈরি করুন</span>
+                                </button>
+                            </div>
+
+                            <div class="ai-insights-grid">
+                                <div class="ai-insight-box">
+                                    <div class="ai-insight-title">
+                                        <span class="title-en">Predicted late payments</span>
+                                        <span class="title-bn">দেরি হওয়ার সম্ভাবনা</span>
+                                    </div>
+                                    <div class="ai-insight-sub" id="ai-prediction-subtitle">—</div>
+                                    <div class="ai-prediction-list" id="ai-prediction-list"></div>
+                                </div>
+
+                                <div class="ai-insight-box">
+                                    <div class="ai-insight-title">
+                                        <span class="title-en">Weekly business idea</span>
+                                        <span class="title-bn">সাপ্তাহিক ব্যবসার সারাংশ</span>
+                                    </div>
+                                    <div class="ai-insight-sub" id="ai-weekly-subtitle">—</div>
+                                    <div class="ai-weekly-summary" id="ai-weekly-summary"></div>
+                                    <div class="ai-weekly-list" id="ai-weekly-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Subscription Management (Moved to Bottom) -->
                     <div class="settings-section-new" id="settings-subscription-management">
                         <div class="section-header-new">
@@ -1688,10 +1704,10 @@
                                     </div>
                                     <div class="setting-item-new">
                                         <span class="setting-label-new">Days left</span>
-                                        <strong class="setting-value-new" id="settings-days-left">—</strong>
+                                        <strong class="setting-value-new" id="settings-days-left">0</strong>
                                     </div>
                                 </div>
-                                <div class="renew-box-new" id="settings-renew-box" hidden>
+                                <div class="renew-box-new" id="settings-renew-box">
                                     <div class="renew-box-icon" aria-hidden="true">⏳</div>
                                     <div class="renew-box-body">
                                         <div class="renew-box-title" id="settings-renew-title">Renews in</div>
@@ -1705,12 +1721,45 @@
                                         <span class="title-en">Upgrade Plan</span>
                                         <span class="title-bn">আপগ্রেড প্ল্যান</span>
                                     </button>
+                                    <button type="button" class="support-btn-new upgrade upgrade-plan-btn">
+                                        <span class="title-en">Update Subscription</span>
+                                        <span class="title-bn">সাবস্ক্রিপশন আপডেট</span>
+                                    </button>
                                     <button type="button" class="support-btn-new cancel" id="settings-cancel-sub-btn"
                                         hidden>
                                         Cancel subscription
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Policy / Legal -->
+                    <div class="settings-section-new" id="settings-policy-section">
+                        <div class="section-header-new">
+                            <div class="section-icon-new"
+                                style="background: linear-gradient(135deg, #111827, #374151);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                    stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                            </div>
+                            <div class="section-title-new">
+                                <h3>
+                                    <span class="title-en">Policy</span>
+                                    <span class="title-bn">নীতিমালা</span>
+                                </h3>
+                                <p>
+                                    <span class="title-en">Privacy, data & terms</span>
+                                    <span class="title-bn">প্রাইভেসি, ডাটা ও শর্তাবলী</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="section-content-new">
+                            <button type="button" class="support-btn-new policy" id="policy-open-btn">
+                                <span class="title-en">Open Policy Page</span>
+                                <span class="title-bn">নীতিমালা দেখুন</span>
+                            </button>
                         </div>
                     </div>
 
@@ -1725,7 +1774,7 @@
                             <p class="credits-founder">Founder: <strong>Sajid Hossain</strong></p>
                         </div>
                         <div class="credits-version">
-                            <span>Version 6</span>
+                            <span>Beta 3</span>
                         </div>
                     </div>
                 </div>
@@ -2346,8 +2395,8 @@
                         <span class="title-bn">✨ সীমাহীন ক্রেতা</span>
                     </li>
                     <li>
-                        <span class="title-en">🤖 AI Assistant access</span>
-                        <span class="title-bn">🤖 এআই সহায়ক অ্যাক্সেস</span>
+                        <span class="title-en">🤖 Optichain Pro Chat access</span>
+                        <span class="title-bn">🤖 অপ্টিচেইন প্রো চ্যাট অ্যাক্সেস</span>
                     </li>
                     <li>
                         <span class="title-en">📊 Advanced analytics</span>
@@ -2476,6 +2525,27 @@
                             bills.</span>
                         <span class="title-bn">আসুন দেখি কিভাবে আপনার দোকানের বাকি ও বিল ম্যানেজ করবেন।</span>
                     </p>
+
+                    <div class="onboarding-ui-size" id="onboarding-ui-size">
+                        <div class="onboarding-ui-size-title">
+                            <span class="title-en">UI size</span>
+                            <span class="title-bn">ইউআই সাইজ</span>
+                        </div>
+	                        <div class="onboarding-ui-size-actions" role="group" aria-label="UI size">
+	                            <button type="button" class="onboarding-ui-btn" data-ui-scale="0.78">
+	                                <span class="title-en">Small</span>
+	                                <span class="title-bn">আরও ছোট</span>
+	                            </button>
+	                            <button type="button" class="onboarding-ui-btn" data-ui-scale="0.88">
+	                                <span class="title-en">Compact</span>
+	                                <span class="title-bn">ছোট</span>
+	                            </button>
+	                            <button type="button" class="onboarding-ui-btn" data-ui-scale="1">
+	                                <span class="title-en">Normal</span>
+	                                <span class="title-bn">স্বাভাবিক</span>
+	                            </button>
+	                        </div>
+                    </div>
                 </div>
 
                 <!-- Step 2: Add Customers -->
@@ -2758,15 +2828,59 @@
         <span class="voice-status-text" data-i18n="voice.listening">Listening...</span>
     </div>
 
-    <dialog class="modal ai-paywall-modal" id="ai-paywall-modal" aria-labelledby="ai-paywall-title">
-        <div class="modal-form ai-paywall-card">
-            <div class="ai-paywall-icon">🤖</div>
-            <h2 id="ai-paywall-title">Upgrade to Max to use the Agent more.</h2>
-            <p class="ai-paywall-subtitle">আজকের জন্য ফ্রি AI শেষ। Max নিলে ১০০ বার ব্যবহার করতে পারবেন।</p>
+    <dialog class="modal" id="policy-modal" aria-labelledby="policy-modal-title">
+        <div class="modal-form">
+            <div class="modal-header-with-close">
+                <h2 id="policy-modal-title">
+                    <span class="title-en">Policy (Beta 3)</span>
+                    <span class="title-bn">নীতিমালা (বেটা ৩)</span>
+                </h2>
+                <button type="button" class="modal-close-x" data-close aria-label="Close">✕</button>
+            </div>
+
+            <div class="policy-content">
+                <h3>
+                    <span class="title-en">Privacy & Data</span>
+                    <span class="title-bn">প্রাইভেসি ও ডাটা</span>
+                </h3>
+                <p>
+                    <span class="title-en">DebtX stores your data on this device (browser storage). We don’t upload your customer list unless you use an online feature that explicitly sends data.</span>
+                    <span class="title-bn">DebtX আপনার ডাটা এই ডিভাইসেই রাখে (ব্রাউজার স্টোরেজ)। আপনি অনলাইন ফিচার ব্যবহার না করলে ক্রেতার ডাটা আপলোড হয় না।</span>
+                </p>
+
+                <h3>
+                    <span class="title-en">AI Features</span>
+                    <span class="title-bn">এআই ফিচার</span>
+                </h3>
+                <p>
+                    <span class="title-en">If you connect an AI API key, messages you send may be processed by the selected AI provider. Don’t share passwords or sensitive personal info.</span>
+                    <span class="title-bn">আপনি এআই API কী যোগ করলে, আপনার পাঠানো মেসেজ নির্বাচিত এআই প্রোভাইডার প্রসেস করতে পারে। পাসওয়ার্ড বা সংবেদনশীল তথ্য শেয়ার করবেন না।</span>
+                </p>
+
+                <h3>
+                    <span class="title-en">Backups</span>
+                    <span class="title-bn">ব্যাকআপ</span>
+                </h3>
+                <p>
+                    <span class="title-en">Use Export/Import to keep a backup. Clearing browser data may permanently remove your records.</span>
+                    <span class="title-bn">Export/Import ব্যবহার করে ব্যাকআপ রাখুন। ব্রাউজারের ডাটা ক্লিয়ার করলে আপনার রেকর্ড স্থায়ীভাবে মুছে যেতে পারে।</span>
+                </p>
+
+                <h3>
+                    <span class="title-en">Terms</span>
+                    <span class="title-bn">শর্তাবলী</span>
+                </h3>
+                <p>
+                    <span class="title-en">This app is in Beta 3. Features may change, and you are responsible for verifying amounts before sending bills or requests.</span>
+                    <span class="title-bn">এই অ্যাপটি বেটা ৩। ফিচার পরিবর্তন হতে পারে, এবং বিল/রিকুয়েস্ট পাঠানোর আগে পরিমাণ যাচাই করা আপনার দায়িত্ব।</span>
+                </p>
+            </div>
+
             <div class="modal-actions">
-                <button type="button" class="secondary-btn" data-close data-i18n="ai.paywallLater">Not now</button>
-                <button type="button" class="primary-btn" id="ai-paywall-upgrade-btn" data-i18n="ai.paywallCta">See Max
-                    plan</button>
+                <button type="button" class="secondary-btn" data-close>
+                    <span class="title-en">Close</span>
+                    <span class="title-bn">বন্ধ করুন</span>
+                </button>
             </div>
         </div>
     </dialog>
