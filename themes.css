@@ -13,7 +13,9 @@ html[data-theme="studio-pro"] {
     
     /* Core Colors */
     --bg: #f5f4f0;
+    --bg-rgb: 245, 244, 240;
     --surface: #ffffff;
+    --surface-rgb: 255, 255, 255;
     --surface-soft: #f1f2f4;
     --surface-elevated: #ffffff;
     --border: #d9dde2;
@@ -96,7 +98,9 @@ html[data-theme="cozy-ledger"] {
     
     /* Core Colors */
     --bg: #faf7f4;
+    --bg-rgb: 250, 247, 244;
     --surface: #ffffff;
+    --surface-rgb: 255, 255, 255;
     --surface-soft: #f5f0eb;
     --surface-elevated: #ffffff;
     --border: #e8e0d8;
@@ -179,7 +183,9 @@ html[data-theme="clean-business"] {
     
     /* Core Colors */
     --bg: #ffffff;
+    --bg-rgb: 255, 255, 255;
     --surface: #ffffff;
+    --surface-rgb: 255, 255, 255;
     --surface-soft: #f8f9fa;
     --surface-elevated: #ffffff;
     --border: #e9ecef;
@@ -262,7 +268,9 @@ html[data-theme="night-shop"] {
     
     /* Core Colors */
     --bg: #0c0f14;
+    --bg-rgb: 12, 15, 20;
     --surface: #151921;
+    --surface-rgb: 21, 25, 33;
     --surface-soft: #1c222d;
     --surface-elevated: #232a38;
     --border: #323d4d;
@@ -280,11 +288,11 @@ html[data-theme="night-shop"] {
     --accent-soft: rgba(110, 231, 183, 0.12);
     --secondary: #6b7280;
     
-    /* Text Colors */
-    --text: #f1f5f9;
-    --text-soft: #94a3b8;
-    --text-muted: #64748b;
-    --text-on-primary: #0c0f14;
+	    /* Text Colors */
+	    --text: #f1f5f9;
+	    --text-soft: #94a3b8;
+	    --text-muted: #64748b;
+	    --text-on-primary: #ffffff;
     
     /* Status Colors - Adjusted for dark mode visibility */
     --success: #34d399;
@@ -345,7 +353,9 @@ html[data-theme="zen-finance"] {
     
     /* Core Colors */
     --bg: #f8fafb;
+    --bg-rgb: 248, 250, 251;
     --surface: #ffffff;
+    --surface-rgb: 255, 255, 255;
     --surface-soft: #f0f5f7;
     --surface-elevated: #ffffff;
     --border: #e2e8ec;
@@ -428,7 +438,9 @@ html[data-theme="street-ledger"] {
     
     /* Core Colors */
     --bg: #f7f7f8;
+    --bg-rgb: 247, 247, 248;
     --surface: #ffffff;
+    --surface-rgb: 255, 255, 255;
     --surface-soft: #f0f0f2;
     --surface-elevated: #ffffff;
     --border: #e0e0e4;
@@ -511,7 +523,9 @@ html[data-theme="classic-paper"] {
     
     /* Core Colors */
     --bg: #fdfbf7;
+    --bg-rgb: 253, 251, 247;
     --surface: #fffef9;
+    --surface-rgb: 255, 254, 249;
     --surface-soft: #f8f5ef;
     --surface-elevated: #ffffff;
     --border: #e8e4da;
